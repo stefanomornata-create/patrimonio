@@ -680,6 +680,8 @@ const CAT_COLORS = {
   'Lavoro':       '#5c6bc0',
   'Commissioni':  '#78909c',
   'Per conto terzi': '#f57c00',
+  'Regali/Donazioni': '#e91e8c',
+  'Svago/Intrattenimento': '#7b1fa2',
   'Altro':        '#707070'
 };
 
@@ -887,7 +889,7 @@ function catEmoji(cat) {
   const map = {
     'Alimentari':'🛒','Ristorazione':'🍽','Trasporti':'🚗','Abbonamenti':'📱',
     'Utenze':'⚡','Salute':'💊','Cura personale':'🛍','Casa':'🏠','Investimenti':'📈',
-    'Entrate':'💰','Tasse/Contributi':'🏛','Viaggi/Vacanze':'✈️','Lavoro':'💼','Commissioni':'🏷','Per conto terzi':'🤝','Giroconto':'🔄','Altro':'📌'
+    'Entrate':'💰','Tasse/Contributi':'🏛','Viaggi/Vacanze':'✈️','Lavoro':'💼','Commissioni':'🏷','Per conto terzi':'🤝','Regali/Donazioni':'🎁','Svago/Intrattenimento':'🎭','Giroconto':'🔄','Altro':'📌'
   };
   return map[cat] || '📌';
 }
@@ -896,7 +898,7 @@ function catEmoji(cat) {
 const ALL_CATS = [
   'Alimentari','Ristorazione','Trasporti','Abbonamenti','Utenze',
   'Salute','Cura personale','Casa','Investimenti',
-  'Entrate','Tasse/Contributi','Viaggi/Vacanze','Lavoro','Commissioni','Per conto terzi','Giroconto','Altro'
+  'Entrate','Tasse/Contributi','Viaggi/Vacanze','Lavoro','Commissioni','Per conto terzi','Regali/Donazioni','Svago/Intrattenimento','Giroconto','Altro'
 ];
 
 // ─── Transazioni ─────────────────────────────────────────────────
@@ -1940,6 +1942,8 @@ function guessCat(desc, tipoOp, prodotto) {
   if(/zara|h&m|decathlon|mediaworld|unieuro|abbigliamento|zalando/.test(d)) return 'Cura personale';
   if(/affitto|mutuo|condominio|rent|mortgage|arredo|bricolage/.test(d)) return 'Casa';
   if(/cancelleria|cartoleria|ufficio|stampante|toner|software|abbonamento professionale|commercialista|consulenza|formazione professionale|corso di aggiornamento|ordine professional/.test(d)) return 'Lavoro';
+  if(/regalo|regali|donazione|donazioni|beneficenza|charity|gift/.test(d)) return 'Regali/Donazioni';
+  if(/cinema|teatro|museo|concerto|sport|palestra|fitness|giochi|videogiochi|svago|intrattenimento|parco|zoo|gita/.test(d)) return 'Svago/Intrattenimento';
   if(/hotel|albergo|hostel|b&b|airbnb|booking|agriturismo|resort|villaggio|campeggio|volo|aereo|ryanair|easyjet|trenitalia vacanz/.test(d)) return 'Viaggi/Vacanze';
   if(/fondo|pac|etf|azioni|obbligazioni|investiment/.test(d)) return 'Investimenti';
   if(/stipendio|salary|accredito/.test(d)) return 'Entrate';
@@ -1965,7 +1969,7 @@ Ogni transazione deve avere questi campi:
 - descrizione: stringa (massimo 80 caratteri)
 - importo: numero positivo
 - tipo: "uscita" o "entrata"
-- categoria: una di: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Altro
+- categoria: una di: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Altro
 
 Testo estratto dall'estratto conto (file: ${filename}):
 ---
@@ -2005,7 +2009,7 @@ async function categorizeTx(transactions) {
   if(!toCateg.length) return transactions;
 
   const items = toCateg.map((t,i)=>({i, desc: t.descrizione}));
-  const prompt = `Categorizza queste descrizioni di transazioni bancarie italiane. Rispondi SOLO con un JSON array di oggetti {i, categoria}. Categorie disponibili: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Altro.
+  const prompt = `Categorizza queste descrizioni di transazioni bancarie italiane. Rispondi SOLO con un JSON array di oggetti {i, categoria}. Categorie disponibili: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Altro.
 
 ${JSON.stringify(items)}
 
