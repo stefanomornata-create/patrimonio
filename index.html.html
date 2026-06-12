@@ -697,6 +697,7 @@ let charts = {};
 // ─── Persist ─────────────────────────────────────────────────────
 function save() {
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
+  scheduleDriveSave();
 }
 function load() {
   try {
@@ -2625,18 +2626,14 @@ function renderGdriveStatus() {
   }
 }
 
-// Auto-save to Drive after every save()
-const _origSave = save;
-function save() {
-  _origSave();
-  try {
-    if(gdriveIsConnected()) {
-      clearTimeout(save._driveTimer);
-      save._driveTimer = setTimeout(() => {
-        try { gdriveSave(); } catch(e) { console.warn('Drive save error:', e); }
-      }, 2000);
-    }
-  } catch(e) { console.warn('Drive check error:', e); }
+// Auto-save to Drive — called explicitly, not by overriding save()
+let _driveTimer = null;
+function scheduleDriveSave() {
+  if(!gdriveIsConnected()) return;
+  clearTimeout(_driveTimer);
+  _driveTimer = setTimeout(() => {
+    try { gdriveSave(); } catch(e) { console.warn('Drive save error:', e); }
+  }, 3000);
 }
 
 
