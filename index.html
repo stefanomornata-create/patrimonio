@@ -697,6 +697,7 @@ let charts = {};
 // ─── Persist ─────────────────────────────────────────────────────
 function save() {
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
+  scheduleDriveSave();
 }
 function load() {
   try {
@@ -1113,7 +1114,7 @@ function saveConto() {
   const obj = {
     banca,
     iban: document.getElementById('m-iban').value.trim(),
-    saldo: parseFloat(document.getElementById('m-saldo').value) || 0,
+    saldo: parseFloat((document.getElementById('m-saldo').value || '0').replace(',', '.')) || 0,
     colore: selectedColor,
     isPortafoglio: document.getElementById('m-portafoglio').checked,
     isSalvadanaio: document.getElementById('m-salvadanaio').checked,
@@ -2476,6 +2477,7 @@ function clearAll() {
 const GDRIVE_CLIENT_ID = '790034984442-vahm3d4sbl5662at3rh0vp7ansqai37c.apps.googleusercontent.com';
 const GDRIVE_FILENAME  = 'patrimonio_monitor_data.json';
 const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.appdata';
+const GDRIVE_BASE_URL  = 'https://stefanomornata-create.github.io/patrimonio';
 
 let gdriveToken = null;
 let gdriveFileId = null;
@@ -2624,14 +2626,14 @@ function renderGdriveStatus() {
   }
 }
 
-// Auto-save to Drive after every save()
-const _origSave = save;
-function save() {
-  _origSave();
-  if(gdriveIsConnected()) {
-    clearTimeout(save._driveTimer);
-    save._driveTimer = setTimeout(gdriveSave, 2000); // debounce 2s
-  }
+// Auto-save to Drive — called explicitly, not by overriding save()
+let _driveTimer = null;
+function scheduleDriveSave() {
+  if(!gdriveIsConnected()) return;
+  clearTimeout(_driveTimer);
+  _driveTimer = setTimeout(() => {
+    try { gdriveSave(); } catch(e) { console.warn('Drive save error:', e); }
+  }, 3000);
 }
 
 
