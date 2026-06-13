@@ -237,10 +237,66 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .sidebar { width: 60px; padding: 1.5rem .5rem; }
-  .sidebar .logo, .sidebar .nav-label, .nav-item span { display: none; }
-  .main { margin-left: 60px; padding: 1.5rem 1rem; }
-  .two-col, .three-col { grid-template-columns: 1fr; }
+  /* Sidebar diventa bottom navigation */
+  .shell { flex-direction: column; }
+  .sidebar {
+    position: fixed; bottom: 0; left: 0; right: 0; top: auto;
+    width: 100%; height: 64px; padding: 0;
+    flex-direction: row; align-items: center; justify-content: space-around;
+    border-right: none; border-top: 1px solid var(--border);
+    background: var(--surface); z-index: 100;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+  }
+  .sidebar .logo, .sidebar .nav-label, .nav-item span, .nav-sep { display: none; }
+  .nav-item {
+    flex-direction: column; gap: 2px; padding: 6px; margin: 0;
+    flex: 1; max-width: 70px; border-radius: 10px;
+    justify-content: center;
+  }
+  .nav-item svg { width: 24px; height: 24px; }
+  /* Pulsante spesa contanti evidenziato nella bottom bar */
+  .nav-item.cash-btn {
+    background: var(--accent) !important; color: #fff !important;
+    border-radius: 50%; width: 52px; height: 52px; max-width: 52px;
+    margin-top: -18px; box-shadow: 0 4px 12px rgba(44,95,46,0.4);
+    flex: 0 0 52px;
+  }
+  .nav-item.cash-btn svg { width: 26px; height: 26px; }
+
+  .main { margin-left: 0; padding: 1.25rem 1rem 90px 1rem; }
+  .two-col, .three-col, .metric-grid { grid-template-columns: 1fr; gap: 12px; }
+  .page-title { font-size: 26px; }
+  .metric-value { font-size: 26px; }
+  .card { padding: 1rem; }
+
+  /* Transazioni: tabella → carte impilate su mobile */
+  .tx-table thead { display: none; }
+  .tx-table, .tx-table tbody, .tx-table tr, .tx-table td { display: block; width: 100%; }
+  .tx-table tr {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    position: relative;
+  }
+  .tx-table td {
+    border: none !important;
+    padding: 3px 0 !important;
+    text-align: left !important;
+    white-space: normal !important;
+    max-width: none !important;
+  }
+  /* Prima colonna (toggle) e importo in alto */
+  .tx-table td:first-child { position: absolute; top: 10px; right: 12px; width: auto; }
+  .tx-table td:nth-child(2) { font-size: 12px; color: var(--text-muted); }
+  .tx-table td:nth-child(3) { font-size: 15px; font-weight: 500; padding-right: 36px !important; }
+  .tx-table td:last-child { text-align: left !important; font-size: 16px; font-weight: 600; margin-top: 4px; }
+
+  /* Modali a tutto schermo su mobile */
+  .modal { width: 95vw !important; max-width: 95vw !important; max-height: 88vh; overflow-y: auto; }
+
+  /* Grafici più compatti */
+  canvas { max-height: 240px !important; }
 }
 
 /* Animations */
@@ -283,7 +339,7 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
     <span>Impostazioni</span>
   </button>
   <div class="nav-sep"></div>
-  <button class="nav-item" onclick="openModalContanti()" style="background:var(--accent-light);color:var(--accent);">
+  <button class="nav-item cash-btn" onclick="openModalContanti()" style="background:var(--accent-light);color:var(--accent);">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 12h.01M18 12h.01"/></svg>
     <span>+ Spesa contanti</span>
   </button>
