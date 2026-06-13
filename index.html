@@ -577,7 +577,7 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
     </div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
       <input type="checkbox" id="m-salvadanaio" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked){document.getElementById('m-portafoglio').checked=false;document.getElementById('m-salvadanaio-virtuale').checked=false;}" />
-      <label for="m-salvadanaio" style="font-size:13px;color:var(--text-muted);cursor:pointer;">🪙 Questo è il mio salvadanaio fisico</label>
+      <label for="m-salvadanaio" style="font-size:13px;color:var(--text-muted);cursor:pointer;">🐷 Questo è il mio salvadanaio fisico</label>
     </div>
     <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
       <input type="checkbox" id="m-salvadanaio-virtuale" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked){document.getElementById('m-portafoglio').checked=false;document.getElementById('m-salvadanaio').checked=false;document.getElementById('m-paypal').checked=false;}" />
@@ -639,7 +639,7 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
         <option value="uscita">💸 Spesa (uscita)</option>
         <option value="entrata_prelievo">💵 Prelievo contanti (accredito al portafoglio)</option>
         <option value="entrata">💰 Entrata (es. rimborso ricevuto)</option>
-        <option value="salvadanaio">🪙 Aggiungi al salvadanaio (spicci)</option>
+        <option value="salvadanaio">🐷 Aggiungi al salvadanaio (spicci)</option>
         <option value="preleva_salvadanaio">🏦 Preleva dal salvadanaio (es. cambio monete)</option>
         <option value="paypal_out">🅿 Uscita PayPal</option>
         <option value="paypal_in">🅿 Entrata PayPal</option>
@@ -849,7 +849,7 @@ function renderBankList() {
     <div class="bank-row">
       <div class="bank-dot" style="background:${a.colore}"></div>
       <div style="flex:1;">
-        <div class="bank-name">${a.banca} ${a.isPortafoglio ? '<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;margin-left:4px;">💵 Contanti</span>' : ''}${a.isSalvadanaio ? '<span style="font-size:11px;background:#fff8e1;color:#b7950b;padding:1px 8px;border-radius:10px;margin-left:4px;">🪙 Salvadanaio</span>' : ''}${a.isSalvadanaioVirtuale ? '<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;margin-left:4px;">💰 Virtuale</span>' : ''}${a.isPaypal ? '<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;margin-left:4px;">🅿 PayPal</span>' : ''}</div>
+        <div class="bank-name">${a.banca} ${a.isPortafoglio ? '<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;margin-left:4px;">💵 Contanti</span>' : ''}${a.isSalvadanaio ? '<span style="font-size:11px;background:#fff8e1;color:#b7950b;padding:1px 8px;border-radius:10px;margin-left:4px;">🐷 Salvadanaio</span>' : ''}${a.isSalvadanaioVirtuale ? '<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;margin-left:4px;">💰 Virtuale</span>' : ''}${a.isPaypal ? '<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;margin-left:4px;">🅿 PayPal</span>' : ''}</div>
         ${a.iban ? `<div class="bank-iban">${a.iban}</div>` : ''}
       </div>
       <div style="text-align:right;">
@@ -1265,7 +1265,7 @@ async function processFile(file, tipoHint) {
       const sv = getSalvadanaioVirtuale();
       if(sv) {
         sv.saldo = (sv.saldo || 0) + risparmiPositivi;
-        logMsg(`🪙 Salvadanaio virtuale aggiornato: +${fmt(risparmiPositivi)}`, 'ok');
+        logMsg(`🐷 Salvadanaio virtuale aggiornato: +${fmt(risparmiPositivi)}`, 'ok');
       } else {
         logMsg('⚠ Trovati accrediti risparmi Revolut ma nessun salvadanaio virtuale configurato.', 'warn');
       }
