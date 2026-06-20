@@ -1311,7 +1311,27 @@ async function processFile(file, tipoHint) {
     // Assegna tutte le transazioni al conto provvisorio (aggiornato dopo selezione)
     const contoName = guessContoName(file.name);
     transactions.forEach(t => { if(!t.conto) t.conto = contoName; });
-    state.transactions.push(...transactions);
+
+    // Controllo anti-duplicati: salta transazioni già presenti (stessa data + importo + descrizione)
+    const existingKeys = new Set(
+      state.transactions.map(t => `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
+    );
+    const txNuove = [];
+    const txDuplicate = [];
+    transactions.forEach(t => {
+      const key = `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
+      if(existingKeys.has(key)) {
+        txDuplicate.push(t);
+      } else {
+        txNuove.push(t);
+        existingKeys.add(key); // Aggiunge al set per evitare duplicati anche all'interno dello stesso import
+      }
+    });
+    if(txDuplicate.length > 0) {
+      logMsg(`⚠ ${txDuplicate.length} transazioni duplicate saltate (già presenti).`, 'warn');
+    }
+    state.transactions.push(...txNuove);
+    transactions = txNuove; // Aggiorna per il calcolo del salvadanaio e il modal
 
     // Aggiorna saldo salvadanaio virtuale con gli accrediti risparmi positivi
     const risparmiPositivi = transactions
@@ -1329,7 +1349,7 @@ async function processFile(file, tipoHint) {
 
     save();
 
-    logMsg(`✅ ${transactions.length} transazioni importate correttamente.`, 'ok');
+    logMsg(`✅ ${txNuove ? txNuove.length : transactions.length} transazioni importate correttamente.`, 'ok');
     showProgress('Completato!', 100);
     setTimeout(() => {
       hideProgress();
@@ -1654,51 +1674,60 @@ function parseCSV(text, filename) {
   }
 
   // ── BBVA format detector ─────────────────────────────────────────
-  // CSV export da Excel: separatore ";", prime righe intestazione, poi header
-  // Header NON è sulla riga 0 — va cercato tra le prime righe
-  const bbvaHdrLine = lines.slice(0, 5).find(l =>
+  // Gestisce due formati:
+  // 1. CSV export: separatore ";", ha "Causale", importo "X.XX EUR"
+  // 2. Excel export (→CSV via XLSX): separatore ",", ha "Parola chiave", importo numerico
+  const bbvaHdrLine = lines.slice(0, 8).find(l =>
     l.toLowerCase().includes('data valuta') &&
-    (l.toLowerCase().includes('causale') || l.toLowerCase().includes('movimento'))
+    (l.toLowerCase().includes('causale') || l.toLowerCase().includes('parola chiave'))
   );
   const isBBVA = !!bbvaHdrLine;
   if(isBBVA) {
-    // Preprocess: ricongiunge le righe spezzate dal pattern '"-\n-"' di BBVA
-    const rawText2 = lines.join('\n').replace(/"-\n-"/g, '""');
+    const isBBVAExcel = bbvaHdrLine.toLowerCase().includes('parola chiave');
+    const bbvaSep = isBBVAExcel ? ',' : ';';
+
+    // Solo per il CSV: ricongiunge le righe spezzate dal pattern '"-\n-"'
+    const rawText2 = isBBVAExcel
+      ? lines.join('\n')
+      : lines.join('\n').replace(/"-\n-"/g, '""');
     const fixedLines = rawText2.split('\n');
 
-    // Usa l'header già trovato sopra (bbvaHdrLine)
     const hdrLine = fixedLines.find(l =>
       l.toLowerCase().includes('data valuta') &&
-      (l.toLowerCase().includes('causale') || l.toLowerCase().includes('movimento'))
+      (l.toLowerCase().includes('causale') || l.toLowerCase().includes('parola chiave'))
     );
     if(!hdrLine) return transactions;
-    const bbvaCols = hdrLine.split(';').map(c => c.toLowerCase().replace(/"/g,'').trim());
+    const bbvaCols = hdrLine.split(bbvaSep).map(c => c.toLowerCase().replace(/"/g,'').trim());
     const bbvaIData  = bbvaCols.findIndex(c => c.includes('data valuta'));
-    const bbvaIDesc1 = bbvaCols.findIndex(c => c.includes('causale'));
+    const bbvaIDesc1 = bbvaCols.findIndex(c => c.includes('causale') || c.includes('parola chiave'));
     const bbvaIDesc2 = bbvaCols.findIndex(c => c.includes('movimento'));
-    const bbvaIDesc3 = bbvaCols.findIndex(c => c.includes('beneficiario'));
-    const bbvaIImp   = bbvaCols.findIndex(c => c.includes('importo'));
+    const bbvaIImp   = bbvaCols.findIndex(c => c === 'importo' || (c.includes('importo') && !c.includes('disponib')));
     const hdrIdx     = fixedLines.indexOf(hdrLine);
 
     for(let i = hdrIdx + 1; i < fixedLines.length; i++) {
-      const cells = splitCSVLine(fixedLines[i], ';');
+      const cells = splitCSVLine(fixedLines[i], bbvaSep);
       if(!cells || cells.length < 4) continue;
 
-      // Importo: "-219.6 EUR" o "300 EUR" — punto decimale anglosassone
-      const impRaw = cleanVal(cells[bbvaIImp] || '').replace(/\s*EUR\s*/i,'').trim();
-      const raw = parseNum(impRaw, true);
+      let raw;
+      if(isBBVAExcel) {
+        // Excel: importo già numerico (es. -3.4), punto decimale anglosassone
+        const impRaw = cleanVal(cells[bbvaIImp] || '').trim();
+        raw = parseNum(impRaw, true);
+      } else {
+        // CSV: importo come stringa "-219.6 EUR"
+        const impRaw = cleanVal(cells[bbvaIImp] || '').replace(/\s*EUR\s*/i,'').trim();
+        raw = parseNum(impRaw, true);
+      }
       if(raw === 0) continue;
       const importo = Math.abs(raw);
       const tipo = raw < 0 ? 'uscita' : 'entrata';
 
-      // Descrizione da causale + movimento (beneficiario è sempre vuoto nel CSV)
       const d1 = cleanVal(cells[bbvaIDesc1]||'').trim();
-      const d2 = cleanVal(cells[bbvaIDesc2]||'').trim();
+      const d2 = bbvaIDesc2 >= 0 ? cleanVal(cells[bbvaIDesc2]||'').trim() : '';
       const descParts = [d1, d2].filter(p => p && p !== '-' && p.toLowerCase() !== 'nan' && p !== '""');
       const desc = descParts.join(' | ').substring(0, 100);
       if(!desc) continue;
 
-      // Data: dd/mm/yyyy
       const dataRaw = cleanVal(cells[bbvaIData]||'');
       const data = parseDate(dataRaw);
 
