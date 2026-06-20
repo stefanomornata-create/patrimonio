@@ -913,6 +913,7 @@ function renderBankList() {
         <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
       </div>
       <button class="btn btn-sm" onclick="openModalConto(${i})" style="margin-left:8px;">Modifica</button>
+      <button class="btn btn-sm" onclick="deleteContoTransazioni(${i})" style="margin-left:4px;color:var(--warning);border-color:var(--warning);" title="Elimina tutte le transazioni di questo conto">🗑</button>
       <button class="btn-danger" onclick="deleteConto(${i})">✕</button>
     </div>`).join('');
 }
@@ -1196,6 +1197,18 @@ function saveConto() {
   closeModalConto();
   renderAll();
 }
+function deleteContoTransazioni(i) {
+  const conto = state.accounts[i];
+  if(!conto) return;
+  const count = state.transactions.filter(t => t.conto === conto.banca).length;
+  if(count === 0) { alert('Nessuna transazione trovata per ' + conto.banca); return; }
+  if(!confirm('Eliminare ' + count + ' transazioni del conto ' + conto.banca + '?\nIl saldo del conto NON verrà modificato.')) return;
+  state.transactions = state.transactions.filter(t => t.conto !== conto.banca);
+  save();
+  renderAll();
+  logMsg('🗑 ' + count + ' transazioni di ' + conto.banca + ' eliminate.', 'ok');
+}
+
 function deleteConto(i) {
   if(!confirm('Eliminare questo conto?')) return;
   state.accounts.splice(i,1);
