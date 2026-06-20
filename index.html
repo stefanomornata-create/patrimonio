@@ -1490,13 +1490,9 @@ function parseCSV(text, filename) {
 
       const tipoOp = cleanVal(cells[trIType]||'').toUpperCase();
 
-      // Tipo transazione
-      let tipo;
-      if(tipoOp.includes('INBOUND') || tipoOp === 'INTEREST_PAYMENT') {
-        tipo = 'entrata';
-      } else {
-        tipo = raw < 0 ? 'uscita' : 'entrata';
-      }
+      // Tipo transazione: il segno dell'importo è sempre affidabile in Trade Republic
+      // DIRECT_DEBIT_INBOUND ha importo negativo nonostante "INBOUND" nel nome
+      const tipo = raw < 0 ? 'uscita' : 'entrata';
 
       // Descrizione: usa description, poi name/symbol se disponibili
       const desc1 = cleanVal(cells[trIDesc]||'');
