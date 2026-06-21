@@ -668,6 +668,43 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
 </div>
 
 <!-- MODAL SPESA CONTANTI -->
+<!-- Modal modifica transazione -->
+<div class="modal-bg" id="modal-edit-tx">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Modifica transazione">
+    <div class="modal-title">✏️ Modifica transazione</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Data</label>
+        <input type="date" class="form-input" id="etx-data" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Importo (€)</label>
+        <input type="number" class="form-input" id="etx-importo" step="0.01" min="0" placeholder="0.00" />
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo</label>
+      <select class="form-input" id="etx-tipo">
+        <option value="uscita">💸 Uscita</option>
+        <option value="entrata">💰 Entrata</option>
+        <option value="Giroconto">🔄 Giroconto</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descrizione</label>
+      <input type="text" class="form-input" id="etx-desc" placeholder="Descrizione…" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoria</label>
+      <select class="form-input" id="etx-cat"></select>
+    </div>
+    <div class="btn-row" style="justify-content:flex-end;margin-top:1rem;">
+      <button class="btn" onclick="document.getElementById('modal-edit-tx').classList.remove('open')">Annulla</button>
+      <button class="btn btn-primary" onclick="saveTxEdit()">Salva</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bg" id="modal-contanti">
   <div class="modal" role="dialog" aria-modal="true" aria-label="Registra spesa contanti">
     <div class="modal-title">💵 Spesa in contanti</div>
@@ -1024,6 +1061,9 @@ function renderTransazioni() {
       </td>
       <td style="color:var(--text-muted);font-size:12px;">${t.conto||'—'}</td>
       <td style="text-align:right;" class="${t.tipo==='entrata'?'amount-pos':'amount-neg'}">${t.tipo==='entrata'?'+':'−'}${fmt(t.importo)}</td>
+      <td style="text-align:center;padding:0 4px;">
+        <span title="Modifica transazione" onclick="editTx(${t._idx})" style="cursor:pointer;font-size:14px;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✏️</span>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -1043,6 +1083,56 @@ function toggleExclude(idx) {
 function changeCat(idx, newCat) {
   if(!newCat || !state.transactions[idx]) return;
   state.transactions[idx].categoria = newCat;
+  save();
+  renderTransazioni();
+  renderCatList();
+  renderCharts();
+  renderMetrics();
+}
+
+// ─── Modifica singola transazione ─────────────────────────────────
+let _editTxIdx = -1;
+
+function editTx(idx) {
+  const tx = state.transactions[idx];
+  if(!tx) return;
+  _editTxIdx = idx;
+
+  // Popola campi
+  document.getElementById('etx-data').value = tx.data || '';
+  document.getElementById('etx-importo').value = tx.importo != null ? tx.importo : '';
+  document.getElementById('etx-desc').value = tx.descrizione || '';
+
+  // Tipo
+  const tipoSel = document.getElementById('etx-tipo');
+  const tipoVal = tx.tipo === 'Giroconto' ? 'Giroconto' : (tx.tipo || 'uscita');
+  tipoSel.value = ['entrata','uscita','Giroconto'].includes(tipoVal) ? tipoVal : 'uscita';
+
+  // Categoria
+  const catSel = document.getElementById('etx-cat');
+  catSel.innerHTML = ALL_CATS.map(c => `<option value="${c}"${c===tx.categoria?' selected':''}>${catEmoji(c)} ${c}</option>`).join('');
+
+  document.getElementById('modal-edit-tx').classList.add('open');
+}
+
+function saveTxEdit() {
+  if(_editTxIdx < 0 || !state.transactions[_editTxIdx]) return;
+  const tx = state.transactions[_editTxIdx];
+
+  const nuovaData = document.getElementById('etx-data').value;
+  const nuovoImporto = parseFloat(document.getElementById('etx-importo').value);
+  const nuovaDesc = document.getElementById('etx-desc').value.trim();
+  const nuovoTipo = document.getElementById('etx-tipo').value;
+  const nuovaCat = document.getElementById('etx-cat').value;
+
+  if(nuovaData) tx.data = nuovaData;
+  if(!isNaN(nuovoImporto) && nuovoImporto > 0) tx.importo = nuovoImporto;
+  if(nuovaDesc) tx.descrizione = nuovaDesc;
+  tx.tipo = nuovoTipo;
+  if(nuovaCat) tx.categoria = nuovaCat;
+
+  _editTxIdx = -1;
+  document.getElementById('modal-edit-tx').classList.remove('open');
   save();
   renderTransazioni();
   renderCatList();
