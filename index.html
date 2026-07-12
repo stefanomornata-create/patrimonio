@@ -1409,14 +1409,18 @@ async function processFile(file, tipoHint) {
     const contoName = guessContoName(file.name);
     transactions.forEach(t => { if(!t.conto) t.conto = contoName; });
 
-    // Controllo anti-duplicati: salta transazioni già presenti (stessa data + importo + descrizione)
+    // Controllo anti-duplicati: salta transazioni già presenti (stesso conto + data + importo + descrizione)
+    // Il conto è incluso nella chiave per evitare falsi positivi tra conti diversi:
+    // un bonifico in uscita da un conto e il corrispondente in entrata su un altro conto
+    // (es. Trade Republic -> BBVA) hanno spesso stessa data e stesso importo, ma sono
+    // due transazioni reali distinte e vanno registrate su entrambi i conti.
     const existingKeys = new Set(
-      state.transactions.map(t => `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
+      state.transactions.map(t => `${t.conto||''}|${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
     );
     const txNuove = [];
     const txDuplicate = [];
     transactions.forEach(t => {
-      const key = `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
+      const key = `${t.conto||''}|${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
       if(existingKeys.has(key)) {
         txDuplicate.push(t);
       } else {
@@ -1556,7 +1560,8 @@ function parseCSV(text, filename) {
         descrizione: desc.trim(),
         importo,
         tipo,
-        categoria: guessCat(desc, tipoOp, prodotto)
+        categoria: guessCat(desc, tipoOp, prodotto),
+        conto: 'Revolut'
       });
     }
     return transactions;
@@ -1621,7 +1626,7 @@ function parseCSV(text, filename) {
         categoria = guessCat(desc, '', '');
       }
 
-      transactions.push({ data, descrizione: desc, importo, tipo, categoria });
+      transactions.push({ data, descrizione: desc, importo, tipo, categoria, conto: 'Trade Republic' });
     }
     return transactions;
   }
@@ -1708,7 +1713,7 @@ function parseCSV(text, filename) {
       }
 
       const descrizione = tipoOp.substring(0, 100);
-      transactions.push({ data, descrizione, importo, tipo, categoria });
+      transactions.push({ data, descrizione, importo, tipo, categoria, conto: 'Mediobanca' });
     }
     return transactions;
   }
@@ -1761,7 +1766,7 @@ function parseCSV(text, filename) {
       }
 
       const descrizione = (causale.toUpperCase() + (desc ? ' | ' + desc.substring(0, 60) : '')).substring(0, 100);
-      transactions.push({ data, descrizione, importo, tipo, categoria });
+      transactions.push({ data, descrizione, importo, tipo, categoria, conto: 'Credit Agricole' });
     }
     return transactions;
   }
@@ -1829,7 +1834,8 @@ function parseCSV(text, filename) {
         descrizione: desc,
         importo,
         tipo,
-        categoria: guessCat(desc, '', '')
+        categoria: guessCat(desc, '', ''),
+        conto: 'BBVA'
       });
     }
     return transactions;
@@ -2493,8 +2499,14 @@ function aggiornaPreviewSaldo(conto, transactions) {
   const preview = document.getElementById('sel-conto-preview');
   if(!conto || !transactions.length) { preview.style.display='none'; return; }
 
-  // Calcola variazione netta (esclusi giroconti)
-  const attive = transactions.filter(t => t.categoria !== 'Giroconto');
+  // Variazione netta sul SALDO: include tutte le transazioni, anche i Giroconti
+  // "normali" (ricariche, prelievi bancomat, bonifici interni), perché spostano
+  // comunque denaro reale da/verso questo conto. L'esclusione dei Giroconti vale
+  // solo per le statistiche di spesa (Analisi spese), non per il calcolo del saldo.
+  // Eccezione: i trasferimenti verso il salvadanaio virtuale (isRisparmiVirtuale)
+  // vengono già sommati separatamente al saldo di quel salvadanaio altrove,
+  // quindi qui vanno esclusi per non contarli due volte.
+  const attive = transactions.filter(t => !t.isRisparmiVirtuale);
   const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
   const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
   const delta = deltaEntrate - deltaUscite;
@@ -2529,8 +2541,14 @@ function confermaSelezioneContoOk() {
   const nomeContoIdx = state.accounts.indexOf(conto);
   _txDaAssegnare.forEach(t => { t.conto = conto.banca; });
 
-  // Calcola variazione netta ed aggiorna saldo (escludi giroconti)
-  const attive = _txDaAssegnare.filter(t => t.categoria !== 'Giroconto');
+  // Variazione netta sul SALDO: include tutte le transazioni, anche i Giroconti
+  // "normali" (ricariche, prelievi bancomat, bonifici interni), perché spostano
+  // comunque denaro reale da/verso questo conto. L'esclusione dei Giroconti vale
+  // solo per le statistiche di spesa (Analisi spese), non per il calcolo del saldo.
+  // Eccezione: i trasferimenti verso il salvadanaio virtuale (isRisparmiVirtuale)
+  // vengono già sommati separatamente al saldo di quel salvadanaio altrove,
+  // quindi qui vanno esclusi per non contarli due volte.
+  const attive = _txDaAssegnare.filter(t => !t.isRisparmiVirtuale);
   const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
   const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
   const delta = deltaEntrate - deltaUscite;
