@@ -618,6 +618,15 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
       </div>
     </div>
     <div class="form-group">
+      <label class="form-label">Saldo aggiornato al</label>
+      <input class="form-input" id="m-saldo-data" type="date" />
+      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">
+        Data a cui si riferisce il saldo indicato sopra. Quando importi un estratto,
+        vengono sommate solo le transazioni successive a questa data, così i movimenti
+        già compresi nel saldo non vengono contati due volte.
+      </div>
+    </div>
+    <div class="form-group">
       <label class="form-label">Colore identificativo</label>
       <div class="color-row" id="color-swatches"></div>
     </div>
@@ -942,6 +951,9 @@ function renderBankList() {
       <div style="text-align:right;">
         <div class="bank-amount">${fmt(a.saldo||0)}</div>
         <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
+        ${a.saldoAggiornatoAl
+          ? `<div style="font-size:10px;color:var(--text-faint);">al ${fmtDate(a.saldoAggiornatoAl)}</div>`
+          : `<div style="font-size:10px;color:var(--warning);" title="Senza data di riferimento l'import somma tutte le transazioni al saldo, anche quelle già comprese">⚠ data saldo non impostata</div>`}
       </div>
       <button class="btn btn-sm" onclick="openModalConto(${i})" style="margin-left:8px;">Modifica</button>
       <button class="btn btn-sm" onclick="deleteContoTransazioni(${i})" style="margin-left:4px;color:var(--warning);border-color:var(--warning);" title="Elimina tutte le transazioni di questo conto">🗑</button>
@@ -1238,6 +1250,7 @@ function openModalConto(idx) {
     document.getElementById('m-banca').value = a.banca;
     document.getElementById('m-iban').value = a.iban || '';
     document.getElementById('m-saldo').value = a.saldo || '';
+    document.getElementById('m-saldo-data').value = a.saldoAggiornatoAl || '';
     document.getElementById('m-portafoglio').checked = !!a.isPortafoglio;
     document.getElementById('m-salvadanaio').checked = !!a.isSalvadanaio;
     document.getElementById('m-salvadanaio-virtuale').checked = !!a.isSalvadanaioVirtuale;
@@ -1247,6 +1260,7 @@ function openModalConto(idx) {
     document.getElementById('m-banca').value = '';
     document.getElementById('m-iban').value = '';
     document.getElementById('m-saldo').value = '';
+    document.getElementById('m-saldo-data').value = oggiISO();
     document.getElementById('m-portafoglio').checked = false;
     document.getElementById('m-salvadanaio').checked = false;
     document.getElementById('m-salvadanaio-virtuale').checked = false;
@@ -1266,6 +1280,8 @@ function saveConto() {
     banca,
     iban: document.getElementById('m-iban').value.trim(),
     saldo: parseFloat((document.getElementById('m-saldo').value || '0').replace(',', '.')) || 0,
+    // Data a cui si riferisce il saldo: ancora per il calcolo del delta in import
+    saldoAggiornatoAl: document.getElementById('m-saldo-data').value || '',
     colore: selectedColor,
     isPortafoglio: document.getElementById('m-portafoglio').checked,
     isSalvadanaio: document.getElementById('m-salvadanaio').checked,
@@ -2510,6 +2526,47 @@ function salvaSpesaContanti() {
 let _txDaAssegnare = [];
 let _contoNameProv = '';
 
+// Data odierna in formato YYYY-MM-DD (locale, non UTC)
+function oggiISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// Calcola la variazione da applicare al saldo di un conto.
+//
+// Il saldo memorizzato si riferisce alla data `saldoAggiornatoAl`: i movimenti
+// precedenti o pari a quella data sono GIÀ compresi in quel saldo, quindi
+// sommarli di nuovo lo falserebbe. Si contano solo le transazioni successive.
+//
+// Se il conto non ha una data di riferimento (conti creati prima di questa
+// funzione), si ricade sul comportamento precedente: si contano tutte.
+//
+// Esclusi in ogni caso i trasferimenti verso il salvadanaio virtuale
+// (isRisparmiVirtuale), già sommati separatamente al saldo di quel salvadanaio.
+function calcolaDeltaSaldo(conto, transactions) {
+  const ancora = (conto && conto.saldoAggiornatoAl) || '';
+  const candidate = (transactions || []).filter(t => !t.isRisparmiVirtuale);
+
+  const conteggiate = ancora
+    ? candidate.filter(t => (t.data || '').substring(0,10) > ancora)
+    : candidate;
+
+  const uscite  = conteggiate.filter(t => t.tipo === 'uscita').reduce((s,t) => s + t.importo, 0);
+  const entrate = conteggiate.filter(t => t.tipo === 'entrata').reduce((s,t) => s + t.importo, 0);
+
+  // Data dell'ultima transazione importata: diventa la nuova ancora
+  const dateTx = candidate.map(t => (t.data || '').substring(0,10)).filter(Boolean).sort();
+  const ultimaData = dateTx.length ? dateTx[dateTx.length - 1] : '';
+
+  return {
+    delta: entrate - uscite,
+    ancora,
+    nConteggiate: conteggiate.length,
+    nIgnorate: candidate.length - conteggiate.length,
+    ultimaData
+  };
+}
+
 function apriModaleSelezioneContoConTransazioni(transactions, contoNameProv) {
   _txDaAssegnare = transactions;
   _contoNameProv = contoNameProv;
@@ -2545,20 +2602,16 @@ function aggiornaPreviewSaldo(conto, transactions) {
   const preview = document.getElementById('sel-conto-preview');
   if(!conto || !transactions.length) { preview.style.display='none'; return; }
 
-  // Variazione netta sul SALDO: include tutte le transazioni, anche i Giroconti
-  // "normali" (ricariche, prelievi bancomat, bonifici interni), perché spostano
-  // comunque denaro reale da/verso questo conto. L'esclusione dei Giroconti vale
-  // solo per le statistiche di spesa (Analisi spese), non per il calcolo del saldo.
-  // Eccezione: i trasferimenti verso il salvadanaio virtuale (isRisparmiVirtuale)
-  // vengono già sommati separatamente al saldo di quel salvadanaio altrove,
-  // quindi qui vanno esclusi per non contarli due volte.
-  const attive = transactions.filter(t => !t.isRisparmiVirtuale);
-  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
-  const delta = deltaEntrate - deltaUscite;
-  const nuovoSaldo = (conto.saldo||0) + delta;
+  const r = calcolaDeltaSaldo(conto, transactions);
+  const nuovoSaldo = (conto.saldo||0) + r.delta;
+  const segno = r.delta >= 0 ? '+' : '';
 
-  const segno = delta >= 0 ? '+' : '';
+  const rigaAncora = r.ancora
+    ? `Saldo riferito al ${fmtDate(r.ancora)}` +
+      (r.nIgnorate ? ` — ${r.nIgnorate} transazioni precedenti già comprese, non ricontate` : '')
+    : `Nessuna data di riferimento sul saldo — vengono contate tutte le ${r.nConteggiate} transazioni. ` +
+      `Imposta "Saldo aggiornato al" nella scheda del conto per un calcolo corretto.`;
+
   preview.style.display = 'block';
   preview.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -2568,13 +2621,19 @@ function aggiornaPreviewSaldo(conto, transactions) {
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--text-faint);">Variazione netta</div>
-        <div style="font-weight:500;color:${delta>=0?'var(--accent)':'var(--danger)'};">${segno}${fmt(delta)}</div>
+        <div style="font-weight:500;color:${r.delta>=0?'var(--accent)':'var(--danger)'};">${segno}${fmt(r.delta)}</div>
+        <div style="font-size:11px;color:var(--text-faint);">${r.nConteggiate} transazioni</div>
       </div>
-      <div style="text-align:right;">
-        <div style="font-size:11px;color:var(--text-faint);">Nuovo saldo</div>
-        <div style="font-size:18px;font-family:'DM Serif Display',serif;color:var(--text);">${fmt(nuovoSaldo)}</div>
+    </div>
+    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
+      <label class="form-label" style="font-size:11px;">Nuovo saldo (€) — modificabile</label>
+      <input class="form-input" id="sel-conto-nuovo-saldo" type="number" step="0.01"
+             value="${nuovoSaldo.toFixed(2)}" style="font-size:16px;" />
+      <div style="font-size:11px;color:var(--text-faint);margin-top:6px;">
+        Se conosci il saldo reale, scrivilo qui: viene usato al posto della stima.
       </div>
-    </div>`;
+    </div>
+    <div style="font-size:11px;color:var(--text-faint);margin-top:.6rem;">${rigaAncora}</div>`;
 }
 
 function confermaSelezioneContoOk() {
@@ -2584,24 +2643,37 @@ function confermaSelezioneContoOk() {
   if(!conto) { chiudiModaleSelezioneContoAndRender(); return; }
 
   // Aggiorna nome conto su tutte le transazioni appena importate
-  const nomeContoIdx = state.accounts.indexOf(conto);
   _txDaAssegnare.forEach(t => { t.conto = conto.banca; });
 
-  // Variazione netta sul SALDO: include tutte le transazioni, anche i Giroconti
-  // "normali" (ricariche, prelievi bancomat, bonifici interni), perché spostano
-  // comunque denaro reale da/verso questo conto. L'esclusione dei Giroconti vale
-  // solo per le statistiche di spesa (Analisi spese), non per il calcolo del saldo.
-  // Eccezione: i trasferimenti verso il salvadanaio virtuale (isRisparmiVirtuale)
-  // vengono già sommati separatamente al saldo di quel salvadanaio altrove,
-  // quindi qui vanno esclusi per non contarli due volte.
-  const attive = _txDaAssegnare.filter(t => !t.isRisparmiVirtuale);
-  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
-  const delta = deltaEntrate - deltaUscite;
-  conto.saldo = (conto.saldo||0) + delta;
+  const r = calcolaDeltaSaldo(conto, _txDaAssegnare);
+  const stima = (conto.saldo||0) + r.delta;
 
-  const segno = delta >= 0 ? '+' : '';
-  logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
+  // Il campo è modificabile: se l'utente ha scritto un valore diverso, vince il suo
+  const campo = document.getElementById('sel-conto-nuovo-saldo');
+  const inserito = campo ? parseFloat((campo.value || '').replace(',', '.')) : NaN;
+  const manuale = !isNaN(inserito) && Math.abs(inserito - stima) > 0.005;
+  const saldoFinale = isNaN(inserito) ? stima : inserito;
+
+  conto.saldo = saldoFinale;
+
+  // Sposta l'ancora all'ultima transazione importata, mai indietro rispetto
+  // a quella attuale: da qui in poi quei movimenti sono compresi nel saldo.
+  if(r.ultimaData && r.ultimaData > (conto.saldoAggiornatoAl || '')) {
+    conto.saldoAggiornatoAl = r.ultimaData;
+  } else if(!conto.saldoAggiornatoAl) {
+    conto.saldoAggiornatoAl = r.ultimaData || oggiISO();
+  }
+
+  if(manuale) {
+    logMsg(`🏦 Saldo ${conto.banca} impostato a mano: ${fmt(saldoFinale)} (stima era ${fmt(stima)})`, 'ok');
+  } else {
+    const segno = r.delta >= 0 ? '+' : '';
+    logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(r.delta)} su ${r.nConteggiate} transazioni → ${fmt(saldoFinale)}`, 'ok');
+  }
+  if(r.nIgnorate) {
+    logMsg(`ℹ ${r.nIgnorate} transazioni fino al ${fmtDate(r.ancora)} già comprese nel saldo, non ricontate.`, 'info');
+  }
+  logMsg(`📌 Saldo ${conto.banca} ora riferito al ${fmtDate(conto.saldoAggiornatoAl)}.`, 'info');
 
   save();
   chiudiModaleSelezioneContoAndRender();
