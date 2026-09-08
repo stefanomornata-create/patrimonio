@@ -844,6 +844,40 @@ function fmtNum(n, dec) {
 function fmt(n) {
   return '€\u00a0' + fmtNum(n, 2);
 }
+
+// ─── Aggregazione al netto dei rimborsi ──────────────────────────
+// Un'entrata registrata su una categoria di spesa è un RIMBORSO:
+// riduce il costo di quella categoria invece di gonfiare le entrate.
+// Es. viaggio 1.200 € + 900 € di quote ricevute => Viaggi/Vacanze = 300 €.
+// Il saldo netto complessivo resta identico: cambia solo la ripartizione.
+const EPS = 0.005;
+
+function txAttive(txs) {
+  return (txs || state.transactions)
+    .filter(t => !t.esclusa && t.categoria !== 'Giroconto' && t.categoria !== 'Per conto terzi');
+}
+
+// Restituisce il netto per categoria e i totali di spesa/entrata.
+// Categoria con netto > 0 => spesa; netto < 0 => entrata netta.
+function aggregaNetto(txs) {
+  const netPerCat = {};
+  txs.forEach(t => {
+    const seg = (t.tipo === 'uscita' ? 1 : -1) * (t.importo || 0);
+    netPerCat[t.categoria] = (netPerCat[t.categoria] || 0) + seg;
+  });
+  const catSpese = {}, catEntrate = {};
+  let spese = 0, entrate = 0;
+  Object.entries(netPerCat).forEach(([c, v]) => {
+    if(v > EPS)       { catSpese[c] = v;    spese   += v;  }
+    else if(v < -EPS) { catEntrate[c] = -v; entrate += -v; }
+  });
+  return { netPerCat, catSpese, catEntrate, spese, entrate };
+}
+
+// true se la transazione è un rimborso (entrata su una categoria che resta di spesa)
+function isRimborso(t, catSpese) {
+  return t.tipo === 'entrata' && Object.prototype.hasOwnProperty.call(catSpese, t.categoria);
+}
 function fmtDate(iso) {
   if(!iso) return '—';
   return new Date(iso).toLocaleDateString('it-IT');
@@ -910,16 +944,23 @@ function renderMetrics() {
   const attive = state.transactions.filter(t => !t.esclusa && t.categoria !== 'Giroconto' && t.categoria !== 'Per conto terzi');
   const escluse = state.transactions.filter(t => t.esclusa);
 
-  // Totali complessivi su TUTTE le transazioni attive (non solo il mese corrente)
+  // Totali complessivi su TUTTE le transazioni attive, al netto dei rimborsi
+  const agg = aggregaNetto(attive);
+  const uscite  = agg.spese;
+  const entrate = agg.entrate;
   const txUscite  = attive.filter(t => t.tipo === 'uscita');
-  const txEntrate = attive.filter(t => t.tipo === 'entrata');
-  const uscite  = txUscite.reduce((s,t)=>s+t.importo,0);
-  const entrate = txEntrate.reduce((s,t)=>s+t.importo,0);
+  const txRimborsi = attive.filter(t => isRimborso(t, agg.catSpese));
+  const txEntrate = attive.filter(t => t.tipo === 'entrata' && !isRimborso(t, agg.catSpese));
+
   document.getElementById('m-spese-mese').textContent = fmt(uscite);
-  document.getElementById('m-spese-tx').textContent = txUscite.length + ' transazioni' + (escluse.length ? ` (${escluse.length} esclusa${escluse.length>1?'e':''})` : '');
+  document.getElementById('m-spese-tx').textContent =
+    txUscite.length + ' uscite'
+    + (txRimborsi.length ? ` − ${txRimborsi.length} rimborsi` : '')
+    + (escluse.length ? ` (${escluse.length} esclusa${escluse.length>1?'e':''})` : '');
   document.getElementById('m-entrate-mese').textContent = fmt(entrate);
   const elEntrateTx = document.getElementById('m-entrate-tx');
-  if(elEntrateTx) elEntrateTx.textContent = txEntrate.length + ' transazioni';
+  if(elEntrateTx) elEntrateTx.textContent = txEntrate.length + ' transazioni'
+    + (txRimborsi.length ? ' (rimborsi esclusi)' : '');
   const netto = entrate - uscite;
   document.getElementById('m-netto').textContent = fmt(netto);
   document.getElementById('m-netto-sub').textContent = netto >= 0 ? '✓ In attivo' : '⚠ In passivo';
@@ -935,12 +976,11 @@ function renderMetrics() {
       : 'Nessuna transazione caricata';
   }
 
-  // Spese sezione — solo attive
-  const allUscite = attive.filter(t=>t.tipo==='uscita');
-  const totU = allUscite.reduce((s,t)=>s+t.importo,0);
+  // Spese sezione — al netto dei rimborsi
+  const totU = agg.spese;
   document.getElementById('sp-tot').textContent = fmt(totU);
-  document.getElementById('sp-num').textContent = allUscite.length;
-  document.getElementById('sp-avg').textContent = allUscite.length ? fmt(totU/allUscite.length) : '€ 0,00';
+  document.getElementById('sp-num').textContent = txUscite.length;
+  document.getElementById('sp-avg').textContent = txUscite.length ? fmt(totU/txUscite.length) : '€ 0,00';
 
   // Stats impostazioni
   document.getElementById('stat-conti').textContent = state.accounts.length;
@@ -985,12 +1025,10 @@ function toggleCatDettaglio(cat) {
 function renderCatList() {
   const el = document.getElementById('cat-list-container');
   if(!el) return;
-  const uscite = state.transactions
-    .map((t,i) => ({...t, _idx: i}))
-    .filter(t=>t.tipo==='uscita' && !t.esclusa && t.categoria!=='Giroconto' && t.categoria!=='Per conto terzi');
-  const catMap = {};
-  uscite.forEach(t => { catMap[t.categoria] = (catMap[t.categoria]||0) + t.importo; });
-  const total = Object.values(catMap).reduce((s,v)=>s+v, 0);
+  const movimenti = txAttive(state.transactions.map((t,i) => ({...t, _idx: i})));
+  const agg = aggregaNetto(movimenti);
+  const catMap = agg.catSpese;
+  const total = agg.spese;
   const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   if(!sorted.length) {
     _catEspansa = null;
@@ -1000,8 +1038,12 @@ function renderCatList() {
   el.innerHTML = sorted.map(([cat, amt]) => {
     const pct = total ? (amt/total*100) : 0;
     const col = CAT_COLORS[cat] || '#707070';
-    const txCat = uscite.filter(t=>t.categoria===cat).sort((a,b)=>new Date(b.data)-new Date(a.data));
-    const cnt = txCat.length;
+    const txCat = movimenti.filter(t=>t.categoria===cat).sort((a,b)=>new Date(b.data)-new Date(a.data));
+    const txCatUsc = txCat.filter(t=>t.tipo==='uscita');
+    const txCatRim = txCat.filter(t=>t.tipo==='entrata');
+    const lordo = txCatUsc.reduce((s,t)=>s+t.importo,0);
+    const rimborsi = txCatRim.reduce((s,t)=>s+t.importo,0);
+    const cnt = txCatUsc.length;
     const aperta = _catEspansa === cat;
 
     const header = `<div class="cat-row" onclick="toggleCatDettaglio('${cat.replace(/'/g,"\\'")}')" style="cursor:pointer;" title="Clicca per vedere le transazioni di questa categoria">
@@ -1010,7 +1052,7 @@ function renderCatList() {
       </div>
       <div style="flex:1;min-width:80px;">
         <div style="font-weight:500;font-size:14px;">${cat} <span style="color:var(--text-faint);font-size:11px;">${aperta ? '▾' : '▸'}</span></div>
-        <div style="font-size:11px;color:var(--text-faint);">${cnt} operazioni</div>
+        <div style="font-size:11px;color:var(--text-faint);">${cnt} operazion${cnt===1?'e':'i'}${txCatRim.length ? ` · al netto di ${txCatRim.length} rimbors${txCatRim.length===1?'o':'i'} (${fmt(rimborsi)})` : ''}</div>
       </div>
       <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${col};"></div></div>
       <div class="cat-amount">${fmt(amt)}</div>
@@ -1020,23 +1062,30 @@ function renderCatList() {
     if(!aperta) return header;
 
     const media = cnt ? amt/cnt : 0;
-    const righe = txCat.slice(0,150).map(t => `
+    const righe = txCat.slice(0,150).map(t => {
+      const rimb = t.tipo === 'entrata';
+      return `
       <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
         <div style="color:var(--text-muted);white-space:nowrap;min-width:78px;font-size:12px;">${fmtDate(t.data)}</div>
-        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${(t.descrizione||'').replace(/"/g,'&quot;')}">${t.descrizione||'—'}</div>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${(t.descrizione||'').replace(/"/g,'&quot;')}">${rimb ? '<span style="color:var(--accent);font-size:11px;">↩ rimborso</span> ' : ''}${t.descrizione||'—'}</div>
         <div style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${t.conto||'—'}</div>
-        <div style="text-align:right;white-space:nowrap;font-weight:500;">${fmt(t.importo)}</div>
+        <div style="text-align:right;white-space:nowrap;font-weight:500;${rimb?'color:var(--accent);':''}">${rimb?'+':''}${fmt(t.importo)}</div>
         <span onclick="event.stopPropagation();editTx(${t._idx})" title="Modifica transazione" style="cursor:pointer;font-size:13px;opacity:.55;">✏️</span>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     return header + `<div style="background:var(--surface2);border-radius:10px;padding:10px 14px;margin:0 0 10px 0;">
       <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-muted);margin-bottom:8px;">
-        <span>Totale: <strong style="color:var(--text);">${fmt(amt)}</strong></span>
+        ${rimborsi > EPS
+          ? `<span>Speso: <strong style="color:var(--text);">${fmt(lordo)}</strong></span>
+             <span>Rimborsi: <strong style="color:var(--accent);">− ${fmt(rimborsi)}</strong></span>
+             <span>Costo netto: <strong style="color:var(--text);">${fmt(amt)}</strong></span>`
+          : `<span>Totale: <strong style="color:var(--text);">${fmt(amt)}</strong></span>`}
         <span>Media: <strong style="color:var(--text);">${fmt(media)}</strong></span>
         <span style="margin-left:auto;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();apriTransazioniCat('${cat.replace(/'/g,"\\'")}')">Apri in Transazioni →</span>
       </div>
       ${righe}
-      ${cnt > 150 ? `<div style="padding-top:8px;font-size:12px;color:var(--text-faint);">Mostrate le 150 più recenti su ${cnt}.</div>` : ''}
+      ${txCat.length > 150 ? `<div style="padding-top:8px;font-size:12px;color:var(--text-faint);">Mostrate le 150 più recenti su ${txCat.length}.</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1103,10 +1152,13 @@ function renderTransazioni() {
       const te = inc.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
       const mostrate = Math.min(txs.length, 200);
       riep.style.display = 'flex';
+      const aggF = aggregaNetto(txAttive(inc));
+      const mostraNetto = aggF.spese > EPS && te > EPS && aggF.spese < tu - EPS;
       riep.innerHTML = `
         <span><strong>${txs.length}</strong> transazioni${txs.length>200?` (mostrate le ${mostrate} più recenti)`:''}</span>
         <span style="color:var(--danger);">Uscite: <strong>${fmt(tu)}</strong></span>
         <span style="color:var(--accent);">Entrate: <strong>${fmt(te)}</strong></span>
+        ${mostraNetto ? `<span title="Uscite meno i rimborsi ricevuti sulle stesse categorie">Spesa netta: <strong>${fmt(aggF.spese)}</strong></span>` : ''}
         <span>Saldo: <strong>${fmt(te-tu)}</strong></span>`;
     }
   }
@@ -2361,9 +2413,7 @@ function renderCharts() {
   }
 
   // Pie categorie — solo transazioni attive
-  const uscite = state.transactions.filter(t=>t.tipo==='uscita' && !t.esclusa && t.categoria!=='Giroconto' && t.categoria!=='Per conto terzi');
-  const catMap = {};
-  uscite.forEach(t=>{ catMap[t.categoria]=(catMap[t.categoria]||0)+t.importo; });
+  const catMap = aggregaNetto(txAttive()).catSpese;
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   if(catEntries.length) {
     const labels = catEntries.map(e=>e[0]);
@@ -2386,8 +2436,11 @@ function renderCharts() {
     const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
     labels6.push(mesi[d.getMonth()]);
     const m = d.getMonth(), y = d.getFullYear();
-    dataUsc.push(state.transactions.filter(t=>{ const td=new Date(t.data); return t.tipo==='uscita'&&!t.esclusa&&t.categoria!=='Giroconto'&&t.categoria!=='Per conto terzi'&&td.getMonth()===m&&td.getFullYear()===y; }).reduce((s,t)=>s+t.importo,0));
-    dataEnt.push(state.transactions.filter(t=>{ const td=new Date(t.data); return t.tipo==='entrata'&&!t.esclusa&&t.categoria!=='Giroconto'&&t.categoria!=='Per conto terzi'&&td.getMonth()===m&&td.getFullYear()===y; }).reduce((s,t)=>s+t.importo,0));
+    // Netting applicato mese per mese: un rimborso alleggerisce la sua categoria
+    // nel mese in cui arriva, quindi le barre non vanno mai in negativo.
+    const aggM = aggregaNetto(txAttive().filter(t=>{ const td=new Date(t.data); return td.getMonth()===m&&td.getFullYear()===y; }));
+    dataUsc.push(aggM.spese);
+    dataEnt.push(aggM.entrate);
   }
   mkChart('chart-mensile', {
     type:'line',
