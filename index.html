@@ -352,6 +352,7 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
 <div class="section active" id="sec-panoramica">
   <h1 class="page-title">Panoramica</h1>
   <p class="page-sub" id="last-update-label">Patrimonio aggiornato al <span id="last-update-date">—</span></p>
+  <p class="page-sub" id="periodo-label" style="margin-top:-1rem;font-size:12px;color:var(--text-faint);">—</p>
   <div class="metric-grid">
     <div class="metric accent">
       <div class="metric-label">Fondi liquidi totali</div>
@@ -359,17 +360,17 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
       <div class="metric-sub" id="m-conti-n">0 conti collegati</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Spese questo mese</div>
+      <div class="metric-label">Spese totali</div>
       <div class="metric-value" id="m-spese-mese">€ 0,00</div>
       <div class="metric-sub" id="m-spese-tx">0 transazioni</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Entrate questo mese</div>
+      <div class="metric-label">Entrate totali</div>
       <div class="metric-value" id="m-entrate-mese">€ 0,00</div>
-      <div class="metric-sub">da estratti caricati</div>
+      <div class="metric-sub" id="m-entrate-tx">0 transazioni</div>
     </div>
     <div class="metric">
-      <div class="metric-label">Saldo netto mese</div>
+      <div class="metric-label">Saldo netto complessivo</div>
       <div class="metric-value" id="m-netto">€ 0,00</div>
       <div class="metric-sub" id="m-netto-sub">entrate − spese</div>
     </div>
@@ -447,6 +448,9 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
   <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
     <div><h1 class="page-title">Transazioni</h1><p class="page-sub">Storico completo delle operazioni importate</p></div>
     <div class="btn-row">
+      <select class="form-input" id="filter-conto" onchange="renderTransazioni()" style="width:160px;font-size:13px;">
+        <option value="">Tutti i conti</option>
+      </select>
       <select class="form-input" id="filter-cat" onchange="renderTransazioni()" style="width:160px;font-size:13px;">
         <option value="">Tutte le categorie</option>
       </select>
@@ -455,8 +459,10 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
         <option value="uscita">Solo uscite</option>
         <option value="entrata">Solo entrate</option>
       </select>
+      <button class="btn btn-sm" onclick="resetFiltriTx()" style="font-size:13px;" title="Azzera tutti i filtri">Azzera</button>
     </div>
   </div>
+  <div id="tx-riepilogo" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:1rem;font-size:13px;flex-wrap:wrap;gap:16px;align-items:center;"></div>
   <div class="card" style="padding:0;overflow:hidden;">
     <div style="overflow-x:auto;">
       <table class="tx-table">
@@ -615,15 +621,6 @@ h1, h2, .serif { font-family: 'DM Serif Display', serif; }
       <div class="form-group">
         <label class="form-label">Saldo attuale (€)</label>
         <input class="form-input" id="m-saldo" type="number" step="0.01" placeholder="0,00" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Saldo aggiornato al</label>
-      <input class="form-input" id="m-saldo-data" type="date" />
-      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">
-        Data a cui si riferisce il saldo indicato sopra. Quando importi un estratto,
-        vengono sommate solo le transazioni successive a questa data, così i movimenti
-        già compresi nel saldo non vengono contati due volte.
       </div>
     </div>
     <div class="form-group">
@@ -833,8 +830,19 @@ function go(id) {
 }
 
 // ─── Format helpers ───────────────────────────────────────────────
+// Formattazione manuale: non dipende da Intl/ICU del browser.
+// (toLocaleString('it-IT') NON raggruppa i numeri a 4 cifre: 1000 → "1000")
+function fmtNum(n, dec) {
+  const d = (dec == null) ? 2 : dec;
+  let num = Number(n);
+  if(!isFinite(num)) num = 0;
+  const neg = num < 0;
+  const parts = Math.abs(num).toFixed(d).split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return (neg ? '\u2212' : '') + parts[0] + (parts[1] ? ',' + parts[1] : '');
+}
 function fmt(n) {
-  return '€\u00a0' + Number(n).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
+  return '€\u00a0' + fmtNum(n, 2);
 }
 function fmtDate(iso) {
   if(!iso) return '—';
@@ -902,22 +910,30 @@ function renderMetrics() {
   const attive = state.transactions.filter(t => !t.esclusa && t.categoria !== 'Giroconto' && t.categoria !== 'Per conto terzi');
   const escluse = state.transactions.filter(t => t.esclusa);
 
-  const now = new Date();
-  const curMonth = now.getMonth(), curYear = now.getFullYear();
-  const txMese = attive.filter(t => {
-    const d = new Date(t.data);
-    return d.getMonth()===curMonth && d.getFullYear()===curYear;
-  });
-  const uscite = txMese.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-  const entrate = txMese.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
+  // Totali complessivi su TUTTE le transazioni attive (non solo il mese corrente)
+  const txUscite  = attive.filter(t => t.tipo === 'uscita');
+  const txEntrate = attive.filter(t => t.tipo === 'entrata');
+  const uscite  = txUscite.reduce((s,t)=>s+t.importo,0);
+  const entrate = txEntrate.reduce((s,t)=>s+t.importo,0);
   document.getElementById('m-spese-mese').textContent = fmt(uscite);
-  document.getElementById('m-spese-tx').textContent = txMese.filter(t=>t.tipo==='uscita').length + ' transazioni' + (escluse.length ? ` (${escluse.length} escluse)` : '');
+  document.getElementById('m-spese-tx').textContent = txUscite.length + ' transazioni' + (escluse.length ? ` (${escluse.length} esclusa${escluse.length>1?'e':''})` : '');
   document.getElementById('m-entrate-mese').textContent = fmt(entrate);
+  const elEntrateTx = document.getElementById('m-entrate-tx');
+  if(elEntrateTx) elEntrateTx.textContent = txEntrate.length + ' transazioni';
   const netto = entrate - uscite;
   document.getElementById('m-netto').textContent = fmt(netto);
   document.getElementById('m-netto-sub').textContent = netto >= 0 ? '✓ In attivo' : '⚠ In passivo';
   const d = new Date();
   document.getElementById('last-update-date').textContent = d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+
+  // Periodo coperto dai dati
+  const elPeriodo = document.getElementById('periodo-label');
+  if(elPeriodo) {
+    const date = attive.map(t => t.data).filter(Boolean).sort();
+    elPeriodo.textContent = date.length
+      ? `${attive.length} transazioni considerate — dal ${fmtDate(date[0])} al ${fmtDate(date[date.length-1])}`
+      : 'Nessuna transazione caricata';
+  }
 
   // Spese sezione — solo attive
   const allUscite = attive.filter(t=>t.tipo==='uscita');
@@ -951,9 +967,6 @@ function renderBankList() {
       <div style="text-align:right;">
         <div class="bank-amount">${fmt(a.saldo||0)}</div>
         <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
-        ${a.saldoAggiornatoAl
-          ? `<div style="font-size:10px;color:var(--text-faint);">al ${fmtDate(a.saldoAggiornatoAl)}</div>`
-          : `<div style="font-size:10px;color:var(--warning);" title="Senza data di riferimento l'import somma tutte le transazioni al saldo, anche quelle già comprese">⚠ data saldo non impostata</div>`}
       </div>
       <button class="btn btn-sm" onclick="openModalConto(${i})" style="margin-left:8px;">Modifica</button>
       <button class="btn btn-sm" onclick="deleteContoTransazioni(${i})" style="margin-left:4px;color:var(--warning);border-color:var(--warning);" title="Elimina tutte le transazioni di questo conto">🗑</button>
@@ -962,33 +975,68 @@ function renderBankList() {
 }
 
 // ─── Category list ───────────────────────────────────────────────
+let _catEspansa = null;
+
+function toggleCatDettaglio(cat) {
+  _catEspansa = (_catEspansa === cat) ? null : cat;
+  renderCatList();
+}
+
 function renderCatList() {
   const el = document.getElementById('cat-list-container');
   if(!el) return;
-  const uscite = state.transactions.filter(t=>t.tipo==='uscita' && !t.esclusa && t.categoria!=='Giroconto' && t.categoria!=='Per conto terzi');
+  const uscite = state.transactions
+    .map((t,i) => ({...t, _idx: i}))
+    .filter(t=>t.tipo==='uscita' && !t.esclusa && t.categoria!=='Giroconto' && t.categoria!=='Per conto terzi');
   const catMap = {};
   uscite.forEach(t => { catMap[t.categoria] = (catMap[t.categoria]||0) + t.importo; });
   const total = Object.values(catMap).reduce((s,v)=>s+v, 0);
   const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
   if(!sorted.length) {
+    _catEspansa = null;
     el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Nessuna spesa</div><div class="empty-sub">Carica un estratto conto per vedere le categorie</div></div>';
     return;
   }
   el.innerHTML = sorted.map(([cat, amt]) => {
     const pct = total ? (amt/total*100) : 0;
     const col = CAT_COLORS[cat] || '#707070';
-    const cnt = uscite.filter(t=>t.categoria===cat).length;
-    return `<div class="cat-row">
+    const txCat = uscite.filter(t=>t.categoria===cat).sort((a,b)=>new Date(b.data)-new Date(a.data));
+    const cnt = txCat.length;
+    const aperta = _catEspansa === cat;
+
+    const header = `<div class="cat-row" onclick="toggleCatDettaglio('${cat.replace(/'/g,"\\'")}')" style="cursor:pointer;" title="Clicca per vedere le transazioni di questa categoria">
       <div class="cat-icon" style="background:${col}18;">
         <span style="font-size:16px;">${catEmoji(cat)}</span>
       </div>
       <div style="flex:1;min-width:80px;">
-        <div style="font-weight:500;font-size:14px;">${cat}</div>
+        <div style="font-weight:500;font-size:14px;">${cat} <span style="color:var(--text-faint);font-size:11px;">${aperta ? '▾' : '▸'}</span></div>
         <div style="font-size:11px;color:var(--text-faint);">${cnt} operazioni</div>
       </div>
       <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${col};"></div></div>
       <div class="cat-amount">${fmt(amt)}</div>
       <div class="cat-pct">${pct.toFixed(1)}%</div>
+    </div>`;
+
+    if(!aperta) return header;
+
+    const media = cnt ? amt/cnt : 0;
+    const righe = txCat.slice(0,150).map(t => `
+      <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
+        <div style="color:var(--text-muted);white-space:nowrap;min-width:78px;font-size:12px;">${fmtDate(t.data)}</div>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${(t.descrizione||'').replace(/"/g,'&quot;')}">${t.descrizione||'—'}</div>
+        <div style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${t.conto||'—'}</div>
+        <div style="text-align:right;white-space:nowrap;font-weight:500;">${fmt(t.importo)}</div>
+        <span onclick="event.stopPropagation();editTx(${t._idx})" title="Modifica transazione" style="cursor:pointer;font-size:13px;opacity:.55;">✏️</span>
+      </div>`).join('');
+
+    return header + `<div style="background:var(--surface2);border-radius:10px;padding:10px 14px;margin:0 0 10px 0;">
+      <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-muted);margin-bottom:8px;">
+        <span>Totale: <strong style="color:var(--text);">${fmt(amt)}</strong></span>
+        <span>Media: <strong style="color:var(--text);">${fmt(media)}</strong></span>
+        <span style="margin-left:auto;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();apriTransazioniCat('${cat.replace(/'/g,"\\'")}')">Apri in Transazioni →</span>
+      </div>
+      ${righe}
+      ${cnt > 150 ? `<div style="padding-top:8px;font-size:12px;color:var(--text-faint);">Mostrate le 150 più recenti su ${cnt}.</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1017,6 +1065,7 @@ function renderTransazioni() {
 
   const filterCat = document.getElementById('filter-cat')?.value || '';
   const filterType = document.getElementById('filter-type')?.value || '';
+  const filterConto = document.getElementById('filter-conto')?.value || '';
 
   // Populate filter dropdown (include all categories seen + all known)
   const cats = [...new Set([...ALL_CATS, ...state.transactions.map(t=>t.categoria)])].sort();
@@ -1026,10 +1075,41 @@ function renderTransazioni() {
     fc.innerHTML = '<option value="">Tutte le categorie</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
   }
 
+  // Populate conto dropdown (conti registrati + conti presenti nelle transazioni)
+  const conti = [...new Set([
+    ...state.accounts.map(a=>a.banca),
+    ...state.transactions.map(t=>t.conto)
+  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it'));
+  const fco = document.getElementById('filter-conto');
+  if(fco) {
+    const cur = fco.value;
+    fco.innerHTML = '<option value="">Tutti i conti</option>' + conti.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  }
+
   let txs = [...state.transactions].map((t,i) => ({...t, _idx: i}));
   if(filterCat) txs = txs.filter(t=>t.categoria===filterCat);
   if(filterType) txs = txs.filter(t=>t.tipo===filterType);
+  if(filterConto) txs = txs.filter(t=>t.conto===filterConto);
   txs.sort((a,b)=>new Date(b.data)-new Date(a.data));
+
+  // Riepilogo del set filtrato
+  const riep = document.getElementById('tx-riepilogo');
+  if(riep) {
+    if(!txs.length) {
+      riep.style.display = 'none';
+    } else {
+      const inc = txs.filter(t=>!t.esclusa);
+      const tu = inc.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
+      const te = inc.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
+      const mostrate = Math.min(txs.length, 200);
+      riep.style.display = 'flex';
+      riep.innerHTML = `
+        <span><strong>${txs.length}</strong> transazioni${txs.length>200?` (mostrate le ${mostrate} più recenti)`:''}</span>
+        <span style="color:var(--danger);">Uscite: <strong>${fmt(tu)}</strong></span>
+        <span style="color:var(--accent);">Entrate: <strong>${fmt(te)}</strong></span>
+        <span>Saldo: <strong>${fmt(te-tu)}</strong></span>`;
+    }
+  }
 
   if(!txs.length) {
     tbody.innerHTML = '';
@@ -1072,6 +1152,34 @@ function renderTransazioni() {
       </td>
     </tr>`;
   }).join('');
+}
+
+// ─── Azzera i filtri della sezione Transazioni ───────────────────
+function resetFiltriTx() {
+  ['filter-cat','filter-type','filter-conto'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  renderTransazioni();
+}
+
+// ─── Apri Transazioni pre-filtrate su una categoria ──────────────
+function apriTransazioniCat(cat) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-transazioni').classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'transazioni'")) b.classList.add('active');
+  });
+  renderAll();
+  const fc = document.getElementById('filter-cat');
+  const ft = document.getElementById('filter-type');
+  const fco = document.getElementById('filter-conto');
+  if(fco) fco.value = '';
+  if(ft) ft.value = '';
+  if(fc) fc.value = cat;
+  renderTransazioni();
+  window.scrollTo({top:0, behavior:'smooth'});
 }
 
 // ─── Cambia categoria di una transazione ─────────────────────────
@@ -1250,7 +1358,6 @@ function openModalConto(idx) {
     document.getElementById('m-banca').value = a.banca;
     document.getElementById('m-iban').value = a.iban || '';
     document.getElementById('m-saldo').value = a.saldo || '';
-    document.getElementById('m-saldo-data').value = a.saldoAggiornatoAl || '';
     document.getElementById('m-portafoglio').checked = !!a.isPortafoglio;
     document.getElementById('m-salvadanaio').checked = !!a.isSalvadanaio;
     document.getElementById('m-salvadanaio-virtuale').checked = !!a.isSalvadanaioVirtuale;
@@ -1260,7 +1367,6 @@ function openModalConto(idx) {
     document.getElementById('m-banca').value = '';
     document.getElementById('m-iban').value = '';
     document.getElementById('m-saldo').value = '';
-    document.getElementById('m-saldo-data').value = oggiISO();
     document.getElementById('m-portafoglio').checked = false;
     document.getElementById('m-salvadanaio').checked = false;
     document.getElementById('m-salvadanaio-virtuale').checked = false;
@@ -1280,8 +1386,6 @@ function saveConto() {
     banca,
     iban: document.getElementById('m-iban').value.trim(),
     saldo: parseFloat((document.getElementById('m-saldo').value || '0').replace(',', '.')) || 0,
-    // Data a cui si riferisce il saldo: ancora per il calcolo del delta in import
-    saldoAggiornatoAl: document.getElementById('m-saldo-data').value || '',
     colore: selectedColor,
     isPortafoglio: document.getElementById('m-portafoglio').checked,
     isSalvadanaio: document.getElementById('m-salvadanaio').checked,
@@ -1425,18 +1529,14 @@ async function processFile(file, tipoHint) {
     const contoName = guessContoName(file.name);
     transactions.forEach(t => { if(!t.conto) t.conto = contoName; });
 
-    // Controllo anti-duplicati: salta transazioni già presenti (stesso conto + data + importo + descrizione)
-    // Il conto è incluso nella chiave per evitare falsi positivi tra conti diversi:
-    // un bonifico in uscita da un conto e il corrispondente in entrata su un altro conto
-    // (es. Trade Republic -> BBVA) hanno spesso stessa data e stesso importo, ma sono
-    // due transazioni reali distinte e vanno registrate su entrambi i conti.
+    // Controllo anti-duplicati: salta transazioni già presenti (stessa data + importo + descrizione)
     const existingKeys = new Set(
-      state.transactions.map(t => `${t.conto||''}|${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
+      state.transactions.map(t => `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
     );
     const txNuove = [];
     const txDuplicate = [];
     transactions.forEach(t => {
-      const key = `${t.conto||''}|${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
+      const key = `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
       if(existingKeys.has(key)) {
         txDuplicate.push(t);
       } else {
@@ -1576,8 +1676,7 @@ function parseCSV(text, filename) {
         descrizione: desc.trim(),
         importo,
         tipo,
-        categoria: guessCat(desc, tipoOp, prodotto),
-        conto: 'Revolut'
+        categoria: guessCat(desc, tipoOp, prodotto)
       });
     }
     return transactions;
@@ -1642,7 +1741,7 @@ function parseCSV(text, filename) {
         categoria = guessCat(desc, '', '');
       }
 
-      transactions.push({ data, descrizione: desc, importo, tipo, categoria, conto: 'Trade Republic' });
+      transactions.push({ data, descrizione: desc, importo, tipo, categoria });
     }
     return transactions;
   }
@@ -1729,7 +1828,7 @@ function parseCSV(text, filename) {
       }
 
       const descrizione = tipoOp.substring(0, 100);
-      transactions.push({ data, descrizione, importo, tipo, categoria, conto: 'Mediobanca' });
+      transactions.push({ data, descrizione, importo, tipo, categoria });
     }
     return transactions;
   }
@@ -1782,122 +1881,75 @@ function parseCSV(text, filename) {
       }
 
       const descrizione = (causale.toUpperCase() + (desc ? ' | ' + desc.substring(0, 60) : '')).substring(0, 100);
-      transactions.push({ data, descrizione, importo, tipo, categoria, conto: 'Credit Agricole' });
+      transactions.push({ data, descrizione, importo, tipo, categoria });
     }
     return transactions;
   }
 
   // ── BBVA format detector ─────────────────────────────────────────
-  // Struttura (identica per export CSV ed export Excel→CSV via XLSX):
-  //   [col. vuota] | Data valuta | Data | Causale | Movimento | Beneficiario | Importo
-  // Differenze fra i due export:
-  //   - separatore: puo' essere "," oppure ";"  → rilevato dall'intestazione
-  //   - il CSV ha una colonna iniziale vuota, l'Excel no → si usano gli indici trovati
-  //   - importo sempre come stringa con valuta, es. "-69.33 EUR" / "500 EUR"
-  // Il campo Beneficiario e' multi-riga (es. "Nome\nIBAN" oppure "-\n-"): le righe
-  // vanno ricongiunte contando le virgolette, non con un pattern fisso.
-  const bbvaHdrLine = lines.slice(0, 10).find(l => {
-    const low = l.toLowerCase();
-    return low.includes('data valuta') &&
-           (low.includes('causale') || low.includes('parola chiave'));
-  });
-  if(bbvaHdrLine) {
-    // Separatore: quello che spezza l'intestazione nel maggior numero di colonne
-    const bbvaSep = bbvaHdrLine.split(';').length > bbvaHdrLine.split(',').length ? ';' : ',';
+  // Gestisce due formati:
+  // 1. CSV export: separatore ";", ha "Causale", importo "X.XX EUR"
+  // 2. Excel export (→CSV via XLSX): separatore ",", ha "Parola chiave", importo numerico
+  const bbvaHdrLine = lines.slice(0, 8).find(l =>
+    l.toLowerCase().includes('data valuta') &&
+    (l.toLowerCase().includes('causale') || l.toLowerCase().includes('parola chiave'))
+  );
+  const isBBVA = !!bbvaHdrLine;
+  if(isBBVA) {
+    const isBBVAExcel = bbvaHdrLine.toLowerCase().includes('parola chiave');
+    const bbvaSep = isBBVAExcel ? ',' : ';';
 
-    // Ricongiunge le righe spezzate dai campi multi-riga fra virgolette.
-    // Una riga e' completa quando il numero di virgolette accumulate e' pari.
-    const fixedLines = [];
-    let bbvaBuf = null, bbvaJoined = 0;
-    for(const ln of lines) {
-      bbvaBuf = (bbvaBuf === null) ? ln : (bbvaBuf + ' ' + ln);
-      bbvaJoined++;
-      const quotes = (bbvaBuf.match(/"/g) || []).length;
-      // Safety: non incollare all'infinito se il file ha virgolette sbilanciate
-      if(quotes % 2 === 0 || bbvaJoined >= 5) {
-        fixedLines.push(bbvaBuf);
-        bbvaBuf = null;
-        bbvaJoined = 0;
-      }
-    }
-    if(bbvaBuf !== null) fixedLines.push(bbvaBuf);
+    // Solo per il CSV: ricongiunge le righe spezzate dal pattern '"-\n-"'
+    const rawText2 = isBBVAExcel
+      ? lines.join('\n')
+      : lines.join('\n').replace(/"-\n-"/g, '""');
+    const fixedLines = rawText2.split('\n');
 
-    const hdrIdx = fixedLines.findIndex(l => {
-      const low = l.toLowerCase();
-      return low.includes('data valuta') &&
-             (low.includes('causale') || low.includes('parola chiave'));
-    });
-    if(hdrIdx < 0) return transactions;
-
-    const bbvaCols = splitCSVLine(fixedLines[hdrIdx], bbvaSep)
-                       .map(c => cleanVal(c).toLowerCase());
+    const hdrLine = fixedLines.find(l =>
+      l.toLowerCase().includes('data valuta') &&
+      (l.toLowerCase().includes('causale') || l.toLowerCase().includes('parola chiave'))
+    );
+    if(!hdrLine) return transactions;
+    const bbvaCols = hdrLine.split(bbvaSep).map(c => c.toLowerCase().replace(/"/g,'').trim());
     const bbvaIData  = bbvaCols.findIndex(c => c.includes('data valuta'));
     const bbvaIDesc1 = bbvaCols.findIndex(c => c.includes('causale') || c.includes('parola chiave'));
     const bbvaIDesc2 = bbvaCols.findIndex(c => c.includes('movimento'));
-    const bbvaIBenef = bbvaCols.findIndex(c => c.includes('beneficiario'));
     const bbvaIImp   = bbvaCols.findIndex(c => c === 'importo' || (c.includes('importo') && !c.includes('disponib')));
-    if(bbvaIData < 0 || bbvaIImp < 0) return transactions;
-
-    // "-69.33 EUR" → -69.33 ; "1.234,56 EUR" → 1234.56
-    const bbvaImporto = (s) => {
-      const v = String(s || '').replace(/[^0-9.,\-]/g, '');
-      if(!v) return 0;
-      // Se l'ultimo separatore presente e' la virgola → formato italiano
-      return parseNum(v, v.lastIndexOf(',') <= v.lastIndexOf('.'));
-    };
-    const bbvaCell = (c) => cleanVal(String(c || '')).replace(/\s+/g, ' ').trim();
-    const bbvaVuoto = (s) => !s || /^[-\s]*$/.test(s) || s.toLowerCase() === 'nan';
+    const hdrIdx     = fixedLines.indexOf(hdrLine);
 
     for(let i = hdrIdx + 1; i < fixedLines.length; i++) {
       const cells = splitCSVLine(fixedLines[i], bbvaSep);
-      if(!cells || cells.length <= bbvaIImp) continue;
+      if(!cells || cells.length < 4) continue;
 
-      const raw = bbvaImporto(cells[bbvaIImp]);
+      let raw;
+      if(isBBVAExcel) {
+        // Excel: importo già numerico (es. -3.4), punto decimale anglosassone
+        const impRaw = cleanVal(cells[bbvaIImp] || '').trim();
+        raw = parseNum(impRaw, true);
+      } else {
+        // CSV: importo come stringa "-219.6 EUR"
+        const impRaw = cleanVal(cells[bbvaIImp] || '').replace(/\s*EUR\s*/i,'').trim();
+        raw = parseNum(impRaw, true);
+      }
       if(raw === 0) continue;
       const importo = Math.abs(raw);
       const tipo = raw < 0 ? 'uscita' : 'entrata';
 
-      const d1    = bbvaIDesc1 >= 0 ? bbvaCell(cells[bbvaIDesc1]) : '';
-      const d2    = bbvaIDesc2 >= 0 ? bbvaCell(cells[bbvaIDesc2]) : '';
-      const benef = bbvaIBenef >= 0 ? bbvaCell(cells[bbvaIBenef]) : '';
-      if(/^totale/i.test(d1)) continue;
-
-      const descParts = [d1, d2].filter(p => !bbvaVuoto(p));
+      const d1 = cleanVal(cells[bbvaIDesc1]||'').trim();
+      const d2 = bbvaIDesc2 >= 0 ? cleanVal(cells[bbvaIDesc2]||'').trim() : '';
+      const descParts = [d1, d2].filter(p => p && p !== '-' && p.toLowerCase() !== 'nan' && p !== '""');
       const desc = descParts.join(' | ').substring(0, 100);
       if(!desc) continue;
 
-      const data = parseDate(bbvaCell(cells[bbvaIData]));
-
-      // Per la categoria si usa anche il Beneficiario, ma SOLO sulle uscite:
-      // sui bonifici ricevuti quel campo contiene il titolare del conto (Stefano
-      // stesso), quindi userebbe il proprio nome/IBAN e marcherebbe come giroconto
-      // qualsiasi accredito da terzi. Sulle uscite invece contiene la controparte.
-      const usaBenef = tipo === 'uscita' && !bbvaVuoto(benef);
-      const testoCat = [d1, d2, usaBenef ? benef : ''].filter(Boolean).join(' ');
-      const t = testoCat.toLowerCase();
-
-      let categoria;
-      if(/rit\.?\s*contanti|contanti a debito|prelievo|prelevamento|bancomat/.test(t)) {
-        categoria = 'Giroconto';
-      } else if(/mornata/.test(t) || /revolut/.test(t)) {
-        categoria = 'Giroconto';
-      } else if(/imposta|bollo/.test(t)) {
-        categoria = 'Tasse/Contributi';
-      } else if(/liquidazione interessi|commission|canone|spese tenuta/.test(t)) {
-        categoria = 'Commissioni';
-      } else if(/az fund/.test(t)) {
-        categoria = 'Investimenti';
-      } else {
-        categoria = guessCat(testoCat, '', '');
-      }
+      const dataRaw = cleanVal(cells[bbvaIData]||'');
+      const data = parseDate(dataRaw);
 
       transactions.push({
         data,
         descrizione: desc,
         importo,
         tipo,
-        categoria,
-        conto: 'BBVA'
+        categoria: guessCat(desc, '', '')
       });
     }
     return transactions;
@@ -2323,7 +2375,7 @@ function renderCharts() {
     if(leg2) leg2.innerHTML = labels.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${cols[i]};"></span>${l}</span>`).join('');
     mkChart('chart-pie-cat', {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff', hoverOffset:6}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}});
     mkChart('chart-cat-doughnut', {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff', hoverOffset:6}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}});
-    mkChart('chart-cat-bar', {type:'bar', data:{labels:labels.slice(0,5), datasets:[{data:vals.slice(0,5), backgroundColor:cols.slice(0,5), borderRadius:6, borderSkipped:false}]}, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+v.toLocaleString('it-IT')}}, y:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}}}});
+    mkChart('chart-cat-bar', {type:'bar', data:{labels:labels.slice(0,5), datasets:[{data:vals.slice(0,5), backgroundColor:cols.slice(0,5), borderRadius:6, borderSkipped:false}]}, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+fmtNum(v,0)}}, y:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}}}});
   }
 
   // Mensile — solo transazioni attive
@@ -2343,7 +2395,7 @@ function renderCharts() {
       {label:'Uscite', data:dataUsc, borderColor:'#cb4335', backgroundColor:'rgba(203,67,53,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:'#cb4335', borderWidth:2},
       {label:'Entrate', data:dataEnt, borderColor:'#2c5f2e', backgroundColor:'rgba(44,95,46,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:'#2c5f2e', borderWidth:2}
     ]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}}}, scales:{x:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}, y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+v.toLocaleString('it-IT')}}}}
+    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}}}, scales:{x:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}, y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+fmtNum(v,0)}}}}
   });
 }
 
@@ -2526,47 +2578,6 @@ function salvaSpesaContanti() {
 let _txDaAssegnare = [];
 let _contoNameProv = '';
 
-// Data odierna in formato YYYY-MM-DD (locale, non UTC)
-function oggiISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-}
-
-// Calcola la variazione da applicare al saldo di un conto.
-//
-// Il saldo memorizzato si riferisce alla data `saldoAggiornatoAl`: i movimenti
-// precedenti o pari a quella data sono GIÀ compresi in quel saldo, quindi
-// sommarli di nuovo lo falserebbe. Si contano solo le transazioni successive.
-//
-// Se il conto non ha una data di riferimento (conti creati prima di questa
-// funzione), si ricade sul comportamento precedente: si contano tutte.
-//
-// Esclusi in ogni caso i trasferimenti verso il salvadanaio virtuale
-// (isRisparmiVirtuale), già sommati separatamente al saldo di quel salvadanaio.
-function calcolaDeltaSaldo(conto, transactions) {
-  const ancora = (conto && conto.saldoAggiornatoAl) || '';
-  const candidate = (transactions || []).filter(t => !t.isRisparmiVirtuale);
-
-  const conteggiate = ancora
-    ? candidate.filter(t => (t.data || '').substring(0,10) > ancora)
-    : candidate;
-
-  const uscite  = conteggiate.filter(t => t.tipo === 'uscita').reduce((s,t) => s + t.importo, 0);
-  const entrate = conteggiate.filter(t => t.tipo === 'entrata').reduce((s,t) => s + t.importo, 0);
-
-  // Data dell'ultima transazione importata: diventa la nuova ancora
-  const dateTx = candidate.map(t => (t.data || '').substring(0,10)).filter(Boolean).sort();
-  const ultimaData = dateTx.length ? dateTx[dateTx.length - 1] : '';
-
-  return {
-    delta: entrate - uscite,
-    ancora,
-    nConteggiate: conteggiate.length,
-    nIgnorate: candidate.length - conteggiate.length,
-    ultimaData
-  };
-}
-
 function apriModaleSelezioneContoConTransazioni(transactions, contoNameProv) {
   _txDaAssegnare = transactions;
   _contoNameProv = contoNameProv;
@@ -2602,16 +2613,14 @@ function aggiornaPreviewSaldo(conto, transactions) {
   const preview = document.getElementById('sel-conto-preview');
   if(!conto || !transactions.length) { preview.style.display='none'; return; }
 
-  const r = calcolaDeltaSaldo(conto, transactions);
-  const nuovoSaldo = (conto.saldo||0) + r.delta;
-  const segno = r.delta >= 0 ? '+' : '';
+  // Calcola variazione netta (esclusi giroconti)
+  const attive = transactions.filter(t => t.categoria !== 'Giroconto');
+  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
+  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
+  const delta = deltaEntrate - deltaUscite;
+  const nuovoSaldo = (conto.saldo||0) + delta;
 
-  const rigaAncora = r.ancora
-    ? `Saldo riferito al ${fmtDate(r.ancora)}` +
-      (r.nIgnorate ? ` — ${r.nIgnorate} transazioni precedenti già comprese, non ricontate` : '')
-    : `Nessuna data di riferimento sul saldo — vengono contate tutte le ${r.nConteggiate} transazioni. ` +
-      `Imposta "Saldo aggiornato al" nella scheda del conto per un calcolo corretto.`;
-
+  const segno = delta >= 0 ? '+' : '';
   preview.style.display = 'block';
   preview.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
@@ -2621,19 +2630,13 @@ function aggiornaPreviewSaldo(conto, transactions) {
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--text-faint);">Variazione netta</div>
-        <div style="font-weight:500;color:${r.delta>=0?'var(--accent)':'var(--danger)'};">${segno}${fmt(r.delta)}</div>
-        <div style="font-size:11px;color:var(--text-faint);">${r.nConteggiate} transazioni</div>
+        <div style="font-weight:500;color:${delta>=0?'var(--accent)':'var(--danger)'};">${segno}${fmt(delta)}</div>
       </div>
-    </div>
-    <div style="margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--border);">
-      <label class="form-label" style="font-size:11px;">Nuovo saldo (€) — modificabile</label>
-      <input class="form-input" id="sel-conto-nuovo-saldo" type="number" step="0.01"
-             value="${nuovoSaldo.toFixed(2)}" style="font-size:16px;" />
-      <div style="font-size:11px;color:var(--text-faint);margin-top:6px;">
-        Se conosci il saldo reale, scrivilo qui: viene usato al posto della stima.
+      <div style="text-align:right;">
+        <div style="font-size:11px;color:var(--text-faint);">Nuovo saldo</div>
+        <div style="font-size:18px;font-family:'DM Serif Display',serif;color:var(--text);">${fmt(nuovoSaldo)}</div>
       </div>
-    </div>
-    <div style="font-size:11px;color:var(--text-faint);margin-top:.6rem;">${rigaAncora}</div>`;
+    </div>`;
 }
 
 function confermaSelezioneContoOk() {
@@ -2643,37 +2646,18 @@ function confermaSelezioneContoOk() {
   if(!conto) { chiudiModaleSelezioneContoAndRender(); return; }
 
   // Aggiorna nome conto su tutte le transazioni appena importate
+  const nomeContoIdx = state.accounts.indexOf(conto);
   _txDaAssegnare.forEach(t => { t.conto = conto.banca; });
 
-  const r = calcolaDeltaSaldo(conto, _txDaAssegnare);
-  const stima = (conto.saldo||0) + r.delta;
+  // Calcola variazione netta ed aggiorna saldo (escludi giroconti)
+  const attive = _txDaAssegnare.filter(t => t.categoria !== 'Giroconto');
+  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
+  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
+  const delta = deltaEntrate - deltaUscite;
+  conto.saldo = (conto.saldo||0) + delta;
 
-  // Il campo è modificabile: se l'utente ha scritto un valore diverso, vince il suo
-  const campo = document.getElementById('sel-conto-nuovo-saldo');
-  const inserito = campo ? parseFloat((campo.value || '').replace(',', '.')) : NaN;
-  const manuale = !isNaN(inserito) && Math.abs(inserito - stima) > 0.005;
-  const saldoFinale = isNaN(inserito) ? stima : inserito;
-
-  conto.saldo = saldoFinale;
-
-  // Sposta l'ancora all'ultima transazione importata, mai indietro rispetto
-  // a quella attuale: da qui in poi quei movimenti sono compresi nel saldo.
-  if(r.ultimaData && r.ultimaData > (conto.saldoAggiornatoAl || '')) {
-    conto.saldoAggiornatoAl = r.ultimaData;
-  } else if(!conto.saldoAggiornatoAl) {
-    conto.saldoAggiornatoAl = r.ultimaData || oggiISO();
-  }
-
-  if(manuale) {
-    logMsg(`🏦 Saldo ${conto.banca} impostato a mano: ${fmt(saldoFinale)} (stima era ${fmt(stima)})`, 'ok');
-  } else {
-    const segno = r.delta >= 0 ? '+' : '';
-    logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(r.delta)} su ${r.nConteggiate} transazioni → ${fmt(saldoFinale)}`, 'ok');
-  }
-  if(r.nIgnorate) {
-    logMsg(`ℹ ${r.nIgnorate} transazioni fino al ${fmtDate(r.ancora)} già comprese nel saldo, non ricontate.`, 'info');
-  }
-  logMsg(`📌 Saldo ${conto.banca} ora riferito al ${fmtDate(conto.saldoAggiornatoAl)}.`, 'info');
+  const segno = delta >= 0 ? '+' : '';
+  logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
 
   save();
   chiudiModaleSelezioneContoAndRender();
