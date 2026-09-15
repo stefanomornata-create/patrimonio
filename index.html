@@ -1147,7 +1147,14 @@ function renderTransazioni() {
     if(!txs.length) {
       riep.style.display = 'none';
     } else {
-      const inc = txs.filter(t=>!t.esclusa);
+      // Come in Dashboard: esclusi Giroconto e Per conto terzi,
+      // salvo quando si filtra esplicitamente per una di queste categorie
+      const catNeutre = ['Giroconto','Per conto terzi'];
+      const inc = catNeutre.includes(filterCat)
+        ? txs.filter(t=>!t.esclusa)
+        : txAttive(txs);
+      const nNeutre = catNeutre.includes(filterCat) ? 0
+        : txs.filter(t=>!t.esclusa && catNeutre.includes(t.categoria)).length;
       const tu = inc.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
       const te = inc.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
       const mostrate = Math.min(txs.length, 200);
@@ -1159,7 +1166,8 @@ function renderTransazioni() {
         <span style="color:var(--danger);">Uscite: <strong>${fmt(tu)}</strong></span>
         <span style="color:var(--accent);">Entrate: <strong>${fmt(te)}</strong></span>
         ${mostraNetto ? `<span title="Uscite meno i rimborsi ricevuti sulle stesse categorie">Spesa netta: <strong>${fmt(aggF.spese)}</strong></span>` : ''}
-        <span>Saldo: <strong>${fmt(te-tu)}</strong></span>`;
+        <span>Saldo: <strong>${fmt(te-tu)}</strong></span>
+        ${nNeutre ? `<span style="color:var(--text-faint);font-size:11px;" title="Giroconti e movimenti per conto terzi non sono conteggiati nei totali (come in Dashboard)">🔄🤝 ${nNeutre} escluse dai totali</span>` : ''}`;
     }
   }
 
