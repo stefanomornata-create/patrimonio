@@ -573,6 +573,7 @@ canvas, img, svg { max-width: 100%; }
       <button class="btn btn-sm" onclick="resetFiltriTx()" style="font-size:13px;" title="Azzera tutti i filtri">Azzera</button>
     </div>
   </div>
+  <div id="tx-da-classificare" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;margin-bottom:1rem;font-size:13px;"></div>
   <div id="tx-riepilogo" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:1rem;font-size:13px;flex-wrap:wrap;gap:16px;align-items:center;"></div>
   <div class="card tx-card-wrap" style="padding:0;overflow:hidden;">
     <div style="overflow-x:auto;">
@@ -791,12 +792,12 @@ canvas, img, svg { max-width: 100%; }
       </div>
       <div class="form-group">
         <label class="form-label">Importo (€)</label>
-        <input type="number" class="form-input" id="etx-importo" step="0.01" min="0" placeholder="0.00" />
+        <input type="number" class="form-input" id="etx-importo" step="0.01" min="0" placeholder="0.00" oninput="etxAggiornaTotRip()" />
       </div>
     </div>
     <div class="form-group">
       <label class="form-label">Tipo</label>
-      <select class="form-input" id="etx-tipo">
+      <select class="form-input" id="etx-tipo" onchange="etxAggiornaFattura()">
         <option value="uscita">💸 Uscita</option>
         <option value="entrata">💰 Entrata</option>
         <option value="Giroconto">🔄 Giroconto</option>
@@ -808,7 +809,18 @@ canvas, img, svg { max-width: 100%; }
     </div>
     <div class="form-group">
       <label class="form-label">Categoria</label>
-      <select class="form-input" id="etx-cat"></select>
+      <select class="form-input" id="etx-cat" onchange="etxCatCambiata()"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Voce di budget</label>
+      <select class="form-input" id="etx-voce" onchange="etxVoceCambiata()"></select>
+      <div style="margin-top:6px;"><a href="#" id="etx-rip-toggle" onclick="etxToggleRip();return false;" style="font-size:12px;color:var(--accent);">Ripartisci tra più voci</a></div>
+      <div id="etx-rip" style="display:none;margin-top:8px;"></div>
+    </div>
+    <div class="form-group" id="etx-fatt-group" style="display:none;">
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="etx-fattura" onchange="_etxFattToccato=true" /> 🧾 Da fattura (conta nel fatturato per la stima delle imposte)
+      </label>
     </div>
     <div class="btn-row" style="justify-content:flex-end;margin-top:1rem;">
       <button class="btn" onclick="document.getElementById('modal-edit-tx').classList.remove('open')">Annulla</button>
@@ -895,7 +907,7 @@ const CAT_COLORS = {
   'Per conto terzi': '#f57c00',
   'Regali/Donazioni': '#e91e8c',
   'Svago/Intrattenimento': '#7b1fa2',
-  'Altro':        '#707070'
+  'Da classificare': '#707070'
 };
 
 const PALETTE = ['#2c5f2e','#2471a3','#cb4335','#9b59b6','#d35400','#b7950b','#1a5276','#148f77'];
@@ -1209,7 +1221,7 @@ function catEmoji(cat) {
   const map = {
     'Alimentari':'🛒','Ristorazione':'🍽','Trasporti':'🚗','Abbonamenti':'📱',
     'Utenze':'⚡','Salute':'💊','Cura personale':'🛍','Casa':'🏠','Investimenti':'📈',
-    'Entrate':'💰','Tasse/Contributi':'🏛','Viaggi/Vacanze':'✈️','Lavoro':'💼','Commissioni':'🏷','Per conto terzi':'🤝','Regali/Donazioni':'🎁','Svago/Intrattenimento':'🎭','Giroconto':'🔄','Altro':'📌'
+    'Entrate':'💰','Tasse/Contributi':'🏛','Viaggi/Vacanze':'✈️','Lavoro':'💼','Commissioni':'🏷','Per conto terzi':'🤝','Regali/Donazioni':'🎁','Svago/Intrattenimento':'🎭','Giroconto':'🔄','Da classificare':'📌'
   };
   return map[cat] || '📌';
 }
@@ -1223,32 +1235,275 @@ const MIGRAZIONI_CAT = [
   // [descrizione, vecchie categorie errate, nuova categoria]
   [/(^|[^a-z])tari([^a-z]|$)|tassa (sui )?rifiuti|tariffa rifiuti/, ['Utenze','Tasse/Contributi'], 'Casa'],
   [/hotel casalgrande|albergo le marmotte/,                           ['Trasporti'],                'Viaggi/Vacanze'],
-  [/parcheggi/,                                                       ['Tasse/Contributi','Altro'], 'Trasporti'],
+  [/parcheggi/,                                                       ['Tasse/Contributi','Da classificare'], 'Trasporti'],
 ];
 function migraCategorie() {
   if(!state || !Array.isArray(state.transactions)) return 0;
   let n = 0;
+  n += vociInit();
+  // Conversioni una tantum (fase 1): eseguite una sola volta per archivio
+  if(!Array.isArray(state.migrazioni)) state.migrazioni = [];
+  MIGRAZIONI_UNA_TANTUM.forEach(m => {
+    if(state.migrazioni.includes(m.id)) return;
+    n += (m.run() || 0) + 1;
+    state.migrazioni.push(m.id);
+  });
+  n += normalizzaConti();
   state.transactions.forEach(tx => {
     const d = String(tx.descrizione || '').toLowerCase();
-    if(tx.categoria && !ALL_CATS.includes(tx.categoria)) {
+    if(tx.categoria === 'Altro') { tx.categoria = 'Da classificare'; n++; }
+    else if(tx.categoria && !ALL_CATS.includes(tx.categoria)) {
       const c = guessCat(d, '', '');
-      tx.categoria = ALL_CATS.includes(c) ? c : 'Altro';
+      tx.categoria = ALL_CATS.includes(c) ? c : 'Da classificare';
       n++;
-      return;
+    } else {
+      for(const [re, vecchie, nuova] of MIGRAZIONI_CAT) {
+        if(re.test(d) && vecchie.includes(tx.categoria)) { tx.categoria = nuova; n++; break; }
+      }
     }
-    for(const [re, vecchie, nuova] of MIGRAZIONI_CAT) {
-      if(re.test(d) && vecchie.includes(tx.categoria)) { tx.categoria = nuova; n++; break; }
+    if(assegnaVoceAuto(tx)) n++;
+  });
+  if(n) console.log('Conversione dati: ' + n + ' aggiornamenti');
+  return n;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// MODULO VOCI DI BUDGET  (fase 1 — collegamento movimenti ↔ budget)
+// ─────────────────────────────────────────────────────────────────
+// Dati:  state.budget.voci  → anagrafica voci (id, nome, categoria,
+//                             gruppo, regole, daFattura)
+//        tx.voce            → id della voce assegnata
+//        tx.voceManuale     → true se scelta a mano (l'automatico
+//                             non la tocca più)
+//        tx.ripartizione    → [{voce, importo}] se il movimento copre
+//                             più voci (es. Cassa soggettivo+integrativo)
+//        tx.daFattura       → presente solo se impostato a mano
+// Regola base: una voce viene assegnata in automatico SOLO se la
+// transazione è già nella categoria della voce. Così le categorie
+// scelte a mano (es. un rimborso di Sheida in Viaggi) non vengono
+// mai forzate su una voce sbagliata.
+// Regola: {re: 'regex sulla descrizione minuscola', min, max}
+//         {tutta: true} = tutta la categoria (es. Spesa = Alimentari)
+// ═════════════════════════════════════════════════════════════════
+const VOCI_VERSIONE = 1;
+const VOCI_GRUPPI = {
+  entrate: 'Entrate', fiscale: 'Imposte e contributi', certe: 'Spese certe',
+  ricorrenti: 'Spese ricorrenti', stime: 'Spese variabili'
+};
+const VOCI_DEFAULT = [
+  // Entrate
+  {id:'recognita',  nome:'Recognita', categoria:'Entrate', gruppo:'entrate', daFattura:true, regole:[{re:'recognita'}]},
+  {id:'sheida',     nome:'Sheida',    categoria:'Entrate', gruppo:'entrate', regole:[{re:'sheida'}]},
+  // Imposte e contributi (pagoPA/F24: abbinamento manuale)
+  {id:'imp_sost',   nome:'Imposta sostitutiva',             categoria:'Tasse/Contributi', gruppo:'fiscale', regole:[]},
+  {id:'cassa_sogg', nome:'Contributi Cassa (soggettivo)',   categoria:'Tasse/Contributi', gruppo:'fiscale', regole:[]},
+  {id:'cassa_int',  nome:'Contributo integrativo Cassa',    categoria:'Tasse/Contributi', gruppo:'fiscale', regole:[]},
+  {id:'bollo_fatt', nome:'Imposta di bollo fatture elettroniche', categoria:'Tasse/Contributi', gruppo:'fiscale', regole:[{re:'agenzia delle entrate', max:50}]},
+  // Spese certe
+  {id:'condominio',     nome:'Spese condominiali',          categoria:'Casa', gruppo:'certe', regole:[{re:'^(?!.*ristruttur).*condomin'}]},
+  {id:'ristrutt_cond',  nome:'Ristrutturazione condominio', categoria:'Casa', gruppo:'certe', regole:[{re:'condomin.*ristruttur|ristruttur.*condomin'}]},
+  {id:'ass_casa',       nome:'Assicurazione casa',          categoria:'Casa', gruppo:'certe', regole:[{re:'polizza casa'}]},
+  {id:'ass_casa_mutuo', nome:'Assicurazione casa mutuo',    categoria:'Casa', gruppo:'certe', regole:[{re:'pol\\.?\\s*0210324|premi assic'}]},
+  {id:'tari',           nome:'TARI',                        categoria:'Casa', gruppo:'certe', regole:[{re:'(^|[^a-z])tari([^a-z]|$)|tassa (sui )?rifiuti|tariffa rifiuti'}]},
+  {id:'caldaia',        nome:'Manutenzione caldaia',        categoria:'Casa', gruppo:'certe', regole:[{re:'tecno assistenza', max:100}]},
+  {id:'google',         nome:'Google',                      categoria:'Abbonamenti', gruppo:'certe', regole:[{re:'^(?!.*google store).*google'}]},
+  {id:'spotify',        nome:'Spotify',                     categoria:'Abbonamenti', gruppo:'certe', regole:[{re:'spotify'}]},
+  {id:'anthropic',      nome:'Anthropic Claude',            categoria:'Abbonamenti', gruppo:'certe', regole:[{re:'anthropic'}]},
+  {id:'ordine',         nome:'Iscrizione Ordine Commercialisti', categoria:'Lavoro', gruppo:'certe', regole:[]},
+  {id:'portale_fatt',   nome:'Portale fatture elettroniche',categoria:'Lavoro', gruppo:'certe', regole:[]},
+  {id:'revisori_sost',  nome:'Elenco Revisori sostenibilità',categoria:'Lavoro', gruppo:'certe', regole:[]},
+  {id:'registro_rev',   nome:'Iscrizione Registro revisori legali', categoria:'Lavoro', gruppo:'certe', regole:[]},
+  {id:'pec',            nome:'PEC',                         categoria:'Lavoro', gruppo:'certe', regole:[{re:'aruba'}]},
+  // Spese ricorrenti
+  {id:'rata_mutuo',     nome:'Rata mutuo',                  categoria:'Casa', gruppo:'ricorrenti', regole:[{re:'procedura mutui|0246766500000|mutuo', min:100}]},
+  {id:'ass_vita_mutuo', nome:'Assicurazione vita mutuo',    categoria:'Casa', gruppo:'ricorrenti', regole:[{re:'procedura mutui|0247075100000', max:100}]},
+  {id:'azimut',         nome:'Azimut',                      categoria:'Investimenti', gruppo:'ricorrenti', regole:[{re:'az fund|azimut'}]},
+  {id:'fastweb',        nome:'Fastweb',                     categoria:'Utenze', gruppo:'ricorrenti', regole:[{re:'fastweb'}]},
+  {id:'iliad',          nome:'Iliad',                       categoria:'Utenze', gruppo:'ricorrenti', regole:[{re:'iliad'}]},
+  {id:'amazon_prime',   nome:'Amazon Prime',                categoria:'Abbonamenti', gruppo:'ricorrenti', regole:[{re:'amazon prime'}]},
+  {id:'patreon',        nome:'Patreon',                     categoria:'Abbonamenti', gruppo:'ricorrenti', regole:[{re:'patreon'}]},
+  {id:'parrucchiere',   nome:'Parrucchiere',                categoria:'Cura personale', gruppo:'ricorrenti', regole:[{re:'parrucch|barber'}]},
+  {id:'lenti',          nome:'Lenti a contatto',            categoria:'Cura personale', gruppo:'ricorrenti', regole:[{re:'ottica'}]},
+  // Spese variabili (stime)
+  {id:'luce_gas',       nome:'Luce e gas',                  categoria:'Utenze', gruppo:'stime', regole:[{re:'octopus|vivigas|\\benel\\b|\\bluce\\b|\\bgas\\b'}]},
+  {id:'spesa',          nome:'Spesa',                       categoria:'Alimentari', gruppo:'stime', regole:[{tutta:true}]},
+  {id:'carburante',     nome:'Carburante',                  categoria:'Trasporti', gruppo:'stime', regole:[{re:'\\bq8\\b|tamoil|\\beni\\b|agip|\\bshell\\b|\\besso\\b|\\bip\\b|benzin|carburant|rifornim|easy service'}]},
+];
+
+function vociInit() {
+  if(!state.budget || typeof state.budget !== 'object') state.budget = {};
+  const b = state.budget;
+  let n = 0;
+  if(!Array.isArray(b.voci)) { b.voci = JSON.parse(JSON.stringify(VOCI_DEFAULT)); b.versioneVoci = VOCI_VERSIONE; return 1; }
+  // Aggiorna le voci predefinite quando cambia la versione delle regole,
+  // senza toccare eventuali voci aggiunte in seguito
+  VOCI_DEFAULT.forEach(def => {
+    const v = b.voci.find(x => x.id === def.id);
+    if(!v) { b.voci.push(JSON.parse(JSON.stringify(def))); n++; }
+    else if((b.versioneVoci || 0) < VOCI_VERSIONE) { Object.assign(v, JSON.parse(JSON.stringify(def))); n++; }
+  });
+  if((b.versioneVoci || 0) < VOCI_VERSIONE) { b.versioneVoci = VOCI_VERSIONE; n++; }
+  return n;
+}
+function vociTutte() { return (state.budget && state.budget.voci) || []; }
+function vocePerId(id) { return vociTutte().find(v => v.id === id) || null; }
+function voceNome(id) { const v = vocePerId(id); return v ? v.nome : ''; }
+
+function _normDesc(d) { return String(d || '').toLowerCase().replace(/\s+/g, ' ').trim(); }
+function _regolaOk(r, d, importo) {
+  if(r.min != null && importo < r.min) return false;
+  if(r.max != null && importo > r.max) return false;
+  if(r.tutta) return true;
+  if(!r.re) return false;
+  try { return new RegExp(r.re).test(d); } catch(e) { return false; }
+}
+// Voce suggerita dalle regole (senza modificare la transazione)
+function voceAutomatica(tx) {
+  const d = _normDesc(tx.descrizione), imp = Math.abs(+tx.importo || 0);
+  // prima le regole specifiche, poi quelle "tutta la categoria"
+  const cand = vociTutte().filter(v => v.categoria === tx.categoria);
+  for(const v of cand) if((v.regole||[]).some(r => !r.tutta && _regolaOk(r, d, imp))) return v.id;
+  for(const v of cand) if((v.regole||[]).some(r => r.tutta && _regolaOk(r, d, imp))) return v.id;
+  return null;
+}
+// Assegna la voce automatica (solo se non scelta a mano). Ritorna true se cambia.
+function assegnaVoceAuto(tx) {
+  if(tx.voceManuale) {
+    // voce manuale non più coerente con la categoria → si riparte dall'automatico
+    const v = tx.voce ? vocePerId(tx.voce) : null;
+    if(tx.voce && (!v || v.categoria !== tx.categoria) && !tx.ripartizione) {
+      delete tx.voce; delete tx.voceManuale;
+    } else return false;
+  }
+  const nuova = voceAutomatica(tx);
+  if((tx.voce || null) === nuova) return false;
+  if(nuova) tx.voce = nuova; else delete tx.voce;
+  return true;
+}
+// Flag "da fattura": manuale se impostato, altrimenti dalla voce (Recognita)
+function isDaFattura(tx) {
+  if(tx.tipo !== 'entrata') return false;
+  if(typeof tx.daFattura === 'boolean') return tx.daFattura;
+  const v = tx.voce ? vocePerId(tx.voce) : null;
+  return !!(v && v.daFattura);
+}
+// Etichetta voce per le righe della tabella
+function voceEtichetta(tx) {
+  if(Array.isArray(tx.ripartizione) && tx.ripartizione.length)
+    return tx.ripartizione.map(r => voceNome(r.voce) + ' ' + fmt(r.importo)).join(' + ');
+  return tx.voce ? voceNome(tx.voce) : '';
+}
+
+// ─── Normalizzazione nomi conto sulle transazioni ────────────────
+function _normConto(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, ''); }
+function normalizzaConti() {
+  const acc = state.accounts || [];
+  if(!acc.length) return 0;
+  const port = acc.find(a => a.isPortafoglio);
+  let n = 0;
+  state.transactions.forEach(tx => {
+    if(!tx.conto) return;
+    const k = _normConto(tx.conto);
+    let a = acc.find(x => _normConto(x.banca) === k);
+    if(!a && k === 'portafoglio' && port) a = port;
+    if(!a && k.includes('premier')) a = acc.find(x => _normConto(x.banca).includes('premier'));
+    if(a && a.banca !== tx.conto) { tx.conto = a.banca; n++; }
+  });
+  return n;
+}
+
+// ─── Doppioni (stesso conto, data, importo; descrizione una prefisso
+//     dell'altra, es. export BBVA CSV ed Excel) ───────────────────
+function _descBase(d) { return _normDesc(String(d || '').split('|')[0]); }
+function _descSimili(a, b) {
+  const x = _descBase(a), y = _descBase(b);
+  if(x.length < 4 || y.length < 4) return x === y;
+  return x.startsWith(y) || y.startsWith(x);
+}
+function rimuoviDoppioniFormato() {
+  const gruppi = {};
+  state.transactions.forEach((t, i) => {
+    const k = [String(t.data||'').substring(0,10), (+t.importo||0).toFixed(2), t.tipo, _normConto(t.conto)].join('|');
+    (gruppi[k] = gruppi[k] || []).push(i);
+  });
+  const daTogliere = new Set();
+  Object.values(gruppi).forEach(idx => {
+    if(idx.length < 2) return;
+    for(let a = 0; a < idx.length; a++) for(let b = a+1; b < idx.length; b++) {
+      const ta = state.transactions[idx[a]], tb = state.transactions[idx[b]];
+      if(daTogliere.has(idx[a]) || daTogliere.has(idx[b])) continue;
+      // descrizioni identiche = possibili acquisti ripetuti: non si toccano
+      if(_normDesc(ta.descrizione) === _normDesc(tb.descrizione)) continue;
+      if(!_descSimili(ta.descrizione, tb.descrizione)) continue;
+      const peggiore = (tb.categoria === 'Da classificare' || tb.categoria === 'Altro') ? idx[b]
+                     : (ta.categoria === 'Da classificare' || ta.categoria === 'Altro') ? idx[a] : idx[b];
+      daTogliere.add(peggiore);
     }
   });
-  if(n) console.log('Conversione categorie: ' + n + ' transazioni aggiornate');
-  return n;
+  if(!daTogliere.size) return 0;
+  state.transactions = state.transactions.filter((t, i) => !daTogliere.has(i));
+  return daTogliere.size;
+}
+
+// ─── Conversioni una tantum (fase 1), registrate in state.migrazioni ──
+const MIGRAZIONI_UNA_TANTUM = [
+  { id: 'f1_altro', run() {
+      let n = 0;
+      const spec = [
+        [/dedem/,                 'Casa'],
+        [/monete commemorative/,  'Regali/Donazioni'],
+        [/fotocopie/,             'Lavoro'],
+        [/sumup \*viaroma36/,     'Ristorazione'],
+      ];
+      state.transactions.forEach(tx => {
+        if(tx.categoria !== 'Altro') return;
+        const d = _normDesc(tx.descrizione);
+        const hit = spec.find(([re]) => re.test(d));
+        tx.categoria = hit ? hit[1] : 'Da classificare';
+        n++;
+      });
+      return n;
+  }},
+  { id: 'f1_doppioni', run: rimuoviDoppioniFormato },
+  { id: 'f1_pagopa', run() {
+      // pagoPA BBVA: la descrizione non dice cosa si paga → da classificare a mano
+      let n = 0;
+      state.transactions.forEach(tx => {
+        if(/pagamenti\/riscossioni per suo conto/.test(_normDesc(tx.descrizione)) &&
+           ['Tasse/Contributi','Casa'].includes(tx.categoria) && !tx.voceManuale) {
+          tx.categoria = 'Da classificare'; delete tx.voce; n++;
+        }
+      });
+      return n;
+  }},
+  { id: 'f1_varie', run() {
+      let n = 0;
+      state.transactions.forEach(tx => {
+        const d = _normDesc(tx.descrizione);
+        if(tx.categoria === 'Entrate' && /rimborso enel/.test(d)) { tx.categoria = 'Utenze'; n++; }
+        if(tx.categoria === 'Abbonamenti' && /google store/.test(d)) { tx.categoria = 'Da classificare'; delete tx.voce; n++; }
+      });
+      return n;
+  }},
+];
+
+// ─── Pannello "da classificare" in Transazioni ───────────────────
+function renderDaClassificare() {
+  const el = document.getElementById('tx-da-classificare');
+  if(!el) return;
+  const n = state.transactions.filter(t => t.categoria === 'Da classificare' && !t.esclusa).length;
+  const fc = document.getElementById('filter-cat');
+  if(!n || (fc && fc.value === 'Da classificare')) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  el.innerHTML = `<span>📌 <strong>${n}</strong> ${n===1?'transazione':'transazioni'} da classificare</span>
+    <button class="btn" style="font-size:12px;padding:4px 10px;" onclick="apriTransazioniCat('Da classificare')">Mostra</button>`;
 }
 
 // ─── Tutte le categorie disponibili ──────────────────────────────
 const ALL_CATS = [
   'Alimentari','Ristorazione','Trasporti','Abbonamenti','Utenze',
   'Salute','Cura personale','Casa','Investimenti',
-  'Entrate','Tasse/Contributi','Viaggi/Vacanze','Lavoro','Commissioni','Per conto terzi','Regali/Donazioni','Svago/Intrattenimento','Giroconto','Altro'
+  'Entrate','Tasse/Contributi','Viaggi/Vacanze','Lavoro','Commissioni','Per conto terzi','Regali/Donazioni','Svago/Intrattenimento','Giroconto','Da classificare'
 ];
 
 // ─── Transazioni ─────────────────────────────────────────────────
@@ -1279,6 +1534,8 @@ function renderTransazioni() {
     const cur = fco.value;
     fco.innerHTML = '<option value="">Tutti i conti</option>' + conti.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
   }
+
+  renderDaClassificare();
 
   let txs = [...state.transactions].map((t,i) => ({...t, _idx: i}));
   if(filterCat) txs = txs.filter(t=>t.categoria===filterCat);
@@ -1336,10 +1593,14 @@ function renderTransazioni() {
     return `<tr style="${rowStyle}">
       <td class="tx-c-tog" style="text-align:center;">${toggleIcon}</td>
       <td class="tx-c-date" style="color:var(--text-muted);white-space:nowrap;">${fmtDate(t.data)}</td>
-      <td class="tx-c-desc" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.descrizione||''}">${t.descrizione||'—'}</td>
+      <td class="tx-c-desc" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.descrizione||''}">${t.descrizione||'—'}${(() => {
+        const lab = voceEtichetta(t), fatt = isDaFattura(t);
+        if(!lab && !fatt) return '';
+        return `<div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;">${lab ? '🎯 ' + lab : ''}${fatt ? (lab?' · ':'') + '🧾 da fattura' : ''}</div>`;
+      })()}</td>
       <td class="tx-c-cat">
         <div style="position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;">
-          <span class="cat-pill" style="background:${col}18;color:${col};cursor:default;">${catEmoji(t.categoria)} ${t.categoria||'Altro'}</span>
+          <span class="cat-pill" style="background:${col}18;color:${col};cursor:default;">${catEmoji(t.categoria)} ${t.categoria||'Da classificare'}</span>
           <select
             onchange="changeCat(${t._idx}, this.value)"
             title="Modifica categoria"
@@ -1401,7 +1662,12 @@ function toggleExclude(idx) {
 
 function changeCat(idx, newCat) {
   if(!newCat || !state.transactions[idx]) return;
-  state.transactions[idx].categoria = newCat;
+  const tx = state.transactions[idx];
+  if(tx.categoria !== newCat) {
+    tx.categoria = newCat;
+    if(tx.ripartizione) { delete tx.ripartizione; delete tx.voceManuale; }
+    assegnaVoceAuto(tx);
+  }
   save();
   renderTransazioni();
   renderCatList();
@@ -1418,7 +1684,7 @@ function editTx(idx) {
   _editTxIdx = idx;
 
   // Popola campi
-  document.getElementById('etx-data').value = tx.data || '';
+  document.getElementById('etx-data').value = (tx.data || '').substring(0,10);
   document.getElementById('etx-importo').value = tx.importo != null ? tx.importo : '';
   document.getElementById('etx-desc').value = tx.descrizione || '';
 
@@ -1431,7 +1697,102 @@ function editTx(idx) {
   const catSel = document.getElementById('etx-cat');
   catSel.innerHTML = ALL_CATS.map(c => `<option value="${c}"${c===tx.categoria?' selected':''}>${catEmoji(c)} ${c}</option>`).join('');
 
+  // Voce di budget
+  etxPopolaVoci(tx.voceManuale ? (tx.voce || '__none__') : '');
+  const rip = document.getElementById('etx-rip');
+  rip.innerHTML = '';
+  if(Array.isArray(tx.ripartizione) && tx.ripartizione.length) {
+    rip.style.display = 'block';
+    tx.ripartizione.forEach(r => etxAggiungiRiga(r.voce, r.importo));
+    etxAggiornaTotRip();
+  } else rip.style.display = 'none';
+  etxAggiornaToggleRip();
+
+  // Da fattura
+  _etxFattToccato = false;
+  document.getElementById('etx-fattura').checked = isDaFattura(tx);
+  etxAggiornaFattura();
+
   document.getElementById('modal-edit-tx').classList.add('open');
+}
+
+// ── Helper modal: voci di budget ──
+let _etxFattToccato = false;
+function _opzioniVoci(sel) {
+  const perCat = {};
+  vociTutte().forEach(v => { (perCat[v.categoria] = perCat[v.categoria] || []).push(v); });
+  return Object.keys(perCat).sort((a,b)=>a.localeCompare(b,'it')).map(c =>
+    `<optgroup label="${catEmoji(c)} ${c}">` +
+    perCat[c].map(v => `<option value="${v.id}"${v.id===sel?' selected':''}>${v.nome}</option>`).join('') +
+    `</optgroup>`).join('');
+}
+function etxPopolaVoci(sel) {
+  const tx = state.transactions[_editTxIdx];
+  const cat = document.getElementById('etx-cat').value;
+  const auto = voceAutomatica({...tx, categoria: cat, descrizione: document.getElementById('etx-desc').value || tx.descrizione});
+  document.getElementById('etx-voce').innerHTML =
+    `<option value=""${sel===''?' selected':''}>Automatica${auto ? ' → ' + voceNome(auto) : ' (nessuna)'}</option>` +
+    `<option value="__none__"${sel==='__none__'?' selected':''}>Nessuna voce</option>` + _opzioniVoci(sel);
+}
+function etxCatCambiata() {
+  const vs = document.getElementById('etx-voce');
+  const v = vocePerId(vs.value);
+  const cat = document.getElementById('etx-cat').value;
+  etxPopolaVoci(v && v.categoria !== cat ? '' : vs.value);
+}
+function etxVoceCambiata() {
+  const v = vocePerId(document.getElementById('etx-voce').value);
+  if(v) document.getElementById('etx-cat').value = v.categoria;
+}
+function etxAggiornaFattura() {
+  document.getElementById('etx-fatt-group').style.display =
+    document.getElementById('etx-tipo').value === 'entrata' ? 'block' : 'none';
+}
+function etxToggleRip() {
+  const rip = document.getElementById('etx-rip');
+  if(rip.style.display === 'none') {
+    rip.style.display = 'block';
+    if(!rip.querySelector('.etx-rip-riga')) { etxAggiungiRiga('', ''); etxAggiungiRiga('', ''); }
+    etxAggiornaTotRip();
+  } else { rip.style.display = 'none'; rip.innerHTML = ''; }
+  etxAggiornaToggleRip();
+}
+function etxAggiornaToggleRip() {
+  const aperta = document.getElementById('etx-rip').style.display !== 'none';
+  document.getElementById('etx-rip-toggle').textContent = aperta ? 'Annulla ripartizione' : 'Ripartisci tra più voci';
+  document.getElementById('etx-voce').disabled = aperta;
+}
+function etxAggiungiRiga(voce, importo) {
+  const rip = document.getElementById('etx-rip');
+  let tot = rip.querySelector('.etx-rip-tot');
+  const riga = document.createElement('div');
+  riga.className = 'etx-rip-riga';
+  riga.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;align-items:center;';
+  riga.innerHTML = `<select class="form-input" style="flex:1;min-width:0;"><option value="">Scegli voce…</option>${_opzioniVoci(voce)}</select>
+    <input type="number" class="form-input" step="0.01" min="0" placeholder="0.00" value="${importo===''||importo==null?'':importo}" style="width:100px;" oninput="etxAggiornaTotRip()" />
+    <span style="cursor:pointer;opacity:.6;padding:0 4px;" title="Rimuovi riga" onclick="this.parentNode.remove();etxAggiornaTotRip()">✕</span>`;
+  if(!tot) {
+    tot = document.createElement('div');
+    tot.className = 'etx-rip-tot';
+    tot.style.cssText = 'font-size:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;';
+    rip.appendChild(tot);
+  }
+  rip.insertBefore(riga, tot);
+}
+function etxLeggiRip() {
+  return [...document.querySelectorAll('#etx-rip .etx-rip-riga')].map(r => ({
+    voce: r.querySelector('select').value,
+    importo: parseFloat(r.querySelector('input').value)
+  })).filter(r => r.voce && r.importo > 0);
+}
+function etxAggiornaTotRip() {
+  const tot = document.querySelector('#etx-rip .etx-rip-tot');
+  if(!tot) return;
+  const imp = parseFloat(document.getElementById('etx-importo').value) || 0;
+  const somma = etxLeggiRip().reduce((s,r) => s + r.importo, 0);
+  const ok = Math.abs(somma - imp) < 0.01;
+  tot.innerHTML = `<a href="#" onclick="etxAggiungiRiga('','');etxAggiornaTotRip();return false;" style="color:var(--accent);">+ aggiungi voce</a>
+    <span style="color:${ok?'var(--accent)':'var(--danger)'};">Ripartiti ${fmt(somma)} su ${fmt(imp)}</span>`;
 }
 
 function saveTxEdit() {
@@ -1442,13 +1803,48 @@ function saveTxEdit() {
   const nuovoImporto = parseFloat(document.getElementById('etx-importo').value);
   const nuovaDesc = document.getElementById('etx-desc').value.trim();
   const nuovoTipo = document.getElementById('etx-tipo').value;
-  const nuovaCat = document.getElementById('etx-cat').value;
+  let nuovaCat = document.getElementById('etx-cat').value;
+  const voceSel = document.getElementById('etx-voce').value;
+  const ripAttiva = document.getElementById('etx-rip').style.display !== 'none';
+  const righe = ripAttiva ? etxLeggiRip() : [];
+  const impFinale = (!isNaN(nuovoImporto) && nuovoImporto > 0) ? nuovoImporto : tx.importo;
 
-  if(nuovaData) tx.data = nuovaData;
-  if(!isNaN(nuovoImporto) && nuovoImporto > 0) tx.importo = nuovoImporto;
+  // Validazione ripartizione prima di modificare qualsiasi dato
+  if(ripAttiva) {
+    if(righe.length < 2) { alert('Per ripartire servono almeno due voci con un importo.'); return; }
+    const somma = righe.reduce((s,r) => s + r.importo, 0);
+    if(Math.abs(somma - impFinale) >= 0.01) {
+      alert(`La ripartizione (${fmt(somma)}) non corrisponde all'importo della transazione (${fmt(impFinale)}).`);
+      return;
+    }
+  }
+
+  if(nuovaData) tx.data = new Date(nuovaData + 'T00:00:00Z').toISOString();
+  tx.importo = impFinale;
   if(nuovaDesc) tx.descrizione = nuovaDesc;
   tx.tipo = nuovoTipo;
-  if(nuovaCat) tx.categoria = nuovaCat;
+
+  // Voce di budget
+  if(ripAttiva) {
+    tx.ripartizione = righe.map(r => ({voce: r.voce, importo: Math.round(r.importo*100)/100}));
+    tx.voceManuale = true;
+    delete tx.voce;
+    // categoria = quella della voce con la quota maggiore
+    const princ = [...righe].sort((a,b) => b.importo - a.importo)[0];
+    const vp = vocePerId(princ.voce);
+    if(vp) nuovaCat = vp.categoria;
+    if(nuovaCat) tx.categoria = nuovaCat;
+  } else {
+    delete tx.ripartizione;
+    if(nuovaCat) tx.categoria = nuovaCat;
+    if(voceSel === '') { delete tx.voceManuale; delete tx.voce; assegnaVoceAuto(tx); }
+    else if(voceSel === '__none__') { tx.voceManuale = true; delete tx.voce; }
+    else { tx.voceManuale = true; tx.voce = voceSel; const v = vocePerId(voceSel); if(v) tx.categoria = v.categoria; }
+  }
+
+  // Da fattura (solo entrate; salvato solo se toccato a mano)
+  if(tx.tipo !== 'entrata') delete tx.daFattura;
+  else if(_etxFattToccato) tx.daFattura = document.getElementById('etx-fattura').checked;
 
   _editTxIdx = -1;
   document.getElementById('modal-edit-tx').classList.remove('open');
@@ -1598,7 +1994,11 @@ function saveConto() {
     isPaypal: document.getElementById('m-paypal').checked
   };
   if(editingContoIdx >= 0) {
+    const vecchioNome = state.accounts[editingContoIdx].banca;
     state.accounts[editingContoIdx] = obj;
+    // Rinomina: aggiorna anche il conto sulle transazioni
+    if(vecchioNome && vecchioNome !== banca)
+      state.transactions.forEach(t => { if(t.conto === vecchioNome) t.conto = banca; });
   } else {
     state.accounts.push(obj);
   }
@@ -1719,7 +2119,7 @@ async function processFile(file, tipoHint) {
 
     if(transactions.length) {
       logMsg(`🤖 Categorizzazione di ${transactions.length} transazioni…`, 'info');
-      if(transactions.some(t=>!t.categoria || t.categoria==='Altro')) {
+      if(transactions.some(t=>!t.categoria || t.categoria==='Da classificare')) {
         const key = localStorage.getItem('pm_api_key');
         if(key) transactions = await categorizeTx(transactions);
       }
@@ -1734,19 +2134,21 @@ async function processFile(file, tipoHint) {
     const contoName = guessContoName(file.name);
     transactions.forEach(t => { if(!t.conto) t.conto = contoName; });
 
-    // Controllo anti-duplicati: salta transazioni già presenti (stessa data + importo + descrizione)
-    const existingKeys = new Set(
-      state.transactions.map(t => `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`)
-    );
+    // Controllo anti-duplicati: stessa data + importo e descrizione uguale
+    // o una prefisso dell'altra (es. BBVA: export CSV ed Excel scrivono
+    // la stessa operazione con descrizioni di lunghezza diversa)
+    const perChiave = {};
+    const _k = t => `${t.data?.substring(0,10)}|${(+t.importo||0).toFixed(2)}`;
+    state.transactions.forEach(t => { (perChiave[_k(t)] = perChiave[_k(t)] || []).push(t.descrizione); });
     const txNuove = [];
     const txDuplicate = [];
     transactions.forEach(t => {
-      const key = `${t.data?.substring(0,10)}|${t.importo}|${t.descrizione?.trim().toLowerCase()}`;
-      if(existingKeys.has(key)) {
+      const lista = perChiave[_k(t)] || [];
+      if(lista.some(d => _normDesc(d) === _normDesc(t.descrizione) || _descSimili(d, t.descrizione))) {
         txDuplicate.push(t);
       } else {
         txNuove.push(t);
-        existingKeys.add(key); // Aggiunge al set per evitare duplicati anche all'interno dello stesso import
+        (perChiave[_k(t)] = lista).push(t.descrizione); // evita duplicati anche nello stesso import
       }
     });
     if(txDuplicate.length > 0) {
@@ -2266,7 +2668,7 @@ function parseDate(s) {
 // Categorizzazione — 11 categorie personalizzate
 // Le 11 categorie: Alimentari, Ristorazione, Trasporti, Abbonamenti,
 //                  Salute, Cura personale, Casa, Investimenti, Entrate,
-//                  Tasse/Contributi, Altro
+//                  Tasse/Contributi, Da classificare
 function guessCat(desc, tipoOp, prodotto) {
   const d = desc.toLowerCase().trim();
 
@@ -2317,12 +2719,14 @@ function guessCat(desc, tipoOp, prodotto) {
     'iliad':          'Utenze',
     'fastweb':        'Utenze',
     'octopus':        'Utenze',
-    'poste italiane': 'Utenze',
+    'vivigas':        'Utenze',
     // Abbonamenti
     'netflix':      'Abbonamenti',
     'amazon prime': 'Abbonamenti',
     'patreon':      'Abbonamenti',
+    'google store': 'Da classificare',   // acquisti hardware, non abbonamento
     'google':       'Abbonamenti',
+    'anthropic':    'Abbonamenti',
     // Cura personale
     'parrucchiere':      'Cura personale',
     'barber':            'Cura personale',
@@ -2337,7 +2741,7 @@ function guessCat(desc, tipoOp, prodotto) {
     'amazon':              'Casa',
     'temu':                'Casa',
     'ikea':                'Casa',
-    'obi':                 'Casa',
+    'polizza casa':        'Casa',
     'sp amo la casa shop': 'Casa',
     'tecno assistenza':    'Casa',
     'dedem spa':           'Casa',
@@ -2360,6 +2764,7 @@ function guessCat(desc, tipoOp, prodotto) {
     'pagamento da parte di marcella migliorini':  'Entrate',
     'pagamento da parte di sheida mohammadzadeh': 'Entrate',
     'pagamento da stefano mornata':               'Entrate',
+    'recognita':                                  'Entrate',
     'bonifico ricevuto':                          'Entrate',
     'cashback':                                   'Entrate',
     'liquidazione interessi':                     'Entrate',
@@ -2367,10 +2772,10 @@ function guessCat(desc, tipoOp, prodotto) {
     'hotel casalgrande':   'Viaggi/Vacanze',
     'albergo le marmotte': 'Viaggi/Vacanze',
     'associazione forte':  'Viaggi/Vacanze',
-    // Altro (movimenti generici BBVA)
-    'sumup':                 'Altro',
-    'bonifico eseguito':     'Altro',
-    'pagamenti/riscossioni': 'Altro',
+    // Movimenti generici BBVA (sumup, bonifici, pagoPA): da classificare a mano
+    'sumup':                 'Da classificare',
+    'bonifico eseguito':     'Da classificare',
+    'pagamenti/riscossioni': 'Da classificare',
     // Giroconti verso conti propri (Mornata Stefano)
     'revolut**':                              'Giroconto',
     'transfer to stefano mornata':            'Giroconto',
@@ -2386,13 +2791,12 @@ function guessCat(desc, tipoOp, prodotto) {
     'costo mensile':        'Commissioni',
     'spese tenuta conto':   'Commissioni',
     'spese conto':          'Commissioni',
-    'fee':                  'Commissioni',
     'tax optimization':     'Commissioni',
-    // Altro esplicito
-    'pagamento a favore di eleonora giuseppina mornata': 'Altro',
-    'worldpay':               'Altro',
-    'nexi':                   'Altro',
-    'mne 95024574moneynet s': 'Altro',
+    // Lavoro
+    'aruba':                  'Lavoro',
+    // Da classificare esplicito
+    'pagamento a favore di eleonora giuseppina mornata': 'Da classificare',
+    'mne 95024574moneynet s': 'Da classificare',
   };
 
   // ── Tassa rifiuti (TARI): regola prioritaria, prima del dizionario ──
@@ -2418,7 +2822,7 @@ function guessCat(desc, tipoOp, prodotto) {
   // ── Regole tipo operazione Revolut ───────────────────────────────
   if(tipoOp) {
     if(tipoOp === 'ricarica') return 'Giroconto';
-    if(tipoOp === 'rimborso su carta') return 'Altro';
+    if(tipoOp === 'rimborso su carta') return 'Da classificare';
     if(tipoOp === 'cambia valuta') return 'Investimenti';
     if(tipoOp === 'prelievo') return 'Giroconto';  // prelievo ATM = denaro che va nel portafoglio
   }
@@ -2433,12 +2837,12 @@ function guessCat(desc, tipoOp, prodotto) {
   // ── Keyword generiche (fallback) ─────────────────────────────────
   if(/supermercato|conad|coop|aldi|pam|spesa|alimentar|panetteria|forno|macelleria/.test(d)) return 'Alimentari';
   if(/ristorante|pizzeria|caffè|cafe|trattoria|osteria|sushi|mcdonald|deliveroo|just eat|ubereats/.test(d)) return 'Ristorazione';
-  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|parcheggi|autostrada|pedaggi|benzina|agip|eni|shell/.test(d)) return 'Trasporti';
+  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|parcheggi|autostrada|pedaggi|benzina|agip|\beni\b|\bshell\b/.test(d)) return 'Trasporti';
   if(/\benel\b|\ba2a\b|\bhera\b|\biren\b|\bluce\b|\bgas\b|\bacqua\b|bolletta|octopus|iliad|fastweb/.test(d)) return 'Utenze';
   if(/spotify|disney|apple|abbonamento|subscription/.test(d)) return 'Abbonamenti';
   if(/farmacia|medico|ospedale|dentista|ottic|parafarma/.test(d)) return 'Salute';
   if(/zara|h&m|decathlon|mediaworld|unieuro|abbigliamento|zalando/.test(d)) return 'Cura personale';
-  if(/affitto|mutuo|condominio|rent|mortgage|arredo|bricolage/.test(d)) return 'Casa';
+  if(/affitto|mutuo|condominio|rent|mortgage|arredo|bricolage|\bobi\b/.test(d)) return 'Casa';
   if(/cancelleria|cartoleria|ufficio|stampante|toner|software|abbonamento professionale|commercialista|consulenza|formazione professionale|corso di aggiornamento|ordine professional/.test(d)) return 'Lavoro';
   if(/regalo|regali|donazione|donazioni|beneficenza|charity|gift/.test(d)) return 'Regali/Donazioni';
   if(/cinema|teatro|museo|concerto|sport|palestra|fitness|giochi|videogiochi|svago|intrattenimento|parco|zoo|gita/.test(d)) return 'Svago/Intrattenimento';
@@ -2448,7 +2852,7 @@ function guessCat(desc, tipoOp, prodotto) {
   if(/impost|tass|f24|\bimu\b|irpef/.test(d)) return 'Tasse/Contributi';
   if(/commissione|commissioni|canone|\bfee\b|spese tenuta|spese conto|costo mensile|costo riemissione/.test(d)) return 'Commissioni';
 
-  return 'Altro';
+  return 'Da classificare';
 }
 
 // ─── AI Analysis (for PDFs) ───────────────────────────────────────
@@ -2467,7 +2871,7 @@ Ogni transazione deve avere questi campi:
 - descrizione: stringa (massimo 80 caratteri)
 - importo: numero positivo
 - tipo: "uscita" o "entrata"
-- categoria: una di: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Altro
+- categoria: una di: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Da classificare
 
 Testo estratto dall'estratto conto (file: ${filename}):
 ---
@@ -2503,11 +2907,11 @@ async function categorizeTx(transactions) {
   const key = localStorage.getItem('pm_api_key');
   if(!key) return transactions;
 
-  const toCateg = transactions.filter(t=>!t.categoria||t.categoria==='Altro');
+  const toCateg = transactions.filter(t=>!t.categoria||t.categoria==='Da classificare');
   if(!toCateg.length) return transactions;
 
   const items = toCateg.map((t,i)=>({i, desc: t.descrizione}));
-  const prompt = `Categorizza queste descrizioni di transazioni bancarie italiane. Rispondi SOLO con un JSON array di oggetti {i, categoria}. Categorie disponibili: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Altro.
+  const prompt = `Categorizza queste descrizioni di transazioni bancarie italiane. Rispondi SOLO con un JSON array di oggetti {i, categoria}. Categorie disponibili: Alimentari, Ristorazione, Trasporti, Abbonamenti, Utenze, Salute, Cura personale, Casa, Investimenti, Entrate, Tasse/Contributi, Viaggi/Vacanze, Lavoro, Commissioni, Per conto terzi, Regali/Donazioni, Svago/Intrattenimento, Da classificare.
 
 ${JSON.stringify(items)}
 
@@ -2752,7 +3156,7 @@ function salvaSpesaContanti() {
     importo,
     tipo,
     categoria: tipoSel === 'entrata' ? 'Entrate' : cat,
-    conto: 'Portafoglio'
+    conto: (p && p.banca) || 'Portafoglio'
   });
 
   // Aggiorna saldo portafoglio
@@ -2887,7 +3291,7 @@ function importaContanti(input) {
           descrizione: t.descrizione || 'Spesa contanti',
           importo: parseFloat(t.importo) || 0,
           tipo: t.tipo || 'uscita',
-          categoria: t.categoria || 'Altro',
+          categoria: t.categoria || 'Da classificare',
           conto: t.conto || 'Portafoglio'
         });
         if(t.tipo === 'uscita') totUscite += parseFloat(t.importo)||0;
