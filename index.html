@@ -1034,6 +1034,7 @@ function renderPCT() {
 
 // ─── Render all ──────────────────────────────────────────────────
 function renderAll() {
+  if(migraCategorie()) save();
   renderMetrics();
   renderPCT();
   renderBankList();
@@ -1211,6 +1212,36 @@ function catEmoji(cat) {
     'Entrate':'💰','Tasse/Contributi':'🏛','Viaggi/Vacanze':'✈️','Lavoro':'💼','Commissioni':'🏷','Per conto terzi':'🤝','Regali/Donazioni':'🎁','Svago/Intrattenimento':'🎭','Giroconto':'🔄','Altro':'📌'
   };
   return map[cat] || '📌';
+}
+
+// ─── Conversione automatica categorie ────────────────────────────
+// Eseguita a ogni renderAll (quindi all'avvio, dopo la sync Drive e
+// dopo l'import di un backup). È idempotente: tocca solo transazioni
+// con categoria non più esistente o ancora nella vecchia categoria
+// errata, così le correzioni manuali non vengono sovrascritte.
+const MIGRAZIONI_CAT = [
+  // [descrizione, vecchie categorie errate, nuova categoria]
+  [/(^|[^a-z])tari([^a-z]|$)|tassa (sui )?rifiuti|tariffa rifiuti/, ['Utenze','Tasse/Contributi'], 'Casa'],
+  [/hotel casalgrande|albergo le marmotte/,                           ['Trasporti'],                'Viaggi/Vacanze'],
+  [/parcheggi/,                                                       ['Tasse/Contributi','Altro'], 'Trasporti'],
+];
+function migraCategorie() {
+  if(!state || !Array.isArray(state.transactions)) return 0;
+  let n = 0;
+  state.transactions.forEach(tx => {
+    const d = String(tx.descrizione || '').toLowerCase();
+    if(tx.categoria && !ALL_CATS.includes(tx.categoria)) {
+      const c = guessCat(d, '', '');
+      tx.categoria = ALL_CATS.includes(c) ? c : 'Altro';
+      n++;
+      return;
+    }
+    for(const [re, vecchie, nuova] of MIGRAZIONI_CAT) {
+      if(re.test(d) && vecchie.includes(tx.categoria)) { tx.categoria = nuova; n++; break; }
+    }
+  });
+  if(n) console.log('Conversione categorie: ' + n + ' transazioni aggiornate');
+  return n;
 }
 
 // ─── Tutte le categorie disponibili ──────────────────────────────
@@ -2239,147 +2270,134 @@ function parseDate(s) {
 function guessCat(desc, tipoOp, prodotto) {
   const d = desc.toLowerCase().trim();
 
-  // ── Dizionario esatto (match prioritario) ────────────────────────
+  // ── Dizionario (match prioritario) ───────────────────────────────
+  // Una sola riga per chiave. L'ORDINE CONTA: nel confronto per
+  // sottostringa vince la prima chiave trovata, quindi le chiavi più
+  // specifiche devono precedere quelle generiche (es. 'amazon prime'
+  // prima di 'amazon', 'fastweb' prima di 'canone').
+  // Le varianti ridondanti sono coperte dalla chiave più corta
+  // (es. 'daem' copre 'daem srl', 'fee' copre 'monthly fee').
   const exact = {
     // Alimentari
     'famila':                'Alimentari',
     'esselunga':             'Alimentari',
     'lidl':                  'Alimentari',
     'carrefour':             'Alimentari',
+    'crf exp':               'Alimentari',
+    'bennet':                'Alimentari',
     'daem':                  'Alimentari',
     'investfood':            'Alimentari',
     'mix markt':             'Alimentari',
     'too good to go':        'Alimentari',
+    'azienda agricola':      'Alimentari',
     // Ristorazione
-    'glovo':                      'Ristorazione',
-    'burger king':                'Ristorazione',
-    'ava pizza e kebap':          'Ristorazione',
-    'pizzeria beverly hill..':    'Ristorazione',
-    'greek souflaki':             'Ristorazione',
+    'glovo':                     'Ristorazione',
+    'burger king':               'Ristorazione',
+    'starvin burger':            'Ristorazione',
+    'ava pizza e kebap':         'Ristorazione',
+    'pizzeria beverly':          'Ristorazione',
+    'greek souflaki':            'Ristorazione',
     'bar moderno s.a.s. di ste': 'Ristorazione',
+    'macam sas':                 'Ristorazione',
+    'gelateria cavour':          'Ristorazione',
+    'gelateria vanilla':         'Ristorazione',
+    'poke kal':                  'Ristorazione',
+    'caffe roma':                'Ristorazione',
+    'bistrot':                   'Ristorazione',
+    'gunther stube':             'Ristorazione',
+    'haikky':                    'Ristorazione',
+    'gruppo alpini':             'Ristorazione',
     // Trasporti
     'atm - azienda trasporti milanesi': 'Trasporti',
     'easypark':  'Trasporti',
+    'tap & go':  'Trasporti',
     'q8':        'Trasporti',
     'tamoil':    'Trasporti',
     // Utenze
     'iliad':          'Utenze',
     'fastweb':        'Utenze',
-    'octopus energy': 'Utenze',
     'octopus':        'Utenze',
+    'poste italiane': 'Utenze',
     // Abbonamenti
     'netflix':      'Abbonamenti',
     'amazon prime': 'Abbonamenti',
     'patreon':      'Abbonamenti',
     'google':       'Abbonamenti',
     // Cura personale
-    'parrucchiere':        'Cura personale',
-    'barbershop':          'Cura personale',
-    'barber shop':         'Cura personale',
-    'barber':              'Cura personale',
-    'hair':                'Cura personale',
-    'ottica':              'Cura personale',
+    'parrucchiere':      'Cura personale',
+    'barber':            'Cura personale',
+    'hair':              'Cura personale',
+    'ottica':            'Cura personale',
+    'zalando payments':  'Cura personale',
+    'uniqlo':            'Cura personale',
+    'outlet calzedonia': 'Cura personale',
+    'ficini srl':        'Cura personale',
+    'asia phone':        'Cura personale',
     // Casa (Amazon e Temu usati principalmente per acquisti casa)
-    'amazon':           'Casa',
-    'temu':             'Casa',
-    // Cura personale
-    'zalando payments': 'Cura personale',
-    'uniqlo':           'Cura personale',
-    'asia phone':       'Cura personale',
-    // Casa
+    'amazon':              'Casa',
+    'temu':                'Casa',
     'ikea':                'Casa',
     'obi':                 'Casa',
     'sp amo la casa shop': 'Casa',
     'tecno assistenza':    'Casa',
     'dedem spa':           'Casa',
+    'procedura mutui':     'Casa',
     // Salute
     'farmacia santa rita': 'Salute',
+    'farmacia agnelli':    'Salute',
     'top farmacia':        'Salute',
     'centro medico eos':   'Salute',
-    'ottica passadore':    'Cura personale',
     'redcare':             'Salute',
     // Tasse/Contributi
     'agenzia delle entrate': 'Tasse/Contributi',
+    'pagamento imposte':     'Tasse/Contributi',
+    'imposta di bollo':      'Tasse/Contributi',
     // Investimenti
-    'az fund':                                      'Investimenti',
-    'azimut':                                       'Investimenti',
+    'az fund':                                       'Investimenti',
+    'azimut':                                        'Investimenti',
     'transfer to revolut digital assets europe ltd': 'Investimenti',
     // Entrate
     'pagamento da parte di marcella migliorini':  'Entrate',
     'pagamento da parte di sheida mohammadzadeh': 'Entrate',
     'pagamento da stefano mornata':               'Entrate',
+    'bonifico ricevuto':                          'Entrate',
+    'cashback':                                   'Entrate',
+    'liquidazione interessi':                     'Entrate',
     // Viaggi/Vacanze
-    'hotel casalgrande':       'Viaggi/Vacanze',
-    'albergo le marmotte':     'Viaggi/Vacanze',
-    'gunther stube':           'Viaggi/Vacanze',
-    'haikky':                  'Viaggi/Vacanze',
-    'associazione forte':      'Viaggi/Vacanze',
-    // BBVA specifici
-    'macam sas':               'Ristorazione',
-    'starvin burger':          'Ristorazione',
-    'gelateria cavour':        'Ristorazione',
-    'gelateria vanilla':       'Ristorazione',
-    'pizzeria beverly':        'Ristorazione',
-    'poke kal':                'Ristorazione',
-    'caffe roma':              'Ristorazione',
-    'bistrot':                 'Ristorazione',
-    'gunther stube':           'Ristorazione',
-    'haikky':                  'Intrattenimento',
-    'crf exp':                 'Alimentari',
-    'bennet':                  'Alimentari',
-    'daem srl':                'Alimentari',
-    'addebito fastweb':        'Utenze',
-    'addebito az fund':        'Investimenti',
-    'az fund tbd1':            'Investimenti',
-    'revolut**':               'Giroconto',
-    'farmacia agnelli':        'Salute',
-    'associazione forte':      'Intrattenimento',
-    'gruppo alpini':           'Intrattenimento',
-    'hotel casalgrande':       'Trasporti',
-    'albergo le marmotte':     'Trasporti',
-    'azienda agricola':        'Alimentari',
-    'tap & go':                'Trasporti',
-    'poste italiane':          'Utenze',
-    'outlet calzedonia':       'Cura personale',
-    'ficini srl':              'Cura personale',
-    'sumup':                   'Altro',
-    'bonifico eseguito':       'Altro',
-    'bonifico ricevuto':       'Entrate',
-    'cashback':                'Entrate',
-    'liquidazione interessi':  'Entrate',
-    'imposta di bollo':        'Tasse/Contributi',
-    'pagamento imposte':       'Tasse/Contributi',
-    'commissione di gestione': 'Altro',
-    'pagamenti/riscossioni':   'Altro',
-    // Casa
-    'procedura mutui': 'Casa',
+    'hotel casalgrande':   'Viaggi/Vacanze',
+    'albergo le marmotte': 'Viaggi/Vacanze',
+    'associazione forte':  'Viaggi/Vacanze',
+    // Altro (movimenti generici BBVA)
+    'sumup':                 'Altro',
+    'bonifico eseguito':     'Altro',
+    'pagamenti/riscossioni': 'Altro',
     // Giroconti verso conti propri (Mornata Stefano)
-    'transfer to stefano mornata': 'Giroconto',
-    'outgoing transfer for stefano mornata': 'Giroconto',
-    'outgoing transfer for mornata stefano': 'Giroconto',
+    'revolut**':                              'Giroconto',
+    'transfer to stefano mornata':            'Giroconto',
+    'outgoing transfer for stefano mornata':  'Giroconto',
+    'outgoing transfer for mornata stefano':  'Giroconto',
     'incoming transfer from mornata stefano': 'Giroconto',
     'incoming transfer from stefano mornata': 'Giroconto',
     // Commissioni e canoni
-    'commissione':             'Commissioni',
-    'commissioni':             'Commissioni',
-    'commissione di gestione': 'Commissioni',
-    'addebito canone':         'Commissioni',
-    'canone':                  'Commissioni',
-    'costo di riemissione':    'Commissioni',
-    'costo mensile':           'Commissioni',
-    'spese tenuta conto':      'Commissioni',
-    'spese conto':             'Commissioni',
-    'fee':                     'Commissioni',
-    'interchange fee':         'Commissioni',
-    'monthly fee':             'Commissioni',
-    'annual fee':              'Commissioni',
-    'tax optimization':        'Commissioni',
+    'commissione':          'Commissioni',
+    'commissioni':          'Commissioni',
+    'canone':               'Commissioni',
+    'costo di riemissione': 'Commissioni',
+    'costo mensile':        'Commissioni',
+    'spese tenuta conto':   'Commissioni',
+    'spese conto':          'Commissioni',
+    'fee':                  'Commissioni',
+    'tax optimization':     'Commissioni',
     // Altro esplicito
     'pagamento a favore di eleonora giuseppina mornata': 'Altro',
     'worldpay':               'Altro',
     'nexi':                   'Altro',
     'mne 95024574moneynet s': 'Altro',
   };
+
+  // ── Tassa rifiuti (TARI): regola prioritaria, prima del dizionario ──
+  // (altrimenti "pagamento imposte", "F24" o "tass" la porterebbero altrove)
+  if(/(^|[^a-z])tari([^a-z]|$)|tassa (sui )?rifiuti|tariffa rifiuti/.test(d)) return 'Casa';
 
   if(exact[d]) return exact[d];
   for(const [key, cat] of Object.entries(exact)) {
@@ -2415,8 +2433,8 @@ function guessCat(desc, tipoOp, prodotto) {
   // ── Keyword generiche (fallback) ─────────────────────────────────
   if(/supermercato|conad|coop|aldi|pam|spesa|alimentar|panetteria|forno|macelleria/.test(d)) return 'Alimentari';
   if(/ristorante|pizzeria|caffè|cafe|trattoria|osteria|sushi|mcdonald|deliveroo|just eat|ubereats/.test(d)) return 'Ristorazione';
-  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|autostrada|pedaggi|benzina|agip|eni|shell/.test(d)) return 'Trasporti';
-  if(/enel|a2a|hera|iren|luce|gas|acqua|rifiuti|bolletta|octopus|tim|vodafone|wind|fastweb/.test(d)) return 'Utenze';
+  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|parcheggi|autostrada|pedaggi|benzina|agip|eni|shell/.test(d)) return 'Trasporti';
+  if(/\benel\b|\ba2a\b|\bhera\b|\biren\b|\bluce\b|\bgas\b|\bacqua\b|bolletta|octopus|iliad|fastweb/.test(d)) return 'Utenze';
   if(/spotify|disney|apple|abbonamento|subscription/.test(d)) return 'Abbonamenti';
   if(/farmacia|medico|ospedale|dentista|ottic|parafarma/.test(d)) return 'Salute';
   if(/zara|h&m|decathlon|mediaworld|unieuro|abbigliamento|zalando/.test(d)) return 'Cura personale';
@@ -2427,7 +2445,7 @@ function guessCat(desc, tipoOp, prodotto) {
   if(/hotel|albergo|hostel|b&b|airbnb|booking|agriturismo|resort|villaggio|campeggio|volo|aereo|ryanair|easyjet|trenitalia vacanz/.test(d)) return 'Viaggi/Vacanze';
   if(/fondo|pac|etf|azioni|obbligazioni|investiment/.test(d)) return 'Investimenti';
   if(/stipendio|salary|accredito/.test(d)) return 'Entrate';
-  if(/impost|tass|f24|imu|tari|irpef/.test(d)) return 'Tasse/Contributi';
+  if(/impost|tass|f24|\bimu\b|irpef/.test(d)) return 'Tasse/Contributi';
   if(/commissione|commissioni|canone|\bfee\b|spese tenuta|spese conto|costo mensile|costo riemissione/.test(d)) return 'Commissioni';
 
   return 'Altro';
