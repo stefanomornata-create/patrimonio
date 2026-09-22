@@ -413,6 +413,28 @@ canvas, img, svg { max-width: 100%; }
 /* Animations */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .section.active { animation: fadeIn .25s ease; }
+/* ── Budget ── */
+.bud-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:1rem; }
+.bud-tab { padding:6px 12px; border-radius:999px; border:1px solid var(--border-strong); background:var(--surface); font-size:13px; cursor:pointer; font-family:inherit; color:var(--text); }
+.bud-tab.on { background:var(--accent); color:#fff; border-color:var(--accent); }
+.bud-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.bud-table { width:100%; border-collapse:collapse; font-size:13px; }
+.bud-table th { text-align:right; font-weight:500; font-size:11px; color:var(--text-faint); padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+.bud-table th:first-child { text-align:left; }
+.bud-table td { padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
+.bud-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.bud-table tr.grp td { background:var(--surface2, #f2f0ea); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); }
+.bud-table tr.tot td { font-weight:600; border-top:1px solid var(--border-strong); }
+.bud-table tr.sub td { color:var(--text-faint); font-size:12px; }
+.bud-table tr.warn td:first-child { box-shadow: inset 3px 0 0 var(--warning); }
+.bud-voce { border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; margin-bottom:8px; }
+.bud-voce.off { opacity:.5; }
+.bud-voce-head { display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; font-size:14px; }
+.bud-voce-body { font-size:13px; display:flex; flex-direction:column; gap:6px; align-items:flex-start; }
+.bud-riga { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.bud-in { padding:5px 8px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit; font-size:13px; background:var(--surface); color:var(--text); }
+.bud-mesi { display:flex; flex-wrap:wrap; gap:6px 10px; font-size:12px; }
+.bud-mesi label, .bud-mesi span { display:flex; flex-direction:column; gap:2px; }
 </style>
 </head>
 <body>
@@ -438,6 +460,10 @@ canvas, img, svg { max-width: 100%; }
   <button class="nav-item" onclick="go('transazioni')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
     <span>Transazioni</span>
+  </button>
+  <button class="nav-item" onclick="go('budget')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V5a2 2 0 0 1 2-2h11l3 3v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 13h3M8 17h6M8 9h8"/></svg>
+    <span>Budget</span>
   </button>
   <div class="nav-sep"></div>
   <span class="nav-label">Strumenti</span>
@@ -554,6 +580,15 @@ canvas, img, svg { max-width: 100%; }
   </div>
 </div>
 
+<!-- BUDGET -->
+<div class="section" id="sec-budget">
+  <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+    <div><h1 class="page-title">Budget</h1><p class="page-sub" style="margin-bottom:0;">Piano, fondi e confronto con il reale</p></div>
+    <div id="bud-head-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
+  </div>
+  <div id="bud-content"></div>
+</div>
+
 <!-- TRANSAZIONI -->
 <div class="section" id="sec-transazioni">
   <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
@@ -648,7 +683,8 @@ canvas, img, svg { max-width: 100%; }
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;" id="gdrive-actions" style="display:none;">
       <button class="btn" onclick="gdriveSave()" style="font-size:13px;">⬆ Salva ora su Drive</button>
-      <button class="btn" onclick="gdriveLoad()" style="font-size:13px;">⬇ Carica da Drive</button>
+      <button class="btn" onclick="gdriveSincronizza()" style="font-size:13px;">🔄 Sincronizza ora (unisci)</button>
+      <button class="btn" onclick="gdriveSostituisci()" style="font-size:13px;">⬇ Sostituisci con dati Drive</button>
     </div>
     <div id="gdrive-log" style="font-size:12px;margin-top:.75rem;min-height:18px;"></div>
   </div>
@@ -923,6 +959,7 @@ let charts = {};
 
 // ─── Persist ─────────────────────────────────────────────────────
 function save() {
+  state.modificato = new Date().toISOString();
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
   scheduleDriveSave();
 }
@@ -1057,6 +1094,7 @@ function renderAll() {
   renderImpostazioni();
   renderCharts();
   checkApiKey();
+  renderBudget();
 }
 
 // ─── Metrics ─────────────────────────────────────────────────────
@@ -1285,10 +1323,10 @@ function migraCategorie() {
 // Regola: {re: 'regex sulla descrizione minuscola', min, max}
 //         {tutta: true} = tutta la categoria (es. Spesa = Alimentari)
 // ═════════════════════════════════════════════════════════════════
-const VOCI_VERSIONE = 1;
+const VOCI_VERSIONE = 2;
 const VOCI_GRUPPI = {
   entrate: 'Entrate', fiscale: 'Imposte e contributi', certe: 'Spese certe',
-  ricorrenti: 'Spese ricorrenti', stime: 'Spese variabili'
+  ricorrenti: 'Spese ricorrenti', stime: 'Spese variabili', fondi: 'Salute e regali'
 };
 const VOCI_DEFAULT = [
   // Entrate
@@ -1327,6 +1365,10 @@ const VOCI_DEFAULT = [
   // Spese variabili (stime)
   {id:'luce_gas',       nome:'Luce e gas',                  categoria:'Utenze', gruppo:'stime', regole:[{re:'octopus|vivigas|\\benel\\b|\\bluce\\b|\\bgas\\b'}]},
   {id:'spesa',          nome:'Spesa',                       categoria:'Alimentari', gruppo:'stime', regole:[{tutta:true}]},
+  {id:'commissioni',    nome:'Commissioni bancarie',        categoria:'Commissioni', gruppo:'stime', regole:[{tutta:true}]},
+  // Fondi senza scadenza fissa
+  {id:'fondo_salute',   nome:'Fondo salute',                categoria:'Salute', gruppo:'fondi', regole:[{tutta:true}]},
+  {id:'regali',         nome:'Regali',                      categoria:'Regali/Donazioni', gruppo:'fondi', regole:[{tutta:true}]},
   {id:'carburante',     nome:'Carburante',                  categoria:'Trasporti', gruppo:'stime', regole:[{re:'\\bq8\\b|tamoil|\\beni\\b|agip|\\bshell\\b|\\besso\\b|\\bip\\b|benzin|carburant|rifornim|easy service'}]},
 ];
 
@@ -1441,6 +1483,7 @@ function rimuoviDoppioniFormato() {
     }
   });
   if(!daTogliere.size) return 0;
+  txSegnaEliminate(state.transactions.filter((t, i) => daTogliere.has(i)));
   state.transactions = state.transactions.filter((t, i) => !daTogliere.has(i));
   return daTogliere.size;
 }
@@ -1497,6 +1540,622 @@ function renderDaClassificare() {
   el.style.display = 'flex';
   el.innerHTML = `<span>📌 <strong>${n}</strong> ${n===1?'transazione':'transazioni'} da classificare</span>
     <button class="btn" style="font-size:12px;padding:4px 10px;" onclick="apriTransazioniCat('Da classificare')">Mostra</button>`;
+}
+
+// ═════════════════════════════════════════════════════════════════
+// MODULO BUDGET  (fase 2a — piano annuale, fondi, consuntivo)
+// ─────────────────────────────────────────────────────────────────
+// Dati:  state.budget.anni[anno] = { meseInizio, saldoIniziale, righe }
+//        righe[voceId] = configurazione della voce per quell'anno,
+//        con forma diversa per gruppo (vedi BUD_* sotto)
+//        state.budget.storico[voceId][anno] = [12] storico manuale
+//        state.budget.fiscale = dati del vecchio strumento (fase 2b)
+//        state.budget.aggiornato = ISO dell'ultima modifica al budget
+// Le funzioni di calcolo non modificano lo stato.
+// ═════════════════════════════════════════════════════════════════
+const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const BUD_TABS = [
+  ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'],
+  ['entrate','Entrate'], ['certe','Spese certe'], ['ricorrenti','Ricorrenti'],
+  ['stime','Variabili'], ['fondi','Salute e regali']
+];
+let budUi = { tab: 'riepilogo', anno: null, periodo: 'prog' };
+
+function _z12() { return [0,0,0,0,0,0,0,0,0,0,0,0]; }
+function _r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
+function _sum(a) { let t = 0; for(const x of a) t += (+x || 0); return t; }
+function _esc(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function _num(v) {
+  if(typeof v === 'number') return isFinite(v) ? v : null;
+  let s = String(v == null ? '' : v).trim().replace(/[€\s\u00a0]/g, '');
+  if(!s) return null;
+  if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s); return isNaN(n) ? null : n;
+}
+function _numIn(n) { return (n == null || n === '' || isNaN(n)) ? '' : String(Math.round(n * 100) / 100).replace('.', ','); }
+
+function budAnni() { return Object.keys((state.budget && state.budget.anni) || {}).map(Number).sort((a,b) => a-b); }
+function budAnno(a) { return (state.budget && state.budget.anni && state.budget.anni[a]) || null; }
+function budAnnoCorrente() {
+  const anni = budAnni(); if(!anni.length) return null;
+  if(budUi.anno && anni.includes(budUi.anno)) return budUi.anno;
+  const y = new Date().getFullYear();
+  budUi.anno = anni.includes(y) ? y : anni[anni.length - 1];
+  return budUi.anno;
+}
+function budTocca() { if(state.budget) state.budget.aggiornato = new Date().toISOString(); save(); }
+
+// Ultimo mese chiuso e mese corrente rispetto all'anno di budget
+function budOggi(anno) {
+  const d = new Date(), y = d.getFullYear(), m = d.getMonth();
+  if(anno < y) return { corrente: 12, chiuso: 11 };
+  if(anno > y) return { corrente: -1, chiuso: -1 };
+  return { corrente: m, chiuso: m - 1 };
+}
+
+// ─── Movimenti reali per voce (netti) ────────────────────────────
+// Spese: uscite − entrate (rimborsi). Entrate: entrate − uscite.
+function budRealeVoci(anno) {
+  const out = {}, fuori = {}, prefisso = String(anno) + '-';
+  const add = (id, m, v) => { (out[id] = out[id] || _z12())[m] += v; };
+  state.transactions.forEach(t => {
+    if(t.esclusa || t.categoria === 'Giroconto' || t.categoria === 'Per conto terzi') return;
+    const ds = String(t.data || '');
+    if(!ds.startsWith(prefisso)) return;
+    const m = parseInt(ds.substring(5, 7), 10) - 1;
+    if(!(m >= 0 && m < 12)) return;
+    const segnoSpesa = t.tipo === 'entrata' ? -1 : 1;
+    const parti = Array.isArray(t.ripartizione) && t.ripartizione.length
+      ? t.ripartizione : (t.voce ? [{voce: t.voce, importo: t.importo}] : []);
+    if(parti.length) {
+      parti.forEach(p => {
+        const v = vocePerId(p.voce); if(!v) return;
+        add(p.voce, m, (v.gruppo === 'entrate' ? -segnoSpesa : segnoSpesa) * (+p.importo || 0));
+      });
+    } else if(t.categoria !== 'Entrate') {
+      const c = t.categoria || 'Da classificare';
+      (fuori[c] = fuori[c] || _z12())[m] += segnoSpesa * (+t.importo || 0);
+    }
+  });
+  return { voci: out, fuori };
+}
+
+// ─── Serie storica per le stime: storico manuale + movimenti reali ─
+// Dove esistono movimenti reali (mesi coperti dai dati e chiusi) valgono quelli.
+function budCoperturaReale() {
+  let min = null;
+  state.transactions.forEach(t => { const k = String(t.data || '').substring(0, 7); if(k.length === 7 && (!min || k < min)) min = k; });
+  const d = new Date();
+  const maxK = d.getFullYear() + '-' + String(d.getMonth()).padStart(2, '0'); // mese precedente (0 = dic anno prima)
+  let max = d.getMonth() === 0 ? (d.getFullYear() - 1) + '-12' : maxK;
+  return { min, max };
+}
+function budSerie(voceId) {
+  const man = (state.budget.storico && state.budget.storico[voceId]) || {};
+  const cop = budCoperturaReale();
+  const reali = {};
+  if(cop.min) {
+    const ya = parseInt(cop.min.substring(0, 4), 10), yb = parseInt(cop.max.substring(0, 4), 10);
+    for(let y = ya; y <= yb; y++) reali[y] = budRealeVoci(y).voci[voceId] || _z12();
+  }
+  const anni = new Set([...Object.keys(man).map(Number), ...Object.keys(reali).map(Number)]);
+  const out = [];
+  [...anni].sort((a,b) => a-b).forEach(y => {
+    for(let m = 0; m < 12; m++) {
+      const k = y + '-' + String(m + 1).padStart(2, '0');
+      let v = null, reale = false;
+      if(cop.min && k >= cop.min && k <= cop.max) { v = _r2(reali[y][m]); reale = true; }
+      else { const r = man[y] || []; const x = r[m]; if(x !== null && x !== undefined && x !== '' && !isNaN(x)) v = +x; }
+      if(v !== null) out.push({ anno: y, mese: m, val: v, reale });
+    }
+  });
+  return out;
+}
+function _mediana(a) { const s = [...a].sort((x,y) => x-y), n = s.length; return n ? (n % 2 ? s[(n-1)/2] : (s[n/2-1] + s[n/2]) / 2) : null; }
+function budStima(voceId, cfg) {
+  const s = budSerie(voceId), v = s.map(p => p.val);
+  const u = k => { const x = v.slice(-k); return x.length ? _sum(x) / x.length : null; };
+  let base = null, fonte = '';
+  switch(cfg.metodo) {
+    case 'media12': base = u(12); fonte = 'media ultimi 12 mesi'; break;
+    case 'mediana12': base = _mediana(v.slice(-12)); fonte = 'mediana ultimi 12 mesi'; break;
+    case 'media6': base = u(6); fonte = 'media ultimi 6 mesi'; break;
+    case 'media3': base = u(3); fonte = 'media ultimi 3 mesi'; break;
+    case 'mediaTot': base = v.length ? _sum(v) / v.length : null; fonte = 'media di tutti i dati'; break;
+    case 'manuale': base = cfg.valoreManuale == null ? null : +cfg.valoreManuale; fonte = 'valore inserito'; break;
+    default: base = u(12); fonte = 'media ultimi 12 mesi';
+  }
+  if(base === null || isNaN(base)) { base = v.length && cfg.metodo !== 'manuale' ? _sum(v) / v.length : 0; }
+  const baseM = base * (1 + (parseFloat(cfg.margine) || 0) / 100);
+  // indici stagionali (servono ≥12 punti e ≥8 mesi distinti)
+  let idx = null;
+  if(cfg.profilo === 'stagionale' && s.length >= 12) {
+    const so = _z12(), cn = _z12();
+    s.forEach(p => { so[p.mese] += p.val; cn[p.mese]++; });
+    const medie = so.map((x, i) => cn[i] ? x / cn[i] : null), valide = medie.filter(x => x !== null);
+    const tot = _sum(valide);
+    if(valide.length >= 8 && tot > 0) {
+      const mg = tot / valide.length;
+      idx = medie.map(x => x === null ? 1 : x / mg);
+      const si = _sum(idx); idx = idx.map(x => x * 12 / si);
+    }
+  }
+  const mensili = [];
+  for(let m = 0; m < 12; m++) {
+    const ov = cfg.mensili ? cfg.mensili[m] : null;
+    mensili.push(ov !== null && ov !== undefined && ov !== '' ? +ov : _r2(idx ? baseM * idx[m] : baseM));
+  }
+  return { mensili, base: baseM, fonte, stagionale: !!idx, nPunti: s.length, nReali: s.filter(p => p.reale).length };
+}
+
+// ─── Spesa certa: quote di accantonamento, pagamenti, saldo fondo ─
+// Porting del calcolo del vecchio strumento, esteso all'anno parziale (S = mese iniziale).
+function budCalcCerta(cfg, S) {
+  const pag = _z12(), quote = _z12();
+  (cfg.scadenze || []).forEach(sc => { const m = +sc.mese; if(m >= S && m < 12) pag[m] += (_num(sc.importo) || 0); });
+  const tot = _sum(pag), F0 = _num(cfg.fondoIniziale) || 0;
+  const mesiScad = []; for(let m = S; m < 12; m++) if(pag[m] > 0.0001) mesiScad.push(m);
+  if(cfg.modo === 'annuale' && S === 0) {
+    for(let m = 0; m < 12; m++) quote[m] = tot / 12;
+  } else {
+    let residuo = F0, start = S;
+    mesiScad.forEach(m => {
+      const n = m - start + 1, need = Math.max(0, pag[m] - residuo), qq = n > 0 ? need / n : 0;
+      for(let k = start; k <= m; k++) quote[k] = qq;
+      residuo = residuo + qq * n - pag[m]; start = m + 1;
+    });
+    // dopo l'ultima scadenza dell'anno si accantona per la prima dell'anno successivo
+    // (lo schema delle scadenze comprende anche quelle prima dell'inizio del budget)
+    if(start < 12) {
+      const patt = _z12(); (cfg.scadenze || []).forEach(sc => { const m = +sc.mese; if(m >= 0 && m < 12) patt[m] += (_num(sc.importo) || 0); });
+      const primo = patt.findIndex(x => x > 0.0001);
+      if(primo >= 0) {
+        const nProx = (12 - start) + primo + 1;
+        const q2 = nProx > 0 ? Math.max(0, patt[primo] - residuo) / nProx : 0;
+        for(let k = start; k < 12; k++) quote[k] = q2;
+      }
+    }
+  }
+  const saldi = []; let s = F0, minS = F0;
+  for(let m = 0; m < 12; m++) { if(m >= S) s = s + quote[m] - pag[m]; saldi.push(s); if(s < minS) minS = s; }
+  return { quote, pag, saldi, tot, F0, scoperto: minS < -0.005, fondoConsigliato: minS < -0.005 ? _r2(F0 - minS) : F0 };
+}
+
+// Calcolo di una voce per un anno: prev = entrata/spesa prevista del mese,
+// quote = accantonamento del mese (spese certe e fondi), pag = pagamenti previsti
+function budCalcVoce(anno, voceId) {
+  const A = budAnno(anno); if(!A) return null;
+  const cfg = A.righe[voceId], v = vocePerId(voceId);
+  if(!cfg || !v || cfg.escludi) return null;
+  const S = A.meseInizio || 0;
+  const r = { voce: v, cfg, prev: _z12(), quote: _z12(), pag: _z12(), saldi: null, F0: 0, info: null };
+  const g = v.gruppo;
+  if(g === 'entrate') {
+    for(let m = S; m < 12; m++) r.prev[m] = cfg.modo === 'mensile' ? (_num((cfg.mensili || [])[m]) || 0) : (_num(cfg.valore) || 0);
+  } else if(g === 'certe' || g === 'fiscale') {
+    const c = budCalcCerta(cfg, S);
+    r.prev = c.pag; r.pag = c.pag; r.quote = c.quote; r.saldi = c.saldi; r.F0 = c.F0; r.info = c;
+  } else if(g === 'ricorrenti') {
+    const da = Math.max(S, cfg.da == null ? 0 : +cfg.da), a = cfg.a == null ? 11 : +cfg.a;
+    for(let m = da; m <= a && m < 12; m++) r.prev[m] = _num(cfg.importo) || 0;
+  } else if(g === 'stime') {
+    const st = budStima(voceId, cfg);
+    for(let m = S; m < 12; m++) r.prev[m] = st.mensili[m];
+    r.info = st;
+  } else if(g === 'fondi') {
+    r.F0 = _num(cfg.fondoIniziale) || 0;
+    if(voceId === 'regali') {
+      const righe = cfg.righe || [], tot = _sum(righe.map(x => _num(x.importo) || 0));
+      righe.forEach(x => { if(x.mese !== null && x.mese !== '' && x.mese != null && +x.mese >= S) r.pag[+x.mese] += (_num(x.importo) || 0); });
+      for(let m = S; m < 12; m++) r.quote[m] = tot / 12;
+      r.info = { totAnnuo: tot };
+    } else {
+      const q = _num(cfg.quota) || 0, tetto = _num(cfg.tetto);
+      let s = r.F0;
+      for(let m = S; m < 12; m++) {
+        const qq = tetto != null && tetto > 0 ? Math.max(0, Math.min(q, tetto - s)) : q;
+        r.quote[m] = qq; s += qq;
+      }
+      r.info = { quota: q, tetto };
+    }
+    const saldi = []; let s = r.F0;
+    for(let m = 0; m < 12; m++) { if(m >= S) s += r.quote[m] - r.pag[m]; saldi.push(s); }
+    r.saldi = saldi;
+  }
+  return r;
+}
+function budCalcAnno(anno) {
+  const A = budAnno(anno); if(!A) return null;
+  const voci = Object.keys(A.righe).map(id => budCalcVoce(anno, id)).filter(Boolean);
+  const tot = { entrate: _z12(), accant: _z12(), ricorrenti: _z12(), stime: _z12(), pag: _z12(), margine: _z12() };
+  voci.forEach(r => {
+    const g = r.voce.gruppo;
+    for(let m = 0; m < 12; m++) {
+      if(g === 'entrate') tot.entrate[m] += r.prev[m];
+      else if(g === 'certe' || g === 'fiscale' || g === 'fondi') { tot.accant[m] += r.quote[m]; tot.pag[m] += r.pag[m]; }
+      else if(g === 'ricorrenti') tot.ricorrenti[m] += r.prev[m];
+      else if(g === 'stime') tot.stime[m] += r.prev[m];
+    }
+  });
+  for(let m = 0; m < 12; m++) tot.margine[m] = tot.entrate[m] - tot.accant[m] - tot.ricorrenti[m] - tot.stime[m];
+  return { anno, S: A.meseInizio || 0, voci, tot };
+}
+
+// Stato delle scadenze: i pagamenti reali della voce coprono le scadenze in ordine
+function budScadenze(anno) {
+  const C = budCalcAnno(anno); if(!C) return [];
+  const R = budRealeVoci(anno).voci, o = budOggi(anno), out = [];
+  C.voci.forEach(r => {
+    const g = r.voce.gruppo; if(!['certe','fiscale','fondi'].includes(g)) return;
+    let pool = 0; const reale = R[r.voce.id] || _z12();
+    for(let m = C.S; m < 12; m++) pool += Math.max(0, reale[m]);
+    let elenco = [];
+    if(r.voce.id === 'regali') elenco = (r.cfg.righe || []).filter(x => x.mese != null && x.mese !== '' && +x.mese >= C.S).map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0, nota: x.nome }));
+    else elenco = (r.cfg.scadenze || []).filter(x => +x.mese >= C.S).map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0 }));
+    elenco.sort((a,b) => a.mese - b.mese).forEach(sc => {
+      const coperto = Math.min(pool, sc.importo); pool -= coperto;
+      let stato = 'arrivo';
+      if(coperto >= sc.importo * 0.98 - 0.01) stato = 'pagata';
+      else if(sc.mese < o.corrente) stato = 'scaduta';
+      else if(sc.mese === o.corrente) stato = 'mese';
+      out.push({ voce: r.voce, mese: sc.mese, importo: sc.importo, pagato: coperto, stato, nota: sc.nota || '' });
+    });
+  });
+  return out.sort((a,b) => a.mese - b.mese || b.importo - a.importo);
+}
+// Saldo dei fondi a oggi: fondo iniziale + quote maturate − pagamenti reali
+function budFondiOggi(anno) {
+  const C = budCalcAnno(anno); if(!C) return { righe: [], tot: 0 };
+  const R = budRealeVoci(anno).voci, o = budOggi(anno);
+  const fino = Math.min(11, o.corrente); // quote maturate fino al mese corrente incluso
+  const righe = C.voci.filter(r => ['certe','fiscale','fondi'].includes(r.voce.gruppo)).map(r => {
+    let maturato = 0, pagato = 0;
+    for(let m = C.S; m <= fino; m++) { maturato += r.quote[m]; pagato += Math.max(0, (R[r.voce.id] || _z12())[m]); }
+    return { voce: r.voce, F0: r.F0, maturato, pagato, saldo: r.F0 + maturato - pagato, quotaMese: o.corrente >= 0 && o.corrente < 12 ? r.quote[o.corrente] : 0 };
+  });
+  return { righe, tot: _sum(righe.map(x => x.saldo)) };
+}
+
+// ─── Import del budget (file JSON preparato da Claude) ───────────
+function budImporta(input) {
+  const file = input.files && input.files[0]; if(!file) return;
+  const rd = new FileReader();
+  rd.onload = e => {
+    try {
+      const d = JSON.parse(e.target.result);
+      if(d.tipo !== 'patrimonio-budget' || !d.budget) { alert('Il file non contiene un budget di Patrimonio Monitor.'); return; }
+      if(budAnni().length && !confirm('Il budget già presente verrà sostituito con quello del file. Continuare?')) return;
+      vociInit();
+      const b = state.budget;
+      (d.budget.vociExtra || []).forEach(v => { if(!vocePerId(v.id)) b.voci.push(v); });
+      b.anni = d.budget.anni || {};
+      b.storico = d.budget.storico || {};
+      if(d.budget.fiscale) b.fiscale = d.budget.fiscale;
+      budUi.anno = null;
+      budTocca(); renderAll();
+      alert('Budget importato: anni ' + budAnni().join(', ') + '.');
+    } catch(err) { alert('File non valido: ' + err.message); }
+    input.value = '';
+  };
+  rd.readAsText(file);
+}
+function budCreaAnno() {
+  const anni = budAnni(); if(!anni.length) return;
+  const ult = anni[anni.length - 1], nuovo = ult + 1;
+  if(!confirm(`Creare il budget ${nuovo} copiando la struttura del ${ult}? I fondi iniziali partono da zero: controllali nella scheda Spese certe.`)) return;
+  const src = JSON.parse(JSON.stringify(budAnno(ult)));
+  Object.values(src.righe).forEach(c => { if('fondoIniziale' in c) c.fondoIniziale = 0; if(c.mensili && c.metodo) c.mensili = Array(12).fill(null); });
+  Object.values(src.righe).forEach(c => { if(c.da != null) { c.da = 0; c.a = 11; } });
+  src.meseInizio = 0; src.saldoIniziale = null;
+  state.budget.anni[nuovo] = src; budUi.anno = nuovo; budTocca(); renderBudget();
+}
+
+// ─── Modifiche dai campi ──────────────────────────────────────────
+function budSet(voceId, campo, valore, extra) {
+  const A = budAnno(budAnnoCorrente()); if(!A) return;
+  const c = A.righe[voceId]; if(!c) return;
+  const n = _num(valore);
+  if(campo === 'valore' || campo === 'importo' || campo === 'fondoIniziale' || campo === 'quota' || campo === 'tetto' || campo === 'margine' || campo === 'valoreManuale') c[campo] = n;
+  else if(campo === 'modo' || campo === 'metodo' || campo === 'profilo') c[campo] = valore;
+  else if(campo === 'da' || campo === 'a') c[campo] = parseInt(valore, 10);
+  else if(campo === 'mensile') { c.mensili = c.mensili || Array(12).fill(null); c.mensili[extra] = n; }
+  else if(campo === 'escludi') c.escludi = !!valore;
+  else if(campo === 'scMese') { c.scadenze[extra].mese = parseInt(valore, 10); }
+  else if(campo === 'scImporto') { c.scadenze[extra].importo = n || 0; }
+  else if(campo === 'rgNome') { c.righe[extra].nome = valore; }
+  else if(campo === 'rgMese') { c.righe[extra].mese = valore === '' ? null : parseInt(valore, 10); }
+  else if(campo === 'rgImporto') { c.righe[extra].importo = n || 0; }
+  budTocca(); renderBudget();
+}
+function budScAggiungi(voceId) { const c = budAnno(budAnnoCorrente()).righe[voceId]; (c.scadenze = c.scadenze || []).push({ mese: 11, importo: 0 }); budTocca(); renderBudget(); }
+function budScRimuovi(voceId, i) { const c = budAnno(budAnnoCorrente()).righe[voceId]; c.scadenze.splice(i, 1); budTocca(); renderBudget(); }
+function budRgAggiungi() { const c = budAnno(budAnnoCorrente()).righe.regali; (c.righe = c.righe || []).push({ nome: 'Nuovo regalo', mese: null, importo: 0 }); budTocca(); renderBudget(); }
+function budRgRimuovi(i) { const c = budAnno(budAnnoCorrente()).righe.regali; c.righe.splice(i, 1); budTocca(); renderBudget(); }
+function budRigaDefault(v) {
+  switch(v.gruppo) {
+    case 'entrate': return { modo: 'costante', valore: 0, mensili: Array(12).fill(null) };
+    case 'certe': case 'fiscale': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [{ mese: 11, importo: 0 }] };
+    case 'ricorrenti': return { importo: 0, da: 0, a: 11 };
+    case 'stime': return { metodo: 'media12', profilo: 'costante', margine: 0, valoreManuale: null, mensili: Array(12).fill(null) };
+    case 'fondi': return v.id === 'regali' ? { fondoIniziale: 0, righe: [] } : { quota: 0, tetto: null, fondoIniziale: 0 };
+  }
+  return {};
+}
+function budAttivaVoce(voceId) {
+  const A = budAnno(budAnnoCorrente()), v = vocePerId(voceId); if(!A || !v) return;
+  A.righe[voceId] = budRigaDefault(v); budTocca(); renderBudget();
+}
+function budTogliVoce(voceId) {
+  const A = budAnno(budAnnoCorrente()); if(!A) return;
+  if(!confirm(`Togliere "${voceNome(voceId)}" dal budget ${budAnnoCorrente()}? La voce resta disponibile per i movimenti.`)) return;
+  delete A.righe[voceId]; budTocca(); renderBudget();
+}
+function budNuovaVoce(gruppo) {
+  const nome = prompt('Nome della nuova voce:'); if(!nome || !nome.trim()) return;
+  const cats = ALL_CATS.filter(c => !['Giroconto','Per conto terzi','Da classificare'].includes(c));
+  const def = gruppo === 'entrate' ? 'Entrate' : '';
+  const cat = prompt('Categoria (scrivi esattamente una di queste):\n' + cats.join(', '), def);
+  if(!cat || !cats.includes(cat.trim())) { if(cat) alert('Categoria non riconosciuta.'); return; }
+  const chiave = prompt('Parola chiave per riconoscere i movimenti in automatico (facoltativa):\nes. "netflix" — lascia vuoto per assegnarla solo a mano.', '');
+  const v = { id: 'u_' + Date.now().toString(36), nome: nome.trim(), categoria: cat.trim(), gruppo, utente: true,
+    regole: chiave && chiave.trim() ? [{ re: chiave.trim().toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&') }] : [] };
+  state.budget.voci.push(v);
+  const A = budAnno(budAnnoCorrente()); if(A) A.righe[v.id] = budRigaDefault(v);
+  budTocca(); renderAll();
+}
+
+// ─── Rendering ────────────────────────────────────────────────────
+function _selMese(val, onch, conVuoto) {
+  return `<select class="bud-in" onchange="${onch}">${conVuoto ? `<option value=""${val==null||val===''?' selected':''}>—</option>` : ''}${MESI_BREVI.map((n,i) => `<option value="${i}"${+val===i && val!==null && val!==''?' selected':''}>${n}</option>`).join('')}</select>`;
+}
+function _inNum(val, onch, w) { return `<input class="bud-in" style="width:${w||90}px;text-align:right;" inputmode="decimal" value="${_numIn(val)}" onchange="${onch}" />`; }
+function _eur0(n) { return fmtNum(n, 0); }
+function _badgeStato(s) {
+  const map = { pagata: ['✅ pagata','var(--accent)'], scaduta: ['⚠️ scaduta','var(--danger)'], mese: ['⏳ questo mese','var(--warning)'], arrivo: ['in arrivo','var(--text-faint)'] };
+  const [t, c] = map[s] || map.arrivo; return `<span style="color:${c};white-space:nowrap;">${t}</span>`;
+}
+
+function renderBudget() {
+  const el = document.getElementById('bud-content'); if(!el) return;
+  const hdr = document.getElementById('bud-head-actions');
+  const anni = budAnni();
+  if(!anni.length) {
+    if(hdr) hdr.innerHTML = '';
+    el.innerHTML = `<div class="card"><div class="empty"><div class="empty-icon">📒</div><div class="empty-title">Nessun budget ancora</div>
+      <div class="empty-sub">Importa il file del budget preparato da Claude per iniziare.</div>
+      <label class="btn btn-primary" style="cursor:pointer;margin-top:1rem;display:inline-block;">⬆ Importa budget<input type="file" accept=".json" style="display:none;" onchange="budImporta(this)"></label></div></div>`;
+    return;
+  }
+  const anno = budAnnoCorrente();
+  if(hdr) hdr.innerHTML = `<select class="form-input" style="width:auto;font-size:13px;" onchange="budUi.anno=+this.value;renderBudget()">${anni.map(a => `<option value="${a}"${a===anno?' selected':''}>Budget ${a}</option>`).join('')}</select>
+    <button class="btn" style="font-size:13px;" onclick="budCreaAnno()">+ Anno ${anni[anni.length-1]+1}</button>
+    <label class="btn" style="font-size:13px;cursor:pointer;">⬆ Importa<input type="file" accept=".json" style="display:none;" onchange="budImporta(this)"></label>`;
+  const tabs = `<div class="bud-tabs">${BUD_TABS.map(([k,l]) => `<button class="bud-tab${budUi.tab===k?' on':''}" onclick="budUi.tab='${k}';renderBudget()">${l}</button>`).join('')}</div>`;
+  let body = '';
+  try {
+    switch(budUi.tab) {
+      case 'riepilogo': body = budViewRiepilogo(anno); break;
+      case 'consuntivo': body = budViewConsuntivo(anno); break;
+      case 'scadenze': body = budViewScadenze(anno); break;
+      case 'fondi': body = budViewFondi(anno); break;
+      default: body = budViewGruppo(anno, budUi.tab);
+    }
+  } catch(err) { console.error(err); body = `<div class="card" style="color:var(--danger);">Errore nel calcolo del budget: ${_esc(err.message)}</div>`; }
+  el.innerHTML = tabs + body;
+}
+
+function budViewRiepilogo(anno) {
+  const C = budCalcAnno(anno), S = C.S, t = C.tot, mesi = [];
+  for(let m = S; m < 12; m++) mesi.push(m);
+  const tt = k => _sum(mesi.map(m => t[k][m]));
+  const periodo = S > 0 ? `${MESI_LUNGHI[S]}–dicembre ${anno}` : `anno ${anno}`;
+  let h = `<div class="metric-grid">
+    <div class="metric accent"><div class="metric-label">Margine previsto per extra e risparmio</div><div class="metric-value">${fmt(tt('margine'))}</div><div class="metric-sub">${periodo} · media ${fmt(tt('margine')/mesi.length)} al mese</div></div>
+    <div class="metric"><div class="metric-label">Entrate previste</div><div class="metric-value">${fmt(tt('entrate'))}</div></div>
+    <div class="metric"><div class="metric-label">Accantonamenti</div><div class="metric-value">${fmt(tt('accant'))}</div><div class="metric-sub">spese certe, imposte, fondi</div></div>
+    <div class="metric"><div class="metric-label">Ricorrenti + variabili</div><div class="metric-value">${fmt(tt('ricorrenti') + tt('stime'))}</div></div>
+  </div>`;
+  h += `<div class="card"><div class="card-title">Piano mese per mese</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th></th>${mesi.map(m => `<th>${MESI_BREVI[m]}</th>`).join('')}<th>Totale</th></tr></thead><tbody>`;
+  const riga = (lab, k, cls) => `<tr class="${cls||''}"><td>${lab}</td>${mesi.map(m => `<td class="num">${_eur0(t[k][m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt(k))}</strong></td></tr>`;
+  h += riga('Entrate', 'entrate') + riga('− Accantonamenti', 'accant') + riga('− Ricorrenti', 'ricorrenti') + riga('− Variabili', 'stime');
+  h += `<tr class="tot"><td>= Margine</td>${mesi.map(m => `<td class="num" style="color:${t.margine[m]<0?'var(--danger)':'var(--accent)'};">${_eur0(t.margine[m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt('margine'))}</strong></td></tr>`;
+  h += `<tr class="sub"><td>Pagamenti dai fondi</td>${mesi.map(m => `<td class="num">${t.pag[m] > 0.5 ? _eur0(t.pag[m]) : '—'}</td>`).join('')}<td class="num">${_eur0(tt('pag'))}</td></tr>`;
+  h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;">Gli accantonamenti mettono da parte ogni mese la quota delle spese certe, delle imposte e dei fondi: i pagamenti poi escono dai fondi e non pesano sul mese in cui cadono. Il margine è ciò che resta per gli extra e il risparmio.</p></div>`;
+  const scoperti = C.voci.filter(r => r.info && r.info.scoperto);
+  if(scoperti.length) h += `<div class="card" style="border-color:var(--danger);"><div class="card-title" style="color:var(--danger);">⚠️ Fondi insufficienti</div>${scoperti.map(r => `<div style="font-size:13px;margin-bottom:4px;">${_esc(r.voce.nome)}: fondo iniziale consigliato ${fmt(r.info.fondoConsigliato)}</div>`).join('')}</div>`;
+  return h;
+}
+
+function budViewConsuntivo(anno) {
+  const C = budCalcAnno(anno), S = C.S, o = budOggi(anno), R = budRealeVoci(anno);
+  if(o.corrente < S) return `<div class="card"><div class="empty"><div class="empty-title">Il budget ${anno} non è ancora iniziato</div><div class="empty-sub">Il consuntivo parte da ${MESI_LUNGHI[S]} ${anno}.</div></div></div>`;
+  const ultimo = Math.min(11, o.corrente);
+  const opz = [['prog', `Progressivo ${MESI_BREVI[S]}–${MESI_BREVI[ultimo]}${o.corrente<=11?' (mese in corso incluso)':''}`]];
+  for(let m = S; m <= ultimo; m++) opz.push([String(m), MESI_LUNGHI[m] + (m === o.corrente ? ' (in corso)' : '')]);
+  if(!opz.some(x => x[0] === budUi.periodo)) budUi.periodo = 'prog';
+  const mesi = budUi.periodo === 'prog' ? Array.from({length: ultimo - S + 1}, (_, i) => S + i) : [+budUi.periodo];
+  const sm = a => _sum(mesi.map(m => (a || _z12())[m]));
+  const gruppi = [['entrate','Entrate',true],['fiscale','Imposte e contributi'],['certe','Spese certe'],['ricorrenti','Spese ricorrenti'],['stime','Spese variabili'],['fondi','Salute e regali']];
+  let h = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
+    <div class="card-title" style="margin:0;">Budget e reale per voce</div>
+    <select class="form-input" style="width:auto;font-size:13px;" onchange="budUi.periodo=this.value;renderBudget()">${opz.map(([k,l]) => `<option value="${k}"${budUi.periodo===k?' selected':''}>${l}</option>`).join('')}</select></div>
+    <div class="bud-scroll"><table class="bud-table"><thead><tr><th>Voce</th><th>Budget</th><th>Reale</th><th>Scostamento</th></tr></thead><tbody>`;
+  let totB = { e: 0, u: 0 }, totR = { e: 0, u: 0 };
+  gruppi.forEach(([g, lab, isEnt]) => {
+    const rs = C.voci.filter(r => r.voce.gruppo === g); if(!rs.length) return;
+    h += `<tr class="grp"><td colspan="4">${lab}</td></tr>`;
+    rs.forEach(r => {
+      // per fondi e spese certe il confronto è sui pagamenti; per i fondi senza date il budget è la quota
+      const b = g === 'fondi' ? sm(r.quote) : sm(r.prev), re = sm(R.voci[r.voce.id]);
+      const d = isEnt ? re - b : b - re; // positivo = favorevole
+      if(isEnt) { totB.e += b; totR.e += re; } else { totB.u += b; totR.u += re; }
+      const sig = Math.abs(re - b) >= 50 && (b === 0 || Math.abs(re - b) / Math.abs(b) >= 0.10);
+      h += `<tr${sig?' class="warn"':''}><td>${_esc(r.voce.nome)}${g==='fondi'?' <small style="color:var(--text-faint);">(quota)</small>':''}</td><td class="num">${_eur0(b)}</td><td class="num">${_eur0(re)}</td><td class="num" style="color:${d<-0.5?'var(--danger)':d>0.5?'var(--accent)':'var(--text-faint)'};">${d>0.5?'+':''}${_eur0(d)}</td></tr>`;
+    });
+  });
+  // Spese fuori budget per categoria
+  const fuori = Object.entries(R.fuori).map(([c, a]) => [c, sm(a)]).filter(x => Math.abs(x[1]) > 0.5).sort((a,b) => b[1] - a[1]);
+  const totFuori = _sum(fuori.map(x => x[1]));
+  if(fuori.length) {
+    h += `<tr class="grp"><td colspan="4">Fuori budget (extra) — si confronta con il margine</td></tr>`;
+    fuori.forEach(([c, v]) => { h += `<tr><td>${catEmoji(c)} ${_esc(c)}</td><td class="num">—</td><td class="num">${_eur0(v)}</td><td></td></tr>`; });
+  }
+  const margB = _sum(mesi.map(m => C.tot.margine[m]));
+  h += `</tbody></table></div></div>`;
+  h += `<div class="metric-grid">
+    <div class="metric"><div class="metric-label">Entrate</div><div class="metric-value">${fmt(totR.e)}</div><div class="metric-sub">budget ${fmt(totB.e)}</div></div>
+    <div class="metric"><div class="metric-label">Spese a budget</div><div class="metric-value">${fmt(totR.u)}</div><div class="metric-sub">budget ${fmt(totB.u)}</div></div>
+    <div class="metric"><div class="metric-label">Extra fuori budget</div><div class="metric-value">${fmt(totFuori)}</div><div class="metric-sub">margine previsto ${fmt(margB)}</div></div>
+  </div>
+  <p style="font-size:12px;color:var(--text-faint);">Importi netti dei rimborsi sulla stessa voce. Per le spese certe il budget è il pagamento previsto nel periodo; per salute e regali è la quota accantonata. Evidenziate le voci con scostamento oltre 50 € e 10%.</p>`;
+  return h;
+}
+
+function budViewScadenze(anno) {
+  const sc = budScadenze(anno), F = budFondiOggi(anno);
+  let h = `<div class="card"><div class="card-title">Scadenze ${anno}</div>`;
+  if(!sc.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessuna scadenza nel periodo.</div>`;
+  else {
+    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th>Voce</th><th>Importo</th><th>Stato</th></tr></thead><tbody>`;
+    sc.forEach(s => { h += `<tr><td>${MESI_LUNGHI[s.mese]}</td><td>${_esc(s.voce.nome)}${s.nota?` <small style="color:var(--text-faint);">${_esc(s.nota)}</small>`:''}</td><td class="num">${fmt(s.importo)}</td><td>${_badgeStato(s.stato)}${s.stato!=='pagata'&&s.pagato>0.5?` <small>(${fmt(s.pagato)} pagati)</small>`:''}</td></tr>`; });
+    h += `</tbody></table></div>`;
+  }
+  h += `</div><div class="card"><div class="card-title">Fondi accantonati a oggi</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Voce</th><th>Iniziale</th><th>+ Maturato</th><th>− Pagato</th><th>Saldo</th></tr></thead><tbody>`;
+  F.righe.filter(r => Math.abs(r.F0) + Math.abs(r.maturato) + Math.abs(r.pagato) > 0.5).forEach(r => {
+    h += `<tr><td>${_esc(r.voce.nome)}</td><td class="num">${_eur0(r.F0)}</td><td class="num">${_eur0(r.maturato)}</td><td class="num">${_eur0(r.pagato)}</td><td class="num" style="color:${r.saldo<-0.5?'var(--danger)':'inherit'};"><strong>${_eur0(r.saldo)}</strong></td></tr>`;
+  });
+  h += `<tr class="tot"><td>Totale vincolato</td><td></td><td></td><td></td><td class="num"><strong>${fmt(F.tot)}</strong></td></tr></tbody></table></div>
+    <p style="font-size:12px;color:var(--text-faint);margin-top:10px;">È la parte della tua liquidità già destinata alle scadenze future. Un saldo negativo indica che hai pagato più di quanto accantonato finora.</p></div>`;
+  return h;
+}
+
+function budViewGruppo(anno, gruppo) {
+  const A = budAnno(anno), S = A.meseInizio || 0;
+  const gruppiTab = gruppo === 'certe' ? ['fiscale','certe'] : [gruppo];
+  let h = '';
+  gruppiTab.forEach(g => {
+    const voci = vociTutte().filter(v => v.gruppo === g);
+    const attive = voci.filter(v => A.righe[v.id]), inattive = voci.filter(v => !A.righe[v.id]);
+    h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">${VOCI_GRUPPI[g]}${g==='fiscale'?' <span style="text-transform:none;letter-spacing:0;">— importi dal vecchio strumento, il calcolo arriva nella fase 2b</span>':''}</div>
+      <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="budNuovaVoce('${g}')">+ Nuova voce</button></div>`;
+    attive.forEach(v => { h += budEditorVoce(anno, v, S); });
+    if(inattive.length) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:8px;">Non a budget nel ${anno}: ${inattive.map(v => `<a href="#" onclick="budAttivaVoce('${v.id}');return false;" style="color:var(--accent);">+ ${_esc(v.nome)}</a>`).join(' · ')}</div>`;
+    h += `</div>`;
+  });
+  return h;
+}
+function budEditorVoce(anno, v, S) {
+  const A = budAnno(anno), c = A.righe[v.id], r = budCalcVoce(anno, v.id), id = v.id;
+  const esclusa = !!c.escludi;
+  let h = `<div class="bud-voce${esclusa?' off':''}"><div class="bud-voce-head"><div><strong>${_esc(v.nome)}</strong> <small style="color:var(--text-faint);">${catEmoji(v.categoria)} ${_esc(v.categoria)}</small></div>
+    <div style="display:flex;gap:10px;align-items:center;font-size:12px;"><label style="cursor:pointer;"><input type="checkbox"${esclusa?' checked':''} onchange="budSet('${id}','escludi',this.checked)"> escludi</label>
+    <a href="#" onclick="budTogliVoce('${id}');return false;" style="color:var(--text-faint);">togli</a></div></div><div class="bud-voce-body">`;
+  if(v.gruppo === 'entrate') {
+    h += `<select class="bud-in" onchange="budSet('${id}','modo',this.value)"><option value="costante"${c.modo!=='mensile'?' selected':''}>Uguale ogni mese</option><option value="mensile"${c.modo==='mensile'?' selected':''}>Mese per mese</option></select> `;
+    if(c.modo === 'mensile') {
+      h += `<div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<label>${MESI_BREVI[m]}${_inNum((c.mensili||[])[m], `budSet('${id}','mensile',this.value,${m})`, 72)}</label>`).join('')}</div>`;
+    } else h += `${_inNum(c.valore, `budSet('${id}','valore',this.value)`)} € al mese`;
+  } else if(v.gruppo === 'certe' || v.gruppo === 'fiscale') {
+    (c.scadenze || []).forEach((sc, i) => {
+      h += `<div class="bud-riga">${_selMese(sc.mese, `budSet('${id}','scMese',this.value,${i})`)} ${_inNum(sc.importo, `budSet('${id}','scImporto',this.value,${i})`)} € <a href="#" onclick="budScRimuovi('${id}',${i});return false;" style="color:var(--text-faint);">✕</a>${+sc.mese < S ? ' <small style="color:var(--text-faint);">(prima dell\'inizio del budget)</small>' : ''}</div>`;
+    });
+    h += `<div class="bud-riga"><a href="#" onclick="budScAggiungi('${id}');return false;" style="color:var(--accent);font-size:12px;">+ scadenza</a></div>`;
+    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(c.fondoIniziale, `budSet('${id}','fondoIniziale',this.value)`)} € · quota mensile ${r ? fmt(_sum(r.quote.slice(S)) / (12 - S)) : '—'}${r && r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
+  } else if(v.gruppo === 'ricorrenti') {
+    h += `${_inNum(c.importo, `budSet('${id}','importo',this.value)`)} € al mese da ${_selMese(c.da == null ? 0 : c.da, `budSet('${id}','da',this.value)`)} a ${_selMese(c.a == null ? 11 : c.a, `budSet('${id}','a',this.value)`)}`;
+  } else if(v.gruppo === 'stime') {
+    const st = r && r.info;
+    const metodi = [['media12','Media ultimi 12 mesi'],['mediana12','Mediana ultimi 12 mesi'],['media6','Media ultimi 6 mesi'],['media3','Media ultimi 3 mesi'],['mediaTot','Media di tutti i dati'],['manuale','Valore fisso']];
+    h += `<select class="bud-in" onchange="budSet('${id}','metodo',this.value)">${metodi.map(([k,l]) => `<option value="${k}"${c.metodo===k?' selected':''}>${l}</option>`).join('')}</select> `;
+    if(c.metodo === 'manuale') h += `${_inNum(c.valoreManuale, `budSet('${id}','valoreManuale',this.value)`)} € al mese `;
+    h += `<select class="bud-in" onchange="budSet('${id}','profilo',this.value)"><option value="costante"${c.profilo!=='stagionale'?' selected':''}>Uguale ogni mese</option><option value="stagionale"${c.profilo==='stagionale'?' selected':''}>Stagionale</option></select>
+      margine ${_inNum(c.margine, `budSet('${id}','margine',this.value)`, 56)} %`;
+    if(st) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:6px;">${st.nPunti} mesi di dati (${st.nReali} da Patrimonio) · base ${fmt(st.base)} al mese${c.profilo==='stagionale'&&!st.stagionale?' · dati insufficienti per la stagionalità':''}</div>
+      <div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<span><small>${MESI_BREVI[m]}</small> ${_eur0(st.mensili[m])}</span>`).join('')}</div>`;
+  }
+  h += `</div></div>`;
+  return h;
+}
+
+function budViewFondi(anno) {
+  const A = budAnno(anno), S = A.meseInizio || 0;
+  let h = '';
+  const sal = A.righe.fondo_salute, reg = A.righe.regali;
+  h += `<div class="card"><div class="card-title">💊 Fondo salute</div>`;
+  if(sal) {
+    const r = budCalcVoce(anno, 'fondo_salute');
+    h += `<div class="bud-riga">Quota ${_inNum(sal.quota, `budSet('fondo_salute','quota',this.value)`)} € al mese · tetto ${_inNum(sal.tetto, `budSet('fondo_salute','tetto',this.value)`)} € · fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(sal.fondoIniziale, `budSet('fondo_salute','fondoIniziale',this.value)`)} €</div>
+      <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Accantona la quota ogni mese finché il fondo raggiunge il tetto; le spese in Salute lo riducono. Saldo previsto a dicembre senza spese: ${fmt(r.saldi[11])}.</p>`;
+  } else h += `<a href="#" onclick="budAttivaVoce('fondo_salute');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
+  h += `</div><div class="card"><div class="card-title">🎁 Fondo regali</div>`;
+  if(reg) {
+    const tot = _sum((reg.righe || []).map(x => _num(x.importo) || 0));
+    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Regalo</th><th>Mese</th><th>Importo</th><th></th></tr></thead><tbody>`;
+    (reg.righe || []).forEach((x, i) => {
+      h += `<tr><td><input class="bud-in" style="width:100%;min-width:140px;" value="${_esc(x.nome)}" onchange="budSet('regali','rgNome',this.value,${i})"></td><td>${_selMese(x.mese, `budSet('regali','rgMese',this.value,${i})`, true)}</td><td>${_inNum(x.importo, `budSet('regali','rgImporto',this.value,${i})`, 80)}</td><td><a href="#" onclick="budRgRimuovi(${i});return false;" style="color:var(--text-faint);">✕</a></td></tr>`;
+    });
+    h += `<tr class="tot"><td>Totale annuo</td><td></td><td class="num">${fmt(tot)}</td><td></td></tr></tbody></table></div>
+      <div class="bud-riga" style="margin-top:8px;"><a href="#" onclick="budRgAggiungi();return false;" style="color:var(--accent);font-size:12px;">+ regalo</a></div>
+      <div class="bud-riga" style="font-size:12px;">Quota ${fmt(tot/12)} al mese · fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(reg.fondoIniziale, `budSet('regali','fondoIniziale',this.value)`)} €</div>
+      <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Indica il mese dei regali con una data fissa (compleanni): comparirà tra le scadenze. Quelli senza mese restano coperti dal fondo durante l'anno.</p>`;
+  } else h += `<a href="#" onclick="budAttivaVoce('regali');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
+  h += `</div>`;
+  return h;
+}
+
+// ─── Unione dati locali ↔ Drive (fase 2a) ────────────────────────
+// Transazioni: unione per chiave (data, importo, tipo, descrizione, conto);
+//   a parità vince la modifica più recente (tx.mod); le eliminate
+//   (state.txEliminate) non ricompaiono.
+// Conti e impostazioni: vince l'archivio modificato più di recente.
+// Budget: vince quello con budget.aggiornato più recente.
+function txChiave(t) {
+  return [String(t.data || '').substring(0, 10), (+t.importo || 0).toFixed(2), t.tipo,
+          _normDesc(t.descrizione), _normConto(t.conto)].join('|');
+}
+function txSegnaEliminate(txs) {
+  if(!Array.isArray(state.txEliminate)) state.txEliminate = [];
+  const set = new Set(state.txEliminate);
+  txs.forEach(t => set.add(txChiave(t)));
+  state.txEliminate = [...set];
+}
+function unisciStati(loc, rem) {
+  // porta l'archivio remoto alla stessa versione (conversioni, nomi conti)
+  const salva = state; state = rem;
+  try { migraCategorie(); } catch(e) { console.warn(e); }
+  state = salva;
+  const piuRecente = (rem.modificato || '') > (loc.modificato || '') ? rem : loc;
+  const tomb = new Set([...(loc.txEliminate || []), ...(rem.txEliminate || [])]);
+  const gruppi = (lista) => { const g = new Map(); (lista || []).forEach(t => { const k = txChiave(t); if(!g.has(k)) g.set(k, []); g.get(k).push(t); }); return g; };
+  const gl = gruppi(loc.transactions), gr = gruppi(rem.transactions);
+  const chiavi = new Set([...gl.keys(), ...gr.keys()]);
+  const tx = [];
+  chiavi.forEach(k => {
+    if(tomb.has(k)) return;
+    const a = gl.get(k) || [], b = gr.get(k) || [];
+    const n = Math.max(a.length, b.length); // stessa operazione ripetuta: conta il massimo
+    for(let i = 0; i < n; i++) {
+      const x = a[i], y = b[i];
+      if(x && y) tx.push((+y.mod || 0) > (+x.mod || 0) ? y : x);
+      else tx.push(x || y);
+    }
+  });
+  tx.sort((p, q) => String(p.data).localeCompare(String(q.data)));
+  const files = [], fk = new Set();
+  [...(loc.files || []), ...(rem.files || [])].forEach(f => { const k = (f.nome || '') + '|' + (f.data || ''); if(!fk.has(k)) { fk.add(k); files.push(f); } });
+  const bl = loc.budget, br = rem.budget;
+  const budget = !bl ? br : !br ? bl : ((br.aggiornato || '') > (bl.aggiornato || '') ? br : bl);
+  const out = Object.assign({}, piuRecente, {
+    transactions: tx,
+    files,
+    contiCifre: [...new Set([...(loc.contiCifre || []), ...(rem.contiCifre || [])])],
+    migrazioni: [...new Set([...(loc.migrazioni || []), ...(rem.migrazioni || [])])],
+    txEliminate: [...tomb],
+    modificato: (rem.modificato || '') > (loc.modificato || '') ? rem.modificato : loc.modificato
+  });
+  if(budget) out.budget = budget; else delete out.budget;
+  return out;
 }
 
 // ─── Tutte le categorie disponibili ──────────────────────────────
@@ -1653,6 +2312,7 @@ function apriTransazioniCat(cat) {
 function toggleExclude(idx) {
   if(!state.transactions[idx]) return;
   state.transactions[idx].esclusa = !state.transactions[idx].esclusa;
+  state.transactions[idx].mod = Date.now();
   save();
   renderTransazioni();
   renderCatList();
@@ -1664,7 +2324,7 @@ function changeCat(idx, newCat) {
   if(!newCat || !state.transactions[idx]) return;
   const tx = state.transactions[idx];
   if(tx.categoria !== newCat) {
-    tx.categoria = newCat;
+    tx.categoria = newCat; tx.mod = Date.now();
     if(tx.ripartizione) { delete tx.ripartizione; delete tx.voceManuale; }
     assegnaVoceAuto(tx);
   }
@@ -1819,6 +2479,7 @@ function saveTxEdit() {
     }
   }
 
+  const chiavePrima = txChiave(tx);
   if(nuovaData) tx.data = new Date(nuovaData + 'T00:00:00Z').toISOString();
   tx.importo = impFinale;
   if(nuovaDesc) tx.descrizione = nuovaDesc;
@@ -1841,6 +2502,10 @@ function saveTxEdit() {
     else if(voceSel === '__none__') { tx.voceManuale = true; delete tx.voce; }
     else { tx.voceManuale = true; tx.voce = voceSel; const v = vocePerId(voceSel); if(v) tx.categoria = v.categoria; }
   }
+
+  // Se cambiano data, importo, tipo o descrizione la vecchia chiave va segnata come eliminata
+  if(txChiave(tx) !== chiavePrima) { if(!Array.isArray(state.txEliminate)) state.txEliminate = []; state.txEliminate.push(chiavePrima); }
+  tx.mod = Date.now();
 
   // Da fattura (solo entrate; salvato solo se toccato a mano)
   if(tx.tipo !== 'entrata') delete tx.daFattura;
@@ -2012,6 +2677,7 @@ function deleteContoTransazioni(i) {
   const count = state.transactions.filter(t => t.conto === conto.banca).length;
   if(count === 0) { alert('Nessuna transazione trovata per ' + conto.banca); return; }
   if(!confirm('Eliminare ' + count + ' transazioni del conto ' + conto.banca + '?\nIl saldo del conto NON verrà modificato.')) return;
+  txSegnaEliminate(state.transactions.filter(t => t.conto === conto.banca));
   state.transactions = state.transactions.filter(t => t.conto !== conto.banca);
   save();
   renderAll();
@@ -3357,6 +4023,7 @@ function importData(input) {
       const data = JSON.parse(e.target.result);
       if(!confirm('Sovrascrivere tutti i dati attuali con il backup?')) return;
       state = data;
+      _driveNoMerge = true; // il prossimo salvataggio su Drive sostituisce, non unisce
       save();
       renderAll();
       alert('Backup importato correttamente.');
@@ -3370,6 +4037,7 @@ function importData(input) {
 function clearAll() {
   if(!confirm('Eliminare TUTTI i dati? Questa operazione non può essere annullata.')) return;
   state = {accounts:[], transactions:[], files:[]};
+  _driveNoMerge = true;
   save();
   renderAll();
 }
@@ -3402,6 +4070,7 @@ function gdriveSignIn() {
       gdriveLog('✓ Connesso a Google Drive', 'ok');
       renderGdriveStatus();
       await gdriveFindOrCreateFile();
+      await gdriveSincronizza();
     }
   });
   client.requestAccessToken();
@@ -3435,73 +4104,89 @@ async function gdriveFindOrCreateFile() {
   renderGdriveStatus();
 }
 
+let _driveNoMerge = false, _driveBusy = false;
+async function gdriveScarica() {
+  const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + gdriveFileId + '?alt=media',
+    { headers: { Authorization: 'Bearer ' + gdriveToken } });
+  if(resp.status === 401 || resp.status === 403) { gdriveLog('⚠ Sessione Google scaduta: riconnetti Drive', 'warn'); throw new Error('auth'); }
+  if(!resp.ok) throw new Error('HTTP ' + resp.status);
+  return await resp.json();
+}
+// Unisce i dati di Drive in quelli locali. Ritorna true se è cambiato qualcosa.
+async function gdriveUnisci() {
+  if(!gdriveFileId) return false;
+  const rem = await gdriveScarica();
+  if(!rem || !Array.isArray(rem.transactions)) return false;
+  const prima = JSON.stringify(state);
+  state = unisciStati(state, rem);
+  if(!state.contiCifre) state.contiCifre = [];
+  if(JSON.stringify(state) === prima) return false;
+  try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
+  return true;
+}
 async function gdriveSave() {
   if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
-
-  const body = JSON.stringify(state);
-  const metadata = { name: GDRIVE_FILENAME, parents: ['appDataFolder'] };
-
+  if(_driveBusy) { scheduleDriveSave(); return; }
+  _driveBusy = true;
   try {
+    // Prima di scrivere unisce quanto salvato su Drive da altri dispositivi
+    if(gdriveFileId && !_driveNoMerge) {
+      if(await gdriveUnisci()) { renderAll(); gdriveLog('🔄 Uniti i dati arrivati da un altro dispositivo', 'info'); }
+    }
+    _driveNoMerge = false;
+    const body = JSON.stringify(state);
+    const metadata = { name: GDRIVE_FILENAME, parents: ['appDataFolder'] };
     let resp;
+    const formData = new FormData();
+    formData.append('metadata', new Blob([JSON.stringify(gdriveFileId ? {} : metadata)], {type: 'application/json'}));
+    formData.append('file', new Blob([body], {type: 'application/json'}));
     if(gdriveFileId) {
-      // Update existing file
-      const formData = new FormData();
-      formData.append('metadata', new Blob([JSON.stringify({})] , {type: 'application/json'}));
-      formData.append('file', new Blob([body], {type: 'application/json'}));
-      resp = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files/' + gdriveFileId + '?uploadType=multipart',
-        { method: 'PATCH', headers: { Authorization: 'Bearer ' + gdriveToken }, body: formData }
-      );
+      resp = await fetch('https://www.googleapis.com/upload/drive/v3/files/' + gdriveFileId + '?uploadType=multipart',
+        { method: 'PATCH', headers: { Authorization: 'Bearer ' + gdriveToken }, body: formData });
     } else {
-      // Create new file
-      const formData = new FormData();
-      formData.append('metadata', new Blob([JSON.stringify(metadata)], {type: 'application/json'}));
-      formData.append('file', new Blob([body], {type: 'application/json'}));
-      resp = await fetch(
-        'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
-        { method: 'POST', headers: { Authorization: 'Bearer ' + gdriveToken }, body: formData }
-      );
-      const data = await resp.json();
+      resp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',
+        { method: 'POST', headers: { Authorization: 'Bearer ' + gdriveToken }, body: formData });
+      const data = await resp.clone().json().catch(() => ({}));
       if(data.id) gdriveFileId = data.id;
     }
-
     if(resp.ok) {
       const now = new Date().toLocaleTimeString('it-IT');
       gdriveLog('✓ Salvato su Google Drive (' + now + ')', 'ok');
-      document.getElementById('gdrive-last-sync').textContent = 'Ultimo salvataggio: ' + now;
+      const ls = document.getElementById('gdrive-last-sync'); if(ls) ls.textContent = 'Ultimo salvataggio: ' + now;
+    } else if(resp.status === 401 || resp.status === 403) {
+      gdriveLog('⚠ Sessione Google scaduta: riconnetti Drive', 'warn');
     } else {
       gdriveLog('✗ Errore salvataggio: ' + resp.status, 'err');
     }
   } catch(e) {
-    gdriveLog('✗ Errore di rete: ' + e.message, 'err');
-  }
+    if(e.message !== 'auth') gdriveLog('✗ Errore: ' + e.message, 'err');
+  } finally { _driveBusy = false; }
 }
-
-async function gdriveLoad() {
+// Sincronizza ora: unisce Drive e locale, poi salva il risultato su Drive
+async function gdriveSincronizza() {
   if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
-  if(!gdriveFileId) {
-    await gdriveFindOrCreateFile();
-    if(!gdriveFileId) { gdriveLog('⚠ Nessun file da caricare su Drive', 'warn'); return; }
-  }
-
+  if(!gdriveFileId) { await gdriveFindOrCreateFile(); }
   try {
-    const resp = await fetch(
-      'https://www.googleapis.com/drive/v3/files/' + gdriveFileId + '?alt=media',
-      { headers: { Authorization: 'Bearer ' + gdriveToken } }
-    );
-    if(!resp.ok) { gdriveLog('✗ Errore caricamento: ' + resp.status, 'err'); return; }
-    const data = await resp.json();
-    if(!confirm('Caricare i dati da Google Drive? I dati locali attuali verranno sovrascritti.')) return;
+    const cambiato = gdriveFileId ? await gdriveUnisci() : false;
+    renderAll();
+    gdriveLog(cambiato ? '🔄 Dati uniti con Google Drive' : '✓ Già allineato con Google Drive', 'ok');
+    await gdriveSave();
+  } catch(e) { if(e.message !== 'auth') gdriveLog('✗ Errore: ' + e.message, 'err'); }
+}
+// Sostituisci: scarta i dati locali e usa quelli di Drive
+async function gdriveSostituisci() {
+  if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
+  if(!gdriveFileId) { await gdriveFindOrCreateFile(); if(!gdriveFileId) { gdriveLog('⚠ Nessun file su Drive', 'warn'); return; } }
+  try {
+    const data = await gdriveScarica();
+    if(!confirm('Sostituire i dati di questo dispositivo con quelli di Google Drive? Le modifiche locali non salvate andranno perse.')) return;
     state = data;
     if(!state.contiCifre) state.contiCifre = [];
-    const defaultCifre = ['1143','5878','2321','3753'];
-    defaultCifre.forEach(c => { if(!state.contiCifre.includes(c)) state.contiCifre.push(c); });
-    save();
+    ['1143','5878','2321','3753'].forEach(c => { if(!state.contiCifre.includes(c)) state.contiCifre.push(c); });
+    try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
     renderAll();
-    gdriveLog('✓ Dati caricati da Google Drive', 'ok');
-  } catch(e) {
-    gdriveLog('✗ Errore: ' + e.message, 'err');
-  }
+    gdriveLog('✓ Dati sostituiti con quelli di Google Drive', 'ok');
+  } catch(e) { if(e.message !== 'auth') gdriveLog('✗ Errore: ' + e.message, 'err'); }
 }
 
 function gdriveLog(msg, type) {
