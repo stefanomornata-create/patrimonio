@@ -435,6 +435,17 @@ canvas, img, svg { max-width: 100%; }
 .bud-in { padding:5px 8px; border:1px solid var(--border-strong); border-radius:6px; font-family:inherit; font-size:13px; background:var(--surface); color:var(--text); }
 .bud-mesi { display:flex; flex-wrap:wrap; gap:6px 10px; font-size:12px; }
 .bud-mesi label, .bud-mesi span { display:flex; flex-direction:column; gap:2px; }
+.fisc-frase { font-size:15px; line-height:1.55; margin:0 0 14px; max-width:68ch; }
+.fisc-legenda { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--text-muted); margin-top:6px; }
+.fisc-legenda i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+.fisc-chip { display:inline-block; font-size:10.5px; padding:0 6px; border:1px solid var(--border-strong); border-radius:999px; color:var(--text-muted); margin-left:4px; white-space:nowrap; vertical-align:1px; }
+.fisc-nota { font-size:12.5px; color:var(--text-muted); background:var(--warning-light); border-left:3px solid var(--warning); padding:7px 10px; border-radius:4px; margin-top:8px; }
+.fisc-hint { font-size:12px; color:var(--text-faint); margin-top:8px; line-height:1.5; }
+.fisc-campi { display:flex; flex-wrap:wrap; gap:12px 16px; margin-top:14px; align-items:flex-start; }
+.fisc-campo { display:flex; flex-direction:column; gap:3px; flex:1 1 170px; font-size:12px; color:var(--text-muted); }
+.fisc-campo small { color:var(--text-faint); font-size:11px; }
+.fisc-tab tr.fisc-fuori td { color:var(--text-faint); }
+.bud-voce-fisc { font-size:12.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:3px; }
 </style>
 </head>
 <body>
@@ -1556,7 +1567,7 @@ function renderDaClassificare() {
 const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 const BUD_TABS = [
-  ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'],
+  ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
   ['entrate','Entrate'], ['certe','Spese certe'], ['ricorrenti','Ricorrenti'],
   ['stime','Variabili'], ['fondi','Salute e regali']
 ];
@@ -1708,7 +1719,7 @@ function budCalcCerta(cfg, S) {
     // dopo l'ultima scadenza dell'anno si accantona per la prima dell'anno successivo
     // (lo schema delle scadenze comprende anche quelle prima dell'inizio del budget)
     if(start < 12) {
-      const patt = _z12(); (cfg.scadenze || []).forEach(sc => { const m = +sc.mese; if(m >= 0 && m < 12) patt[m] += (_num(sc.importo) || 0); });
+      const patt = _z12(); (cfg.prossime || cfg.scadenze || []).forEach(sc => { const m = +sc.mese; if(m >= 0 && m < 12) patt[m] += (_num(sc.importo) || 0); });
       const primo = patt.findIndex(x => x > 0.0001);
       if(primo >= 0) {
         const nProx = (12 - start) + primo + 1;
@@ -1734,8 +1745,13 @@ function budCalcVoce(anno, voceId) {
   if(g === 'entrate') {
     for(let m = S; m < 12; m++) r.prev[m] = cfg.modo === 'mensile' ? (_num((cfg.mensili || [])[m]) || 0) : (_num(cfg.valore) || 0);
   } else if(g === 'certe' || g === 'fiscale') {
-    const c = budCalcCerta(cfg, S);
-    r.prev = c.pag; r.pag = c.pag; r.quote = c.quote; r.saldi = c.saldi; r.F0 = c.F0; r.info = c;
+    let cfgEff = cfg;
+    if(g === 'fiscale' && !cfg.manuale) {
+      let fz = null; try { fz = fiscScadenzeVoce(anno, voceId); } catch(e) { console.warn(e); }
+      if(fz) { r.fisc = fz; cfgEff = Object.assign({}, cfg, { scadenze: fz.scadenze, prossime: fz.prossime }); }
+    }
+    const c = budCalcCerta(cfgEff, S);
+    r.prev = c.pag; r.pag = c.pag; r.quote = c.quote; r.saldi = c.saldi; r.F0 = c.F0; r.info = c; r.scad = cfgEff.scadenze || [];
   } else if(g === 'ricorrenti') {
     const da = Math.max(S, cfg.da == null ? 0 : +cfg.da), a = cfg.a == null ? 11 : +cfg.a;
     for(let m = da; m <= a && m < 12; m++) r.prev[m] = _num(cfg.importo) || 0;
@@ -1792,7 +1808,7 @@ function budScadenze(anno) {
     for(let m = C.S; m < 12; m++) pool += Math.max(0, reale[m]);
     let elenco = [];
     if(r.voce.id === 'regali') elenco = (r.cfg.righe || []).filter(x => x.mese != null && x.mese !== '' && +x.mese >= C.S).map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0, nota: x.nome }));
-    else elenco = (r.cfg.scadenze || []).filter(x => +x.mese >= C.S).map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0 }));
+    else elenco = (r.scad || r.cfg.scadenze || []).filter(x => +x.mese >= C.S).map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0 }));
     elenco.sort((a,b) => a.mese - b.mese).forEach(sc => {
       const coperto = Math.min(pool, sc.importo); pool -= coperto;
       let stato = 'arrivo';
@@ -1861,6 +1877,7 @@ function budSet(voceId, campo, valore, extra) {
   else if(campo === 'da' || campo === 'a') c[campo] = parseInt(valore, 10);
   else if(campo === 'mensile') { c.mensili = c.mensili || Array(12).fill(null); c.mensili[extra] = n; }
   else if(campo === 'escludi') c.escludi = !!valore;
+  else if(campo === 'manuale') c.manuale = !!valore;
   else if(campo === 'scMese') { c.scadenze[extra].mese = parseInt(valore, 10); }
   else if(campo === 'scImporto') { c.scadenze[extra].importo = n || 0; }
   else if(campo === 'rgNome') { c.righe[extra].nome = valore; }
@@ -1875,7 +1892,8 @@ function budRgRimuovi(i) { const c = budAnno(budAnnoCorrente()).righe.regali; c.
 function budRigaDefault(v) {
   switch(v.gruppo) {
     case 'entrate': return { modo: 'costante', valore: 0, mensili: Array(12).fill(null) };
-    case 'certe': case 'fiscale': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [{ mese: 11, importo: 0 }] };
+    case 'certe': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [{ mese: 11, importo: 0 }] };
+    case 'fiscale': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [] };
     case 'ricorrenti': return { importo: 0, da: 0, a: 11 };
     case 'stime': return { metodo: 'media12', profilo: 'costante', margine: 0, valoreManuale: null, mensili: Array(12).fill(null) };
     case 'fondi': return v.id === 'regali' ? { fondoIniziale: 0, righe: [] } : { quota: 0, tetto: null, fondoIniziale: 0 };
@@ -1918,6 +1936,7 @@ function _badgeStato(s) {
 
 function renderBudget() {
   const el = document.getElementById('bud-content'); if(!el) return;
+  try { if(fiscMigra()) budTocca(); } catch(e) { console.warn(e); }
   const hdr = document.getElementById('bud-head-actions');
   const anni = budAnni();
   if(!anni.length) {
@@ -1939,6 +1958,7 @@ function renderBudget() {
       case 'consuntivo': body = budViewConsuntivo(anno); break;
       case 'scadenze': body = budViewScadenze(anno); break;
       case 'fondi': body = budViewFondi(anno); break;
+      case 'imposte': body = budViewImposte(anno); break;
       default: body = budViewGruppo(anno, budUi.tab);
     }
   } catch(err) { console.error(err); body = `<div class="card" style="color:var(--danger);">Errore nel calcolo del budget: ${_esc(err.message)}</div>`; }
@@ -2037,7 +2057,7 @@ function budViewGruppo(anno, gruppo) {
   gruppiTab.forEach(g => {
     const voci = vociTutte().filter(v => v.gruppo === g);
     const attive = voci.filter(v => A.righe[v.id]), inattive = voci.filter(v => !A.righe[v.id]);
-    h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">${VOCI_GRUPPI[g]}${g==='fiscale'?' <span style="text-transform:none;letter-spacing:0;">— importi dal vecchio strumento, il calcolo arriva nella fase 2b</span>':''}</div>
+    h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">${VOCI_GRUPPI[g]}${g==='fiscale'?' <span style="text-transform:none;letter-spacing:0;">— calcolate nella scheda <a href="#" onclick="budUi.tab=\'imposte\';renderBudget();return false;" style="color:var(--accent);">Imposte e Cassa</a></span>':''}</div>
       <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="budNuovaVoce('${g}')">+ Nuova voce</button></div>`;
     attive.forEach(v => { h += budEditorVoce(anno, v, S); });
     if(inattive.length) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:8px;">Non a budget nel ${anno}: ${inattive.map(v => `<a href="#" onclick="budAttivaVoce('${v.id}');return false;" style="color:var(--accent);">+ ${_esc(v.nome)}</a>`).join(' · ')}</div>`;
@@ -2056,7 +2076,13 @@ function budEditorVoce(anno, v, S) {
     if(c.modo === 'mensile') {
       h += `<div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<label>${MESI_BREVI[m]}${_inNum((c.mensili||[])[m], `budSet('${id}','mensile',this.value,${m})`, 72)}</label>`).join('')}</div>`;
     } else h += `${_inNum(c.valore, `budSet('${id}','valore',this.value)`)} € al mese`;
+  } else if(v.gruppo === 'fiscale' && !c.manuale && r && r.fisc) {
+    const det = r.fisc.dettaglio;
+    h += `<div class="bud-voce-fisc">${det.length ? det.map(i => `<div>${i.d} ${MESI_LUNGHI[i.m]}${i.m < S ? ' <small>(prima del budget)</small>' : ''} · ${_esc(i.label)} · <strong>${fmt(i.amount)}</strong>${i.est ? ' <small style="color:var(--warning);">stima</small>' : ''}</div>`).join('') : '<div>Nessun versamento nel ' + anno + '.</div>'}</div>`;
+    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(c.fondoIniziale, `budSet('${id}','fondoIniziale',this.value)`)} € · quota mensile ${fmt(_sum(r.quote.slice(S)) / (12 - S))}${r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
+    h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" onchange="budSet('${id}','manuale',this.checked)"> usa importi manuali al posto del calcolo</label>`;
   } else if(v.gruppo === 'certe' || v.gruppo === 'fiscale') {
+    if(v.gruppo === 'fiscale') h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" checked onchange="budSet('${id}','manuale',this.checked)"> importi manuali (togli la spunta per calcolarli dai ricavi)</label>`;
     (c.scadenze || []).forEach((sc, i) => {
       h += `<div class="bud-riga">${_selMese(sc.mese, `budSet('${id}','scMese',this.value,${i})`)} ${_inNum(sc.importo, `budSet('${id}','scImporto',this.value,${i})`)} € <a href="#" onclick="budScRimuovi('${id}',${i});return false;" style="color:var(--text-faint);">✕</a>${+sc.mese < S ? ' <small style="color:var(--text-faint);">(prima dell\'inizio del budget)</small>' : ''}</div>`;
     });
@@ -2103,6 +2129,675 @@ function budViewFondi(anno) {
   h += `</div>`;
   return h;
 }
+
+// ═════════════════════════════════════════════════════════════════
+// MODULO FISCALE  (fase 2b — imposte e contributi)
+// ─────────────────────────────────────────────────────────────────
+// Motore portato dallo strumento «Budget personale» (oggetto Fisco),
+// con tre correzioni verificate sul sito della Cassa (cnpadc.it):
+//  • i minimi dell'anno X si versano il 31/5 e il 31/10 di X e vanno
+//    a scomputo dei contributi calcolati sul reddito X−1, che si
+//    conguagliano (eccedenze) il 20/12 di X;
+//  • il contributo di maternità si versa il 20/12 con le eccedenze;
+//  • per questo conMinimi() si riferisce all'anno di VERSAMENTO.
+// Dati:  state.budget.fiscale = { settings, cdc, years, migrazioni }
+//        years[anno].fonte = 'auto' | 'movimenti' | 'manuale'
+// Con fonte «movimenti» le fatture dell'anno si ricavano dalle entrate
+// con flag 🧾 da fattura (Recognita in automatico), più la previsione
+// del budget per i mesi non ancora trascorsi.
+// Le voci del gruppo 'fiscale' prendono le scadenze da qui, salvo
+// che nel budget sia attivato «importi manuali».
+// ═════════════════════════════════════════════════════════════════
+const Fisco = (function(){
+  let S = null;
+  const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+
+  function defaults(){
+    const y = new Date().getFullYear();
+    const years = {}; years[y - 1] = blankYear(); years[y] = blankYear();
+    return {
+      version: 1,
+      settings: { coeff:78, aliquota:15, sogPct:12, intPct:4, bollo:2, sogliaBollo:77.47,
+        bolloInRicavi:true, intDeducibile:false, rival:1.3, rateMinimi:2, rateEcc:1, meseExtra:8, metodoAcconti:'storico', annoMinimi:null },
+      cdc: {
+        '2024': { minSog:3075, minInt:923, mat:77.09, lim:202700 },
+        '2025': { minSog:3140, minInt:942, mat:74.92, lim:206800 },
+        '2026': { minSog:3180, minInt:954, mat:null,  lim:209300 }
+      },
+      years
+    };
+  }
+  function blankYear(){ return { fatture:[], ricaviExtra:null, imposta:null, acconti:null, contribDed:null, sogPct:null, nBolli:null, fonte:'auto', note:'' }; }
+
+  // ---------- parametri Cassa dell'anno (anno di versamento) ----------
+  function cdcParams(y){
+    const known = Object.keys(S.cdc).map(Number).sort((a,b) => a-b);
+    const k = S.cdc[y];
+    const lastMat = () => { for(let i = known.length-1; i >= 0; i--){ if(known[i] <= y && S.cdc[known[i]].mat != null) return +S.cdc[known[i]].mat; } return 75; };
+    if(k) return { minSog:+k.minSog, minInt:+k.minInt, lim:+k.lim, mat:k.mat != null ? +k.mat : lastMat(), estimated:false, matEst:k.mat == null };
+    const base = known.filter(v => v < y).pop() ?? known[0];
+    const b = S.cdc[base], f = Math.pow(1 + S.settings.rival/100, y - base);
+    return { minSog:Math.round(b.minSog*f/5)*5, minInt:Math.round(b.minInt*f), lim:Math.round(b.lim*f/50)*50, mat:lastMat(), estimated:true, matEst:true, fromYear:base };
+  }
+
+  // ---------- acconti imposta sostitutiva ----------
+  // 100% dell'imposta dell'anno prima; non dovuti sotto 52 €; soggetti ISA:
+  // due rate del 50% (giugno e novembre), unica rata a novembre fino a 206 €.
+  function accontiDa(base){
+    if(base == null || base < 52) return { tot:0, jun:0, nov:0 };
+    const tot = r2(base);
+    if(tot*0.5 <= 103) return { tot, jun:0, nov:tot };
+    const jun = r2(tot/2); return { tot, jun, nov:r2(tot-jun) };
+  }
+
+  // anno di versamento con minimi (finita l'agevolazione neoiscritti)
+  const conMinimi = y => S.settings.annoMinimi != null && S.settings.annoMinimi !== '' && y >= +S.settings.annoMinimi;
+
+  // ---------- Cassa: piano di versamento dei contributi sul reddito c.y ----------
+  // si versano da dicembre dell'anno dopo: 20/12, poi 31/3, 30/6, 30/9 se rateizzati (da 1.000 €)
+  function planOf(c, sogKey, intKey){
+    if(!c || !c.hasData) return [];
+    const sog = c[sogKey], int = c[intKey], tot = sog + int, y = c.y;
+    if(tot <= 0) return [];
+    const n = tot >= 1000 ? (+S.settings.rateEcc || 1) : 1;
+    const dates = [[y+1,11,20],[y+2,2,31],[y+2,5,30],[y+2,8,30]].slice(0, n);
+    return dates.map((d,i) => ({ y:d[0], m:d[1], d:d[2], sog:r2(sog/n), int:r2(int/n), n, i:i+1, of:y }));
+  }
+
+  // tutti i versamenti alla Cassa che cadono nell'anno Y
+  function cdcPayments(Y){
+    const st = S.settings, p = cdcParams(Y), out = [];
+    const add = (m,d,label,amount,kind,extra) => { if(amount > 0.004) out.push(Object.assign({ m, d, label, amount:r2(amount), kind }, extra || {})); };
+    const suf = q => q.n > 1 ? ` · rata ${q.i} di ${q.n}` : '';
+    if(conMinimi(Y)){
+      const est = !S.cdc[Y];
+      const parts = +st.rateMinimi === 2 ? [[4,31,0.5,' · 1ª rata'],[9,31,0.5,' · 2ª rata']] : [[4,31,1,'']];
+      for(const [m,d,f,l] of parts){
+        add(m, d, `Soggettivo minimo ${Y}${l}`, p.minSog*f, 'cdc', { est, minimo:true });
+        add(m, d, `Integrativo minimo ${Y}${l}`, p.minInt*f, 'cli', { est, minimo:true });
+      }
+    }
+    for(const c of [compute(Y-1), compute(Y-2)]){
+      if(!c) continue;
+      const withMin = conMinimi(c.y + 1);
+      for(const q of planOf(c, withMin ? 'eccSog' : 'sogDue', withMin ? 'eccInt' : 'intDue')){
+        if(q.y !== Y) continue;
+        const est = !c.dataFinal;
+        const pct = String(c.pct).replace('.', ',');
+        add(q.m, q.d, withMin ? `Eccedenza soggettivo ${q.of+1} (reddito ${q.of}, ${pct}%)${suf(q)}` : `Soggettivo ${q.of+1} (reddito ${q.of}, ${pct}%)${suf(q)}`, q.sog, 'cdc', { est });
+        add(q.m, q.d, withMin ? `Eccedenza integrativo ${q.of+1} (volume d'affari ${q.of})${suf(q)}` : `Integrativo ${q.of+1} (volume d'affari ${q.of})${suf(q)}`, q.int, 'cli', { est });
+      }
+    }
+    add(11, 20, `Contributo di maternità ${Y}`, p.mat, 'cdc', { est: p.matEst || !S.cdc[Y], mat:true });
+    return out;
+  }
+
+  // ---------- calcolo di un anno di reddito ----------
+  const memo = new Map();
+  function compute(y, depth){
+    y = Number(y); depth = depth || 0;
+    if(memo.has(y)) return memo.get(y);
+    const r = S.years[y];
+    if(!r || depth > 40) return null;
+    const st = S.settings, p = cdcParams(y + 1);        // minimi e limite dell'anno in cui si versa
+    let compensi = 0, bollo = 0, nf = 0, lordo = 0;
+    for(const f of (r.fatture || [])){
+      const n = Number(f.n) || 0, L = Number(f.lordo) || 0;
+      if(!n || !L) continue;
+      let c = (L - st.bollo)/(1 + st.intPct/100), b = st.bollo;
+      if(c <= st.sogliaBollo){ c = L/(1 + st.intPct/100); b = 0; }
+      compensi += c*n; bollo += b*n; nf += n; lordo += L*n;
+    }
+    compensi += Number(r.ricaviExtra) || 0;
+    const hasData = nf > 0 || (Number(r.ricaviExtra) || 0) > 0;
+    const nBolli = r.nBolli != null ? Number(r.nBolli) : (nf > 0 ? Math.round(bollo/(st.bollo || 2)) : null);
+    const ricavi = compensi + (st.bolloInRicavi ? bollo : 0);
+    const reddito = ricavi*st.coeff/100;
+    const pct = r.sogPct != null ? Number(r.sogPct) : st.sogPct;
+    const sogCalc = r2(Math.min(reddito, p.lim)*pct/100);
+    const intCalc = r2(compensi*st.intPct/100);
+    const std = conMinimi(y + 1);
+    const sogDue = hasData ? (std ? Math.max(p.minSog, sogCalc) : sogCalc) : 0;
+    const intDue = hasData ? (std ? Math.max(p.minInt, intCalc) : intCalc) : 0;
+    const eccSog = hasData ? r2(Math.max(0, sogCalc - p.minSog)) : 0;
+    const eccInt = hasData ? r2(Math.max(0, intCalc - p.minInt)) : 0;
+    const res = { y, p, nf, lordo, compensi, bollo, ricavi, reddito, pct, sogCalc, intCalc, sogDue, intDue,
+      eccSog, eccInt, conMinimi:std, hasData, nBolli, bolliOverride: r.nBolli != null, cassaIncassata:intCalc, dataFinal: r.imposta != null };
+    memo.set(y, res);   // segnaposto: cdcPayments può leggere quest'anno senza cicli
+
+    const prev = compute(y - 1, depth + 1);
+    const pays = cdcPayments(y);
+    const paidSog = pays.filter(i => i.kind === 'cdc').reduce((s,i) => s + i.amount, 0);
+    const paidInt = pays.filter(i => i.kind === 'cli').reduce((s,i) => s + i.amount, 0);
+    const autoDed = r2(paidSog + (st.intDeducibile ? paidInt : 0));
+    const eccUnknown = !prev || !prev.hasData;
+    const ded = r.contribDed != null ? Number(r.contribDed) : autoDed;
+    const imponibile = Math.max(0, reddito - ded);
+    const impostaCalc = r2(imponibile*st.aliquota/100);
+    const imposta = r.imposta != null ? Number(r.imposta) : (hasData ? impostaCalc : null);
+    const accCalc = prev && prev.imposta != null ? accontiDa(prev.imposta).tot : null;
+    const acconti = r.acconti != null ? Number(r.acconti) : accCalc;
+    const saldo = imposta != null ? r2(imposta - (acconti || 0)) : null;
+    Object.assign(res, { eccUnknown, autoDed, ded, dedOverride: r.contribDed != null, imponibile,
+      impostaCalc, imposta, impostaOverride: r.imposta != null, acconti, accontiOverride: r.acconti != null, saldo });
+    return res;
+  }
+
+  // ---------- imposta di bollo sulle fatture elettroniche ----------
+  // 1°-3° trimestre entro il 30/11 (sotto le soglie di 5.000 €), 4° trimestre entro fine febbraio dell'anno dopo.
+  function bolliOf(y){
+    const c = compute(y);
+    if(c && c.nBolli != null) return { n:c.nBolli, est:!c.bolliOverride && !c.dataFinal, from:y };
+    for(let k = y-1; k >= y-5; k--){ const d = compute(k); if(d && d.nBolli != null) return { n:d.nBolli, est:true, from:k }; }
+    return null;
+  }
+  function quarterSplit(n){
+    const base = Math.floor(n/12), rem = n - base*12;
+    const extraM = Math.min(12, Math.max(1, Number(S.settings.meseExtra) || 8));
+    const q4 = base*3 + (extraM >= 10 ? rem : 0);
+    return { q13: n - q4, q4 };
+  }
+  // ripartizione per trimestre: dai mesi reali delle fatture se disponibili
+  function splitOf(b, y){
+    const r = S.years[b.from];
+    if(b.from === y && r && r.bolliQ && r.nBolli == null) return r.bolliQ;
+    return quarterSplit(b.n);
+  }
+  function bolloPayments(Y){
+    const out = [], b = S.settings.bollo || 2;
+    const prev = bolliOf(Y-1), cur = bolliOf(Y);
+    const feb = new Date(Y, 2, 0).getDate();
+    if(prev && prev.n > 0){ const q = splitOf(prev, Y-1);
+      if(q.q4 > 0) out.push({ m:1, d:feb, label:`Imposta di bollo fatture elettroniche ${Y-1} · 4° trimestre (${q.q4} fatture)`, amount:r2(q.q4*b), kind:'bol', est:prev.est }); }
+    if(cur && cur.n > 0){ const q = splitOf(cur, Y);
+      if(q.q13 > 0) out.push({ m:10, d:30, label:`Imposta di bollo fatture elettroniche ${Y} · 1°-3° trimestre (${q.q13} fatture)`, amount:r2(q.q13*b), kind:'bol', est:cur.est,
+        note: cur.from !== Y ? `Bolli ${Y} stimati con il numero di fatture del ${cur.from} (${cur.n}).` : null }); }
+    return out;
+  }
+
+  // ---------- versamenti di un anno ----------
+  function budget(Y){
+    const st = S.settings;
+    const prev = compute(Y-1), cur = compute(Y);
+    const items = [], notes = [];
+    const add = (m,d,label,amount,kind,extra) => items.push(Object.assign({ m, d, label, amount:r2(amount), kind }, extra || {}));
+
+    if(!prev) notes.push(`Mancano i dati del ${Y-1}: aggiungi l'anno nell'archivio per calcolare saldo, acconti e contributi.`);
+    if(prev && prev.imposta != null){
+      if(prev.saldo >= 0.005) add(5, 30, `Saldo imposta sostitutiva ${Y-1}`, prev.saldo, 'tax', { est:!prev.impostaOverride });
+      else if(prev.saldo < -0.005) add(5, 30, `Credito dal saldo ${Y-1} (in compensazione)`, prev.saldo, 'tax');
+    } else if(prev) notes.push(`Per il ${Y-1} non ci sono ricavi né imposta: saldo e acconti ${Y} non calcolabili.`);
+
+    let base = prev ? prev.imposta : null, metodo = 'storico';
+    if(st.metodoAcconti === 'previsionale' && cur && cur.imposta != null){ base = cur.imposta; metodo = 'previsionale'; }
+    const acc = accontiDa(base);
+    const accEst = !(prev && prev.impostaOverride);
+    if(acc.jun) add(5, 30, `1° acconto imposta sostitutiva ${Y}`, acc.jun, 'tax', { est:accEst });
+    if(acc.nov) add(10, 30, `${acc.jun ? '2° acconto' : 'Acconto unico'} imposta sostitutiva ${Y}`, acc.nov, 'tax', { est:accEst });
+
+    for(const i of cdcPayments(Y)) items.push(i);
+    for(const i of bolloPayments(Y)){ items.push(i); if(i.note) notes.push(i.note); }
+    const p = cdcParams(Y);
+    if(conMinimi(Y) && !S.cdc[Y]) notes.push(`Minimi Cassa ${Y} non ancora inseriti: stimati dal ${p.fromYear} con una rivalutazione del ${String(st.rival).replace('.', ',')}%.`);
+    if(p.matEst) notes.push(`Contributo di maternità ${Y} non ancora deliberato: uso l'ultimo importo noto.`);
+    if(prev && prev.hasData){
+      const dic = prev.conMinimi ? prev.eccSog + prev.eccInt : prev.sogDue + prev.intDue;
+      if(dic >= 1000 && +st.rateEcc > 1) notes.push(`Contributi sul reddito ${Y-1} rateizzati: parte delle rate cade nel ${Y+1}.`);
+    }
+    if(prev && prev.eccUnknown && !prev.dedOverride)
+      notes.push(`Contributi deducibili ${Y-1}: mancano i ricavi ${Y-2}, quindi non so cosa hai versato alla Cassa nel ${Y-1}. Inserisci l'importo nell'anno ${Y-1}.`);
+    if(prev && !prev.accontiOverride && prev.acconti == null && prev.imposta != null) notes.push(`Acconti versati nel ${Y-1} sconosciuti: considerati zero. Inseriscili nell'anno ${Y-1}.`);
+
+    items.sort((a,b) => a.m - b.m || a.d - b.d);
+    const sumK = k => items.filter(i => !k || i.kind === k).reduce((s,i) => s + i.amount, 0);
+    return { items, notes, tot:sumK(), cli:sumK('cli'), tax:sumK('tax'), cdc:sumK('cdc'), bol:sumK('bol'), prev, cur, acc, metodo, base, p };
+  }
+
+  // quanto costa alzare l'aliquota del soggettivo sul reddito c.y
+  function simCalc(c, pct){
+    const p = c.p, st = S.settings, withMin = conMinimi(c.y + 1);
+    const sog = r2(Math.min(c.reddito, p.lim)*pct/100);
+    const sogDue = withMin ? Math.max(p.minSog, sog) : sog;
+    const dic = withMin ? r2(sogDue - p.minSog) : sogDue;     // soggettivo da versare a dicembre
+    const intDic = withMin ? c.eccInt : c.intDue;
+    const risparmio = r2(dic*st.aliquota/100);                 // minore imposta nell'anno del versamento
+    return { sog, sogDue, dic, intDic, risparmio, netto:r2(dic - risparmio), totDic:r2(dic + intDic), belowMin: withMin && sog < p.minSog };
+  }
+
+  function normalize(o){
+    const d = defaults();
+    const out = { version:1, settings:Object.assign({}, d.settings, (o && o.settings) || {}), cdc: o && o.cdc && Object.keys(o.cdc).length ? o.cdc : d.cdc, years:{} };
+    for(const [y, r] of Object.entries((o && o.years) || {})) out.years[y] = Object.assign(blankYear(), r, { fatture: Array.isArray(r.fatture) ? r.fatture : [] });
+    if(!Object.keys(out.years).length) out.years = d.years;
+    return out;
+  }
+  function yearsSorted(){ return Object.keys(S.years).map(Number).sort((a,b) => a-b); }
+  return {
+    usa(stato){ S = stato; memo.clear(); },
+    defaults, blankYear, normalize, compute, budget, cdcParams, cdcPayments, conMinimi, simCalc, yearsSorted, accontiDa,
+    stato(){ return S; }
+  };
+})();
+
+// ─── Collegamento con i movimenti e con il budget ────────────────
+const FISC_KIND_VOCE = { tax:'imp_sost', cdc:'cassa_sogg', cli:'cassa_int', bol:'bollo_fatt' };
+const FISC_VOCE_KIND = { imp_sost:'tax', cassa_sogg:'cdc', cassa_int:'cli', bollo_fatt:'bol' };
+const FISC_NOME = { tax:'Imposta sostitutiva', cdc:'Cassa a tuo carico', cli:'Integrativo (dai clienti)', bol:'Bolli fatture' };
+const FISC_COL = { tax:'#2c5f2e', cdc:'#4a7396', cli:'#a9c1d6', bol:'#c79a2e' };
+let fiscUi = { anno:null, aperti:{}, simYear:null, simPct:null, importa:false };
+let _fiscCache = null;
+
+function fiscHa() { return !!(state.budget && state.budget.fiscale && state.budget.fiscale.years); }
+function fiscRaw() { return state.budget.fiscale; }
+function fiscRec(y) {
+  const F = fiscRaw();
+  if(!F.years[y]) F.years[y] = Fisco.blankYear();
+  return F.years[y];
+}
+function fiscNum(v) {
+  if(typeof v === 'number') return isFinite(v) ? v : null;
+  let s = String(v == null ? '' : v).trim().replace(/[€%\s\u00a0']/g, '');
+  if(!s) return null;
+  if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else if(s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  const n = parseFloat(s); return isNaN(n) ? null : n;
+}
+
+// Entrate con flag «da fattura» di un anno
+function fiscTxAnno(y) {
+  const pre = String(y) + '-';
+  return state.transactions.filter(t => t.tipo === 'entrata' && !t.esclusa && String(t.data || '').startsWith(pre) && isDaFattura(t));
+}
+// Fonte dei ricavi di un anno: 'movimenti' o 'manuale'
+function fiscFonte(y, r) {
+  const f = (r && r.fonte) || 'auto';
+  if(f === 'movimenti' || f === 'manuale') return f;
+  if(r && r.imposta != null) return 'manuale';             // anno già dichiarato: valgono i dati inseriti
+  return fiscTxAnno(y).length || budAnno(y) ? 'movimenti' : 'manuale';
+}
+// Incassi da fattura mese per mese: reali dai movimenti, previsti dal budget per i mesi non trascorsi
+function fiscIncassi(y) {
+  const st = (fiscRaw().settings) || {};
+  const soglia = st.sogliaBollo || 77.47, bollo = st.bollo || 2, intPct = st.intPct || 4;
+  const mesi = Array.from({ length:12 }, () => ({ reale:0, n:0, previsto:0, nPrev:0 }));
+  const righe = [];
+  fiscTxAnno(y).forEach(t => {
+    const m = parseInt(String(t.data).substring(5, 7), 10) - 1, L = +t.importo || 0;
+    if(!(m >= 0 && m < 12) || L <= 0) return;
+    mesi[m].reale += L; mesi[m].n++;
+    righe.push({ descr: String(t.descrizione || '').substring(0, 60), n:1, lordo:L, m });
+  });
+  const reali = righe.slice();
+  const o = budOggi(y), A = budAnno(y);
+  let conPrevisione = false;
+  if(A && o.corrente <= 11) {
+    const prev = _z12();
+    vociTutte().filter(v => v.gruppo === 'entrate' && v.daFattura).forEach(v => {
+      const r = budCalcVoce(y, v.id); if(r) for(let m = 0; m < 12; m++) prev[m] += r.prev[m];
+    });
+    let medio = reali.length ? _sum(reali.map(x => x.lordo)) / reali.length : null;
+    if(!medio) { const rp = fiscTxAnno(y - 1).map(t => +t.importo || 0).filter(x => x > 0); if(rp.length) medio = _sum(rp) / rp.length; }
+    for(let m = Math.max(0, o.corrente); m < 12; m++) {
+      const res = _r2(prev[m] - mesi[m].reale);
+      if(res <= 0.5) continue;
+      const n = medio ? Math.max(1, Math.round(res / medio)) : 1;
+      mesi[m].previsto = res; mesi[m].nPrev = n; conPrevisione = true;
+      righe.push({ descr: 'Previsto ' + MESI_LUNGHI[m], n, lordo:_r2(res / n), m, prev:true });
+    }
+  }
+  // fatture con bollo per trimestre
+  let q13 = 0, q4 = 0;
+  righe.forEach(x => { const c = (x.lordo - bollo) / (1 + intPct / 100); if(c > soglia) { if(x.m <= 8) q13 += x.n; else q4 += x.n; } });
+  return { mesi, righe, conPrevisione, bolliQ:{ q13, q4 },
+    reale:_sum(mesi.map(x => x.reale)), previsto:_sum(mesi.map(x => x.previsto)), nReali:reali.length };
+}
+function fiscChiave() {
+  const d = new Date();
+  return (state.modificato || '') + '|' + ((state.budget && state.budget.aggiornato) || '') + '|' + state.transactions.length + '|' + d.getFullYear() + '-' + d.getMonth();
+}
+// Stato fiscale effettivo: i dati salvati, con le fatture dai movimenti dove la fonte è «movimenti»
+function fiscStato() {
+  if(!fiscHa()) return null;
+  const k = fiscChiave();
+  if(_fiscCache && _fiscCache.k === k) { if(Fisco.stato() !== _fiscCache.F) Fisco.usa(_fiscCache.F); return _fiscCache.F; }
+  const raw = fiscRaw(), F = Fisco.normalize(raw), inc = {};
+  const anni = new Set(Object.keys(F.years).map(Number));
+  state.transactions.forEach(t => { if(t.tipo === 'entrata' && isDaFattura(t)) { const y = parseInt(String(t.data || '').substring(0, 4), 10); if(y > 2000) anni.add(y); } });
+  budAnni().forEach(y => anni.add(y));
+  anni.forEach(y => {
+    const fonte = fiscFonte(y, raw.years[y]);
+    if(!F.years[y]) { if(fonte !== 'movimenti') return; F.years[y] = Fisco.blankYear(); }
+    const r = F.years[y];
+    r._fonte = fonte;
+    if(fonte === 'movimenti') {
+      const I = fiscIncassi(y); inc[y] = I;
+      r.fatture = I.righe.map(x => ({ descr:x.descr, n:x.n, lordo:x.lordo }));
+      r.bolliQ = I.bolliQ;
+    }
+  });
+  _fiscCache = { k, F, inc, budget:{} };
+  Fisco.usa(F);
+  return F;
+}
+function fiscBudget(Y) {
+  if(!fiscStato()) return null;
+  if(!_fiscCache.budget[Y]) _fiscCache.budget[Y] = Fisco.budget(Y);
+  return _fiscCache.budget[Y];
+}
+// Scadenze di una voce fiscale del budget, calcolate dal motore
+function fiscScadenzeVoce(anno, voceId) {
+  const k = FISC_VOCE_KIND[voceId]; if(!k) return null;
+  const B = fiscBudget(anno); if(!B) return null;
+  const perMese = its => { const a = _z12(); its.forEach(i => { a[i.m] += i.amount; }); return a; };
+  const det = B.items.filter(i => i.kind === k);
+  const byM = perMese(det), scadenze = [];
+  byM.forEach((v, m) => { if(v > 0.005) scadenze.push({ mese:m, importo:_r2(v) }); });
+  let prossime = null;
+  const B2 = fiscBudget(anno + 1);
+  if(B2) { const m2 = perMese(B2.items.filter(i => i.kind === k)); const f = m2.findIndex(v => v > 0.005); if(f >= 0) prossime = [{ mese:f, importo:_r2(m2[f]) }]; }
+  return { scadenze, dettaglio:det, prossime };
+}
+// Adeguamenti una tantum dei dati importati
+function fiscMigra() {
+  if(!fiscHa()) return false;
+  const F = fiscRaw(); if(!Array.isArray(F.migrazioni)) F.migrazioni = [];
+  let n = 0;
+  if(!F.migrazioni.includes('2b-minimi-due-rate')) {
+    // a giugno 2026 è stata versata la sola 1ª rata dei minimi (2.067 €): la 2ª scade il 31 ottobre
+    if(F.settings && +F.settings.rateMinimi === 1) F.settings.rateMinimi = 2;
+    F.migrazioni.push('2b-minimi-due-rate'); n++;
+  }
+  return n > 0;
+}
+
+// ─── Modifiche dalla scheda ──────────────────────────────────────
+function fiscSet(kind, field, id, el) {
+  const F = fiscRaw(); if(!F) return;
+  const raw = el.type === 'checkbox' ? el.checked : el.value;
+  const vuoto = String(raw).trim() === '', n = fiscNum(raw);
+  if(kind === 'inv') { const r = fiscRec(fiscUi.anno), f = r.fatture[+id]; if(f) f[field] = field === 'descr' ? raw : (vuoto ? null : n); }
+  else if(kind === 'y') { const r = fiscRec(+id); if(field === 'note' || field === 'fonte') r[field] = raw; else r[field] = vuoto ? null : n; }
+  else if(kind === 's') {
+    if(el.type === 'checkbox') F.settings[field] = !!raw;
+    else if(field === 'metodoAcconti') F.settings[field] = raw;
+    else if(field === 'annoMinimi') F.settings[field] = vuoto ? null : n;
+    else if(['rateMinimi','rateEcc','meseExtra'].includes(field)) F.settings[field] = Number(raw);
+    else if(n != null) F.settings[field] = n;
+  }
+  else if(kind === 'cdc') { if(F.cdc[id]) F.cdc[id][field] = vuoto ? (field === 'mat' ? null : 0) : n; }
+  else if(kind === 'simYear') { fiscUi.simYear = +raw; fiscUi.simPct = null; renderBudget(); return; }
+  else if(kind === 'simPct') { if(n != null) fiscUi.simPct = Math.min(100, Math.max(12, n)); renderBudget(); return; }
+  budTocca(); renderBudget();
+}
+function fiscAzione(act, arg) {
+  const F = fiscRaw();
+  switch(act) {
+    case 'init':
+      if(!state.budget) state.budget = {};
+      state.budget.fiscale = Fisco.defaults(); budTocca(); renderBudget(); return;
+    case 'importaApri': fiscUi.importa = !fiscUi.importa; renderBudget(); return;
+    case 'importa': {
+      try {
+        const o = JSON.parse(document.getElementById('fisc-json').value);
+        const src = o.fiscale || (o.budget && o.budget.fiscale) || o;
+        if(!src.years || !src.settings || !src.cdc) throw new Error('formato');
+        if(fiscHa() && !confirm('I dati fiscali presenti verranno sostituiti. Continuare?')) return;
+        state.budget.fiscale = JSON.parse(JSON.stringify(src)); fiscUi.importa = false;
+        budTocca(); renderBudget();
+      } catch(e) { alert('Il testo incollato non contiene i dati dello strumento imposte.'); }
+      return;
+    }
+    case 'anno': fiscUi.anno = +arg; renderBudget(); return;
+    case 'addAnno': {
+      const ys = Object.keys(F.years).map(Number).sort((a,b) => a-b), y = ys.length ? ys[ys.length-1] + 1 : new Date().getFullYear();
+      F.years[y] = Fisco.blankYear(); fiscUi.anno = y; budTocca(); renderBudget(); return;
+    }
+    case 'delAnno': {
+      const y = fiscUi.anno; if(!F.years[y]) return;
+      if(!confirm(`Eliminare i dati inseriti per il ${y}? Le imposte degli anni successivi saranno ricalcolate.`)) return;
+      delete F.years[y]; fiscUi.anno = null; budTocca(); renderBudget(); return;
+    }
+    case 'addInv': fiscRec(fiscUi.anno).fatture.push({ descr:'', n:1, lordo:null }); budTocca(); renderBudget(); return;
+    case 'copyInv': {
+      const src = F.years[fiscUi.anno - 1]; if(!src) return;
+      fiscRec(fiscUi.anno).fatture = (src.fatture || []).map(f => ({ descr:f.descr, n:f.n, lordo:f.lordo })); budTocca(); renderBudget(); return;
+    }
+    case 'delInv': fiscRec(fiscUi.anno).fatture.splice(+arg, 1); budTocca(); renderBudget(); return;
+    case 'addCdc': {
+      const cy = Object.keys(F.cdc).map(Number).sort((a,b) => a-b), ny = cy.length ? cy[cy.length-1] + 1 : new Date().getFullYear();
+      Fisco.usa(Fisco.normalize(F)); const p = Fisco.cdcParams(ny); _fiscCache = null;
+      F.cdc[ny] = { minSog:p.minSog, minInt:p.minInt, mat:null, lim:p.lim }; budTocca(); renderBudget(); return;
+    }
+    case 'delCdc': if(Object.keys(F.cdc).length > 1) { delete F.cdc[arg]; budTocca(); renderBudget(); } return;
+    case 'toggle': fiscUi.aperti[arg] = !fiscUi.aperti[arg]; renderBudget(); return;
+    case 'simPick': fiscUi.simPct = +arg; renderBudget(); return;
+    case 'simApply': if(fiscUi.simYear != null) { fiscRec(fiscUi.simYear).sogPct = fiscUi.simPct; budTocca(); renderBudget(); } return;
+  }
+}
+
+// ─── Rendering della scheda «Imposte e Cassa» ───────────────────
+function _fIn(kind, field, id, val, w, ph) {
+  return `<input class="bud-in" style="width:${w||100}px;text-align:right;" inputmode="decimal" value="${_esc(val == null || val === '' ? '' : _numIn(val))}" placeholder="${_esc(ph || '')}" onchange="fiscSet('${kind}','${field}','${id}',this)" />`;
+}
+function _fChip(t, c) { return ` <span class="fisc-chip" style="${c ? 'color:' + c + ';border-color:' + c + ';' : ''}">${t}</span>`; }
+function _fApribile(chiave, titolo, sotto, corpo) {
+  const ap = !!fiscUi.aperti[chiave];
+  let h = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;"><div><div class="card-title" style="margin:0;">${titolo}</div>${sotto ? `<div style="font-size:12px;color:var(--text-faint);margin-top:4px;">${sotto}</div>` : ''}</div>
+    <button class="btn" style="font-size:12px;padding:5px 10px;flex-shrink:0;" onclick="fiscAzione('toggle','${chiave}')">${ap ? 'Chiudi' : 'Apri'}</button></div>`;
+  if(ap) h += `<div style="margin-top:12px;">${corpo()}</div>`;
+  return h + '</div>';
+}
+function fiscStriscia(B, S) {
+  const W = 720, H = 170, pl = 46, pr = 6, pt = 8, pb = 24, iw = W - pl - pr, ih = H - pt - pb;
+  const byM = []; for(let m = 0; m < 12; m++) byM.push({ tax:0, cdc:0, cli:0, bol:0 });
+  B.items.forEach(i => { byM[i.m][i.kind] += i.amount; });
+  byM.forEach(x => Object.keys(x).forEach(k => { if(x[k] < 0) x[k] = 0; }));
+  let max = 1; byM.forEach(x => { max = Math.max(max, x.tax + x.cdc + x.cli + x.bol); });
+  const step = Math.pow(10, Math.floor(Math.log10(max))), top = Math.ceil(max / step) * step;
+  const y = v => pt + ih - v / top * ih, bw = iw / 12, w = Math.min(30, bw * 0.62);
+  let s = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;" role="img" aria-label="Versamenti fiscali per mese">`;
+  if(S > 0) s += `<rect x="${pl}" y="${pt}" width="${bw * S}" height="${ih}" fill="rgba(0,0,0,0.035)"/><text x="${pl + 4}" y="${pt + 11}" font-size="10" fill="var(--text-faint)">prima del budget</text>`;
+  for(let g = 0; g <= 2; g++) { const gv = top * g / 2;
+    s += `<line x1="${pl}" y1="${y(gv)}" x2="${W - pr}" y2="${y(gv)}" stroke="rgba(0,0,0,0.08)"/><text x="${pl - 6}" y="${y(gv) + 4}" text-anchor="end" font-size="10" fill="var(--text-faint)">${fmtNum(gv, 0)}</text>`; }
+  for(let m = 0; m < 12; m++) {
+    const cx = pl + bw * m + bw / 2; let acc = 0;
+    ['tax','cdc','cli','bol'].forEach(k => { const v = byM[m][k]; if(v <= 0) return;
+      s += `<rect x="${cx - w / 2}" y="${y(acc + v)}" width="${w}" height="${Math.max(0.8, v / top * ih)}" fill="${FISC_COL[k]}"><title>${MESI_LUNGHI[m]} · ${FISC_NOME[k]}: ${fmt(v)}</title></rect>`; acc += v; });
+    if(acc > 0) s += `<text x="${cx}" y="${y(acc) - 4}" text-anchor="middle" font-size="9.5" fill="var(--text-muted)">${fmtNum(acc, 0)}</text>`;
+    s += `<text x="${cx}" y="${H - 7}" text-anchor="middle" font-size="10.5" fill="var(--text-faint)">${MESI_BREVI[m]}</text>`;
+  }
+  s += '</svg><div class="fisc-legenda">' + ['tax','cdc','cli','bol'].map(k => `<span><i style="background:${FISC_COL[k]}"></i>${FISC_NOME[k]}</span>`).join('') + '</div>';
+  return s;
+}
+
+function budViewImposte(anno) {
+  if(!fiscHa()) {
+    return `<div class="card"><div class="card-title">Imposte e Cassa</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;">Qui si calcolano imposta sostitutiva, contributi alla Cassa Dottori Commercialisti e bolli: le scadenze entrano da sole nelle spese certe del budget. I dati fiscali non sono ancora presenti nell'app.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-primary" onclick="fiscAzione('init')">Inizia da zero</button><button class="btn" onclick="fiscAzione('importaApri')">Incolla i dati dello strumento imposte</button></div>
+      ${fiscUi.importa ? `<textarea id="fisc-json" class="form-input" style="width:100%;min-height:120px;margin-top:10px;font-size:12px;" placeholder="Incolla qui il JSON esportato"></textarea><button class="btn btn-primary" style="margin-top:8px;" onclick="fiscAzione('importa')">Importa</button>` : ''}</div>`;
+  }
+  const F = fiscStato(), raw = fiscRaw(), st = F.settings, A = budAnno(anno), S = A ? (A.meseInizio || 0) : 0;
+  const B = fiscBudget(anno), netto = B.tot - B.cli - B.bol;
+  let h = '';
+
+  // ── riepilogo
+  h += `<div class="card fisc-testa"><div class="card-title">Imposte e Cassa ${anno}</div>
+    <p class="fisc-frase">Nel ${anno} versi <strong>${fmt(B.tot)}</strong>${B.cli + B.bol > 0.5 ? `. Di questi, ${fmt(B.cli + B.bol)} sono integrativo e bolli, già incassati in fattura: a tuo carico restano <strong>${fmt(netto)}</strong>, circa ${fmt(netto / 12)} al mese` : ''}.</p>
+    <div class="metric-grid" style="margin-bottom:14px;">
+      <div class="metric"><div class="metric-label">Imposta sostitutiva</div><div class="metric-value">${fmt(B.tax)}</div><div class="metric-sub">saldo ${anno - 1} e acconti ${anno}</div></div>
+      <div class="metric"><div class="metric-label">Cassa a tuo carico</div><div class="metric-value">${fmt(B.cdc)}</div><div class="metric-sub">soggettivo e maternità</div></div>
+      <div class="metric"><div class="metric-label">Integrativo</div><div class="metric-value">${fmt(B.cli)}</div><div class="metric-sub">incassato dai clienti</div></div>
+      <div class="metric"><div class="metric-label">Bolli fatture</div><div class="metric-value">${fmt(B.bol)}</div><div class="metric-sub">addebitati in fattura</div></div>
+    </div>${fiscStriscia(B, S)}`;
+  // stato delle voci nel budget
+  if(A) {
+    const st4 = ['tax','cdc','cli','bol'].map(k => {
+      const id = FISC_KIND_VOCE[k], c = A.righe[id];
+      const stato = !c ? `<a href="#" onclick="budAttivaVoce('${id}');return false;" style="color:var(--accent);">+ aggiungi</a>` : c.escludi ? 'esclusa' : c.manuale ? 'importi manuali' : 'calcolata';
+      return `<span>${FISC_NOME[k]}: ${stato}</span>`;
+    }).join(' · ');
+    h += `<div style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.7;">Nel budget ${anno}: ${st4}. <a href="#" onclick="budUi.tab='certe';renderBudget();return false;" style="color:var(--accent);">Fondi e accantonamenti →</a></div>`;
+  }
+  h += `</div>`;
+
+  // ── scadenze
+  h += `<div class="card"><div class="card-title">Versamenti ${anno}</div>`;
+  if(!B.items.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessun versamento calcolabile per il ${anno}: servono i ricavi del ${anno - 1}.</div>`;
+  else {
+    h += `<div class="bud-scroll"><table class="bud-table fisc-tab"><thead><tr><th>Versamento</th><th>Importo</th></tr></thead><tbody>`;
+    let ult = '';
+    B.items.forEach(i => {
+      const key = i.m + '-' + i.d, fuori = A && i.m < S;
+      if(key !== ult) {
+        const sub = _sum(B.items.filter(x => x.m === i.m && x.d === i.d).map(x => x.amount));
+        h += `<tr class="grp${fuori ? ' fisc-fuori' : ''}"><td>${i.d} ${MESI_LUNGHI[i.m]} ${anno}${fuori ? ' · prima del budget' : ''}</td><td class="num">${fmt(sub)}</td></tr>`;
+        ult = key;
+      }
+      const tag = (i.kind === 'cli' ? _fChip('dai clienti', '#4a7396') : '') + (i.kind === 'bol' ? _fChip('in fattura') : '') + (i.est ? _fChip('stima', 'var(--warning)') : '');
+      h += `<tr${fuori ? ' class="fisc-fuori"' : ''}><td style="white-space:normal;">${_esc(i.label)}${tag}</td><td class="num"${i.amount < 0 ? ' style="color:var(--accent);"' : ''}>${fmt(i.amount)}</td></tr>`;
+    });
+    h += `<tr class="tot"><td>Totale ${anno}</td><td class="num">${fmt(B.tot)}</td></tr></tbody></table></div>`;
+  }
+  if(B.notes.length) h += B.notes.map(n => `<div class="fisc-nota">${_esc(n)}</div>`).join('');
+  h += `</div>`;
+
+  // ── da dove arrivano i numeri
+  h += _fApribile('calc', 'Da dove arrivano i numeri', `Saldo, acconti ${anno} e contributi di dicembre dipendono dai ricavi ${anno - 1}.`, () => {
+    const c = B.prev; if(!c) return `<div style="font-size:13px;color:var(--text-faint);">Mancano i dati del ${anno - 1}.</div>`;
+    const riga = (l, v, cls) => `<tr class="${cls || ''}"><td style="white-space:normal;">${l}</td><td class="num">${v}</td></tr>`;
+    let out = `<div style="font-weight:600;font-size:13px;margin:4px 0 6px;">Imposta sostitutiva ${c.y}</div><div class="bud-scroll"><table class="bud-table"><tbody>`;
+    if(c.hasData) {
+      const R = F.years[c.y];
+      out += riga(`Compensi (${c.nf ? c.nf + ' fatture' + (R && R.ricaviExtra ? ' + altri compensi' : '') + (R && R._fonte === 'movimenti' ? ', dai movimenti' : '') : 'importo inserito'})`, fmt(c.compensi));
+      if(st.bolloInRicavi && c.bollo) out += riga('+ bolli addebitati ai clienti', fmt(c.bollo));
+      out += riga('Ricavi', fmt(c.ricavi), 'tot');
+      out += riga(`× coefficiente ${fmtNum(st.coeff, 0)}%`, fmt(c.reddito));
+      out += riga(`− contributi deducibili versati nel ${c.y}${c.dedOverride ? ' (inseriti)' : ''}`, fmt(-c.ded));
+      out += riga('Reddito imponibile', fmt(c.imponibile), 'tot');
+      out += riga(`× aliquota ${fmtNum(st.aliquota, 0)}%`, fmt(c.impostaCalc));
+    } else out += riga('Ricavi non inseriti', '—');
+    if(c.impostaOverride) out += riga('Imposta da dichiarazione (inserita)', fmt(c.imposta));
+    out += riga(`− acconti versati nel ${c.y}${c.accontiOverride ? ' (inseriti)' : ''}`, c.acconti != null ? fmt(-c.acconti) : '—');
+    out += riga(`Saldo da versare a giugno ${anno}`, fmt(c.saldo), 'tot');
+    out += `</tbody></table></div><p class="fisc-hint">Acconti ${anno}, metodo ${B.metodo}: 100% di ${fmt(B.base)}${B.acc.jun ? ', in due rate del 50% a giugno e novembre' : B.acc.nov ? ", in un'unica rata a novembre" : ', non dovuti'}.</p>`;
+    if(c.hasData) {
+      const mat = _sum(Fisco.cdcPayments(anno).filter(i => i.mat).map(i => i.amount));
+      out += `<div style="font-weight:600;font-size:13px;margin:16px 0 6px;">Cassa Dottori Commercialisti ${anno}, sul reddito ${c.y}</div><div class="bud-scroll"><table class="bud-table"><tbody>`;
+      out += riga(`Reddito ${c.y} per la Cassa (ricavi × coefficiente)`, fmt(c.reddito));
+      out += riga(`× aliquota soggettivo ${fmtNum(c.pct, c.pct % 1 ? 1 : 0)}%`, fmt(c.sogCalc));
+      if(c.conMinimi) { out += riga(`− minimo soggettivo ${anno}, versato a maggio${+st.rateMinimi === 2 ? ' e ottobre' : ''}`, fmt(-c.p.minSog)); out += riga(`Eccedenza soggettivo a dicembre ${anno}`, fmt(c.eccSog), 'tot'); }
+      else out += riga(`Soggettivo a dicembre ${anno}`, fmt(c.sogDue), 'tot');
+      out += riga(`Integrativo ${fmtNum(st.intPct, 0)}% su ${fmt(c.compensi)}`, fmt(c.intCalc));
+      if(c.conMinimi) { out += riga(`− minimo integrativo ${anno}`, fmt(-c.p.minInt)); out += riga(`Eccedenza integrativo a dicembre ${anno}`, fmt(c.eccInt), 'tot'); }
+      else out += riga(`Integrativo a dicembre ${anno}`, fmt(c.intDue), 'tot');
+      out += riga(`+ maternità ${anno}, a dicembre`, fmt(mat));
+      out += `</tbody></table></div><p class="fisc-hint">${c.conMinimi ? `I minimi ${anno} sono un anticipo sui contributi calcolati sul reddito ${c.y}: a dicembre si versa solo la differenza.` : `Per il ${anno} non sono dovuti minimi: soggettivo e integrativo sul reddito ${c.y} si versano per intero a dicembre.`} L'integrativo è già incassato in fattura.</p>`;
+    }
+    return out;
+  });
+
+  // ── archivio per anno
+  const anni = Object.keys(F.years).map(Number).sort((a,b) => a-b);
+  if(fiscUi.anno == null || !F.years[fiscUi.anno]) fiscUi.anno = anni.includes(anno) ? anno : anni[anni.length - 1];
+  const fa = fiscUi.anno, rr = raw.years[fa] || null, fr = F.years[fa], c = Fisco.compute(fa);
+  const fonteSel = (rr && rr.fonte) || 'auto', fonte = fr._fonte;
+  h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+      <div class="card-title" style="margin:0;">Ricavi e dichiarazioni</div><button class="btn" style="font-size:12px;padding:5px 10px;" onclick="fiscAzione('addAnno')">+ Anno</button></div>
+    <div class="bud-tabs" style="margin-bottom:12px;">${anni.map(y => `<button class="bud-tab${y === fa ? ' on' : ''}" onclick="fiscAzione('anno',${y})">${y}</button>`).join('')}</div>
+    <div class="bud-riga" style="font-size:13px;margin-bottom:10px;">Ricavi ${fa} da
+      <select class="bud-in" onchange="fiscSet('y','fonte',${fa},this)">
+        <option value="auto"${fonteSel === 'auto' ? ' selected' : ''}>scelta automatica (${fonte === 'movimenti' ? 'movimenti' : 'dati inseriti'})</option>
+        <option value="movimenti"${fonteSel === 'movimenti' ? ' selected' : ''}>entrate con 🧾 da fattura</option>
+        <option value="manuale"${fonteSel === 'manuale' ? ' selected' : ''}>fatture inserite a mano</option></select></div>`;
+  if(fonte === 'movimenti') {
+    const I = _fiscCache.inc[fa] || fiscIncassi(fa);
+    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th>Incassato</th><th>Fatture</th><th>Previsto</th><th>Totale</th></tr></thead><tbody>`;
+    I.mesi.forEach((x, m) => {
+      if(x.reale < 0.5 && x.previsto < 0.5) return;
+      h += `<tr><td>${MESI_LUNGHI[m]}</td><td class="num">${x.reale > 0.5 ? fmt(x.reale) : '—'}</td><td class="num">${x.n || '—'}</td><td class="num" style="color:var(--text-muted);">${x.previsto > 0.5 ? fmt(x.previsto) + (x.nPrev > 1 ? ` (${x.nPrev})` : '') : '—'}</td><td class="num">${fmt(x.reale + x.previsto)}</td></tr>`;
+    });
+    h += `<tr class="tot"><td>Totale ${fa}</td><td class="num">${fmt(I.reale)}</td><td class="num">${I.nReali}</td><td class="num">${I.previsto > 0.5 ? fmt(I.previsto) : '—'}</td><td class="num">${fmt(I.reale + I.previsto)}</td></tr></tbody></table></div>`;
+    const nonFlag = state.transactions.filter(t => t.tipo === 'entrata' && !t.esclusa && t.categoria === 'Entrate' && String(t.data || '').startsWith(fa + '-') && !isDaFattura(t));
+    h += `<p class="fisc-hint">Contano le entrate con 🧾 da fattura: Recognita in automatico, le altre attivando il flag nella modifica del movimento.${I.conPrevisione ? ` Per i mesi non ancora trascorsi vale la previsione delle entrate del budget ${fa}.` : ''}${nonFlag.length ? ` Nel ${fa} ci sono ${nonFlag.length} entrate senza flag, per ${fmt(_sum(nonFlag.map(t => +t.importo || 0)))}: <a href="#" onclick="apriTransazioniCat('Entrate');return false;" style="color:var(--accent);">controllale</a>.` : ''}</p>`;
+  } else {
+    const fatt = (rr && rr.fatture) || [];
+    h += `<div style="font-size:12px;color:var(--text-faint);margin-bottom:8px;">Totale di ogni fattura, comprensivo di integrativo ${fmtNum(st.intPct, 0)}% e bollo: il compenso si ricava da solo.</div>
+      <div class="bud-scroll"><table class="bud-table"><thead><tr><th>Descrizione</th><th>N.</th><th>Totale fattura</th><th>Totale</th><th></th></tr></thead><tbody>`;
+    if(!fatt.length) h += `<tr><td colspan="5" style="color:var(--text-faint);">Nessuna fattura inserita.</td></tr>`;
+    fatt.forEach((f, i) => {
+      h += `<tr><td><input class="bud-in" style="width:100%;min-width:140px;" value="${_esc(f.descr || '')}" onchange="fiscSet('inv','descr',${i},this)"></td><td>${_fIn('inv','n',i,f.n,56)}</td><td>${_fIn('inv','lordo',i,f.lordo,96)}</td><td class="num">${fmt((+f.n || 0) * (+f.lordo || 0))}</td><td><a href="#" onclick="fiscAzione('delInv',${i});return false;" style="color:var(--text-faint);">✕</a></td></tr>`;
+    });
+    h += `</tbody></table></div><div class="bud-riga" style="margin-top:8px;font-size:12px;"><a href="#" onclick="fiscAzione('addInv');return false;" style="color:var(--accent);">+ riga</a>${raw.years[fa - 1] && (raw.years[fa - 1].fatture || []).length ? ` · <a href="#" onclick="fiscAzione('copyInv');return false;" style="color:var(--accent);">copia le fatture del ${fa - 1}</a>` : ''}</div>`;
+  }
+  if(c && c.hasData) h += `<p class="fisc-hint">Compensi ${fmt(c.compensi)} · bolli ${fmt(c.bollo)} · integrativo incassato ${fmt(c.cassaIncassata)} · ricavi ${fmt(c.ricavi)} · reddito ${fmt(c.reddito)}</p>`;
+  const campo = (k, label, hint, ph) => `<label class="fisc-campo"><span>${label}</span>${_fIn('y', k, fa, rr ? rr[k] : null, 110, ph)}<small>${hint}</small></label>`;
+  h += `<div class="fisc-campi">
+    ${campo('ricaviExtra', 'Altri compensi', 'Senza cassa né bollo, si sommano.', '0')}
+    ${campo('nBolli', 'Fatture con bollo', 'Vuoto: dalle fatture.', c && c.nBolli != null && !c.bolliOverride ? String(c.nBolli) : '')}
+    ${campo('imposta', 'Imposta da dichiarazione', 'Vuoto: usa il calcolo.', c && c.hasData ? _numIn(c.impostaCalc) : 'calcolata')}
+    ${campo('acconti', "Acconti versati nell'anno", 'Totale delle due rate.', c && c.acconti != null && !c.accontiOverride ? _numIn(c.acconti) : '')}
+    ${campo('contribDed', 'Contributi deducibili versati', 'Soggettivo e maternità.', c ? _numIn(c.autoDed) : '')}
+    ${campo('sogPct', 'Aliquota soggettivo %', 'Scelta a dicembre dell\'anno dopo.', fmtNum(st.sogPct, 0))}
+    <label class="fisc-campo" style="flex:2 1 260px;"><span>Note</span><input class="bud-in" style="width:100%;" value="${_esc(rr ? rr.note || '' : '')}" onchange="fiscSet('y','note',${fa},this)"><small>&nbsp;</small></label>
+  </div>`;
+  if(rr) h += `<div style="margin-top:10px;"><a href="#" onclick="fiscAzione('delAnno');return false;" style="color:var(--danger);font-size:12px;">Elimina i dati inseriti per il ${fa}</a></div>`;
+  h += `</div>`;
+
+  // ── simulatore aliquota soggettivo
+  h += _fApribile('sim', 'Simulatore aliquota soggettivo', 'Quanto costa davvero alzare l\'aliquota, al netto della minore imposta.', () => {
+    const ys = anni.filter(y => { const cc = Fisco.compute(y); return cc && cc.hasData; });
+    if(!ys.length) return `<div style="font-size:13px;color:var(--text-faint);">Servono i ricavi di almeno un anno.</div>`;
+    if(fiscUi.simYear == null || !ys.includes(fiscUi.simYear)) fiscUi.simYear = ys.includes(anno - 1) ? anno - 1 : ys[ys.length - 1];
+    const cs = Fisco.compute(fiscUi.simYear);
+    if(fiscUi.simPct == null) fiscUi.simPct = cs.pct;
+    const rs = Fisco.simCalc(cs, fiscUi.simPct), Yd = fiscUi.simYear + 1;
+    let out = `<div class="bud-riga" style="font-size:13px;">Reddito <select class="bud-in" onchange="fiscSet('simYear','','',this)">${ys.map(y => `<option value="${y}"${y === fiscUi.simYear ? ' selected' : ''}>${y}</option>`).join('')}</select>
+      aliquota ${_fIn('simPct','','',fiscUi.simPct,60)} %
+      <input type="range" min="12" max="50" step="1" value="${Math.min(50, fiscUi.simPct)}" oninput="this.previousElementSibling.value=this.value" onchange="fiscSet('simPct','','',this)" style="flex:1 1 140px;">
+      <button class="btn${fiscUi.simPct === cs.pct ? '' : ' btn-primary'}" style="font-size:12px;padding:5px 10px;" onclick="fiscAzione('simApply')"${fiscUi.simPct === cs.pct ? ' disabled' : ''}>${fiscUi.simPct === cs.pct ? 'Aliquota già in uso' : `Usa ${fmtNum(fiscUi.simPct, fiscUi.simPct % 1 ? 1 : 0)}% per il reddito ${fiscUi.simYear}`}</button></div>`;
+    out += `<div class="metric-grid" style="margin:12px 0;">
+      <div class="metric"><div class="metric-label">A dicembre ${Yd}</div><div class="metric-value">${fmt(rs.totDic)}</div><div class="metric-sub">soggettivo ${fmt(rs.dic)} + integrativo ${fmt(rs.intDic)}</div></div>
+      <div class="metric"><div class="metric-label">Soggettivo totale</div><div class="metric-value">${fmt(rs.sogDue)}</div><div class="metric-sub">${rs.belowMin ? 'resta al minimo di ' + fmt(cs.p.minSog) : 'sul reddito ' + fiscUi.simYear}</div></div>
+      <div class="metric"><div class="metric-label">Minore imposta</div><div class="metric-value">${fmt(-rs.risparmio)}</div><div class="metric-sub">aliquota ${fmtNum(st.aliquota, 0)}%</div></div>
+      <div class="metric"><div class="metric-label">Costo netto</div><div class="metric-value">${fmt(rs.netto)}</div></div></div>`;
+    const rates = [12,15,18,20,22,25,30,cs.pct,fiscUi.simPct].filter((x, i, a) => x >= 12 && x <= 100 && a.indexOf(x) === i).sort((p, q) => p - q);
+    out += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Aliquota</th><th>Soggettivo</th><th>A dicembre ${Yd}</th><th>Minore imposta</th><th>Costo netto</th></tr></thead><tbody>`;
+    rates.forEach(x => { const k = Fisco.simCalc(cs, x);
+      out += `<tr style="cursor:pointer;${x === fiscUi.simPct ? 'font-weight:600;' : ''}" onclick="fiscAzione('simPick',${x})"><td>${fmtNum(x, x % 1 ? 1 : 0)}%${x === cs.pct ? ' <small style="color:var(--text-faint);">in uso</small>' : ''}</td><td class="num">${fmt(k.sogDue)}</td><td class="num">${fmt(k.dic)}</td><td class="num">${fmt(-k.risparmio)}</td><td class="num">${fmt(k.netto)}</td></tr>`; });
+    out += `</tbody></table></div><p class="fisc-hint">Il versamento di dicembre ${Yd} è deducibile nel ${Yd}: il risparmio arriva con il saldo di giugno ${Yd + 1} e con acconti ${Yd + 1} più bassi.${Fisco.conMinimi(Yd) ? ` A dicembre si versa la parte che supera il minimo ${Yd} (${fmt(cs.p.minSog)}), già pagato a maggio e ottobre.` : ''}</p>`;
+    return out;
+  });
+
+  // ── parametri e minimi
+  h += _fApribile('par', 'Parametri e minimi Cassa', 'Coefficiente, aliquote, rate e minimi deliberati dalla Cassa.', () => {
+    const num = (k, label, hint) => `<label class="fisc-campo"><span>${label}</span>${_fIn('s', k, '', st[k], 100)}<small>${hint || '&nbsp;'}</small></label>`;
+    const sel = (k, label, opts, hint) => `<label class="fisc-campo"><span>${label}</span><select class="bud-in" onchange="fiscSet('s','${k}','',this)">${opts.map(o => `<option value="${o[0]}"${String(raw.settings[k]) === String(o[0]) ? ' selected' : ''}>${o[1]}</option>`).join('')}</select><small>${hint || '&nbsp;'}</small></label>`;
+    let out = `<div class="fisc-campi">`;
+    out += num('coeff', 'Coefficiente di redditività %', 'Attività professionali: 78%.');
+    out += num('aliquota', 'Aliquota imposta sostitutiva %', '15%, oppure 5% nei primi cinque anni.');
+    out += num('sogPct', 'Aliquota soggettivo predefinita %', 'Minima 12%, si sceglie anno per anno.');
+    out += num('intPct', 'Contributo integrativo %', '');
+    out += num('rival', 'Rivalutazione stimata dei minimi %', 'Per gli anni senza minimi deliberati.');
+    out += num('bollo', 'Bollo per fattura €', 'Dovuto sopra 77,47 €.');
+    out += num('annoMinimi', 'Primo anno con minimi Cassa', 'Vuoto: nessun minimo.');
+    out += sel('metodoAcconti', 'Acconti imposta', [['storico','Metodo storico'],['previsionale','Metodo previsionale']], 'Il previsionale usa i ricavi dell\'anno.');
+    out += sel('rateMinimi', 'Minimi Cassa', [[1,'Rata unica al 31 maggio'],[2,'Due rate, 31 maggio e 31 ottobre']], '');
+    out += sel('rateEcc', 'Eccedenze di dicembre', [[1,'Rata unica al 20 dicembre'],[2,'2 rate'],[3,'3 rate'],[4,'4 rate']], 'Rateizzabili da 1.000 €, con interessi.');
+    out += sel('meseExtra', 'Mese delle fatture in più', MESI_LUNGHI.map((n, i) => [i + 1, n]), 'Per i bolli degli anni inseriti a mano.');
+    out += `</div><label style="display:block;margin-top:10px;font-size:13px;"><input type="checkbox"${st.bolloInRicavi ? ' checked' : ''} onchange="fiscSet('s','bolloInRicavi','',this)"> Il bollo addebitato al cliente concorre ai ricavi</label>
+      <label style="display:block;margin-top:4px;font-size:13px;"><input type="checkbox"${st.intDeducibile ? ' checked' : ''} onchange="fiscSet('s','intDeducibile','',this)"> Deduci anche il contributo integrativo versato</label>`;
+    const cy = Object.keys(raw.cdc).map(Number).sort((p, q) => p - q);
+    out += `<div style="font-weight:600;font-size:13px;margin:16px 0 6px;">Minimi Cassa deliberati</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Anno</th><th>Minimo soggettivo</th><th>Minimo integrativo</th><th>Maternità</th><th>Limite reddituale</th><th></th></tr></thead><tbody>`;
+    cy.forEach(y => { const cc = raw.cdc[y];
+      out += `<tr><td>${y}</td><td>${_fIn('cdc','minSog',y,cc.minSog,90)}</td><td>${_fIn('cdc','minInt',y,cc.minInt,90)}</td><td>${_fIn('cdc','mat',y,cc.mat,80,'da deliberare')}</td><td>${_fIn('cdc','lim',y,cc.lim,100)}</td><td><a href="#" onclick="fiscAzione('delCdc',${y});return false;" style="color:var(--text-faint);">✕</a></td></tr>`; });
+    out += `</tbody></table></div><div class="bud-riga" style="margin-top:8px;font-size:12px;"><a href="#" onclick="fiscAzione('addCdc');return false;" style="color:var(--accent);">+ anno ${cy.length ? cy[cy.length - 1] + 1 : new Date().getFullYear()}</a></div>
+      <p class="fisc-hint">I minimi dell'anno si versano a maggio e ottobre; le eccedenze sul reddito dell'anno prima e la maternità il 20 dicembre.</p>`;
+    return out;
+  });
+  return h;
+}
+
 
 // ─── Unione dati locali ↔ Drive (fase 2a) ────────────────────────
 // Transazioni: unione per chiave (data, importo, tipo, descrizione, conto);
