@@ -446,6 +446,17 @@ canvas, img, svg { max-width: 100%; }
 .fisc-campo small { color:var(--text-faint); font-size:11px; }
 .fisc-tab tr.fisc-fuori td { color:var(--text-faint); }
 .bud-voce-fisc { font-size:12.5px; color:var(--text-muted); display:flex; flex-direction:column; gap:3px; }
+/* ── Margine (fase 3) ── */
+.marg-hero { border-left:4px solid var(--accent); }
+.marg-hero.neg { border-left-color:var(--danger); }
+.marg-lab { font-size:14px; color:var(--text-muted); }
+.marg-val { font-size:40px; font-weight:600; line-height:1.1; margin:6px 0 8px; color:var(--accent); font-variant-numeric:tabular-nums; letter-spacing:-0.01em; }
+.marg-hero.neg .marg-val { color:var(--danger); }
+.marg-sub { font-size:13px; color:var(--text-muted); line-height:1.5; max-width:62ch; }
+.marg-conto td:first-child { white-space:normal; }
+.marg-due { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:0 1rem; }
+.bud-table tr.marg-oggi td { background:var(--accent-light); }
+@media (max-width: 768px) { .marg-val { font-size:32px; } }
 </style>
 </head>
 <body>
@@ -1567,11 +1578,11 @@ function renderDaClassificare() {
 const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 const BUD_TABS = [
-  ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
+  ['margine','Margine'], ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
   ['entrate','Entrate'], ['certe','Spese certe'], ['ricorrenti','Ricorrenti'],
   ['stime','Variabili'], ['fondi','Salute e regali']
 ];
-let budUi = { tab: 'riepilogo', anno: null, periodo: 'prog' };
+let budUi = { tab: 'margine', anno: null, periodo: 'prog' };
 
 function _z12() { return [0,0,0,0,0,0,0,0,0,0,0,0]; }
 function _r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
@@ -1934,6 +1945,198 @@ function _badgeStato(s) {
   const [t, c] = map[s] || map.arrivo; return `<span style="color:${c};white-space:nowrap;">${t}</span>`;
 }
 
+// ═════════════════════════════════════════════════════════════════
+// MOTORE DEL MARGINE  (fase 3 — margine mensile in tempo reale)
+// ─────────────────────────────────────────────────────────────────
+// Dati:  state.budget.margine = { tetto, progetti }
+//        tetto    → massimo riportabile al mese dopo (null = nessun tetto)
+//        progetti → [{id, nome, quota, da:'YYYY-MM', a:'YYYY-MM'|null}]
+//                   (quote mensili per progetti e grosse spese: fase 5)
+// Regole concordate:
+//  1. entrate: solo quelle effettive (incassate) del mese
+//  2. avanzo oltre il tetto → risparmio accumulato
+//  3. sforamento → riportato per intero come margine negativo
+//  4. spese "Da classificare" → contano subito come extra
+// Margine del mese = entrate incassate − quote dei fondi (spese certe,
+//   imposte, salute, regali) − spese ricorrenti e variabili (effettuate
+//   + programmate non ancora uscite) − quote progetti − extra effettuati.
+// I pagamenti delle voci con fondo escono dal fondo, non dal margine.
+// Gli Investimenti non abbinati a una voce non sono extra (spostano
+// risparmio, non lo consumano).
+// Le funzioni di calcolo non modificano lo stato.
+// ═════════════════════════════════════════════════════════════════
+const MARG_NON_EXTRA = ['Investimenti'];
+
+function margCfg() {
+  const m = (state.budget && state.budget.margine) || {};
+  return { tetto: (m.tetto === null || m.tetto === undefined || m.tetto === '') ? null : +m.tetto, progetti: Array.isArray(m.progetti) ? m.progetti : [] };
+}
+function _mk(anno, m) { return anno + '-' + String(m + 1).padStart(2, '0'); }
+function margQuoteProgetti(anno, m) {
+  const k = _mk(anno, m); let t = 0;
+  margCfg().progetti.forEach(p => { if(p.da && k >= p.da && (!p.a || k <= p.a)) t += (_num(p.quota) || 0); });
+  return t;
+}
+
+// Movimenti reali di un anno letti per il margine
+function margRealeAnno(anno, C) {
+  const R = budRealeVoci(anno);
+  const inBudget = new Set(C.voci.map(r => r.voce.id));
+  const entrate = _z12(), extra = {};
+  const addX = (c, m, v) => { (extra[c] = extra[c] || _z12())[m] += v; };
+  Object.entries(R.voci).forEach(([id, arr]) => {
+    const v = vocePerId(id); if(!v) return;
+    if(v.gruppo === 'entrate') { for(let m = 0; m < 12; m++) entrate[m] += arr[m]; }
+    else if(!inBudget.has(id)) { for(let m = 0; m < 12; m++) if(arr[m]) addX(v.categoria || 'Da classificare', m, arr[m]); }
+  });
+  Object.entries(R.fuori).forEach(([c, arr]) => {
+    if(MARG_NON_EXTRA.includes(c)) return;
+    for(let m = 0; m < 12; m++) if(arr[m]) addX(c, m, arr[m]);
+  });
+  // Entrate senza voce (categoria Entrate): anche queste sono soldi incassati
+  const prefisso = String(anno) + '-';
+  state.transactions.forEach(t => {
+    if(t.esclusa || t.categoria !== 'Entrate') return;
+    const ds = String(t.data || ''); if(!ds.startsWith(prefisso)) return;
+    const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{voce: t.voce}] : []);
+    if(parti.some(p => vocePerId(p.voce))) return;
+    const m = parseInt(ds.substring(5, 7), 10) - 1; if(!(m >= 0 && m < 12)) return;
+    entrate[m] += (t.tipo === 'entrata' ? 1 : -1) * (+t.importo || 0);
+  });
+  return { R, entrate, extra };
+}
+
+// Calcolo completo: tutti gli anni di budget in sequenza, con riporto e risparmio
+function margCalcola() {
+  const anni = budAnni(); if(!anni.length) return null;
+  const cfg = margCfg(), tetto = cfg.tetto;
+  const mesi = []; let riporto = 0, risparmio = 0, corrente = null;
+  anni.forEach(anno => {
+    const C = budCalcAnno(anno); if(!C) return;
+    const o = budOggi(anno), X = margRealeAnno(anno, C);
+    const vociSpesa = C.voci.filter(r => r.voce.gruppo === 'ricorrenti' || r.voce.gruppo === 'stime');
+    for(let m = C.S; m < 12; m++) {
+      const stato = m < o.corrente ? 'chiuso' : m === o.corrente ? 'corso' : 'futuro';
+      const progetti = margQuoteProgetti(anno, m);
+      const r = { anno, m, stato, progetti, fondi: C.tot.accant[m] };
+      if(stato === 'futuro') {
+        r.entr = C.tot.entrate[m]; r.eff = 0; r.prog = C.tot.ricorrenti[m] + C.tot.stime[m]; r.extra = 0;
+        r.marg = C.tot.margine[m] - progetti;
+        mesi.push(r); continue;
+      }
+      r.entr = X.entrate[m];
+      r.eff = 0; r.prog = 0; r.dettVoci = [];
+      vociSpesa.forEach(v => {
+        const re = (X.R.voci[v.voce.id] || _z12())[m], pr = v.prev[m];
+        const pend = stato === 'corso' ? Math.max(0, pr - re) : 0;
+        r.eff += re; r.prog += pend;
+        if(Math.abs(re) > 0.005 || pend > 0.005) r.dettVoci.push({ voce: v.voce, reale: re, previsto: pr, pend });
+      });
+      r.extraCat = Object.entries(X.extra).map(([c, a]) => [c, a[m]]).filter(x => Math.abs(x[1]) > 0.005).sort((a, b) => b[1] - a[1]);
+      r.extra = _sum(r.extraCat.map(x => x[1]));
+      r.marg = r.entr - r.fondi - r.eff - r.prog - progetti - r.extra;
+      r.rin = riporto;
+      r.disp = r.marg + riporto;
+      if(stato === 'chiuso') {
+        if(r.disp >= 0) { r.rout = tetto == null ? r.disp : Math.min(r.disp, tetto); r.aRisp = r.disp - r.rout; }
+        else { r.rout = r.disp; r.aRisp = 0; }
+        risparmio += r.aRisp; riporto = r.rout;
+      } else corrente = r;
+      r.risp = risparmio;
+      mesi.push(r);
+    }
+  });
+  // quanto è già stato accantonato per i progetti fino al mese corrente
+  let accProgetti = 0;
+  mesi.forEach(r => { if(r.stato !== 'futuro') accProgetti += r.progetti; });
+  return { mesi, corrente, risparmio, riporto, tetto, accProgetti, nProgetti: cfg.progetti.length };
+}
+
+function margSetTetto(raw) {
+  if(!state.budget) return;
+  const v = _num(raw);
+  const m = state.budget.margine = (state.budget.margine && typeof state.budget.margine === 'object') ? state.budget.margine : {};
+  if(!Array.isArray(m.progetti)) m.progetti = [];
+  m.tetto = v == null ? null : Math.max(0, v);
+  budTocca(); renderBudget();
+}
+
+function budViewMargine() {
+  const M = margCalcola();
+  if(!M) return '';
+  const c = M.corrente, d = new Date();
+  let h = '';
+  if(c) {
+    const giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1;
+    const neg = c.disp < 0;
+    const mesePrec = c.m > 0 ? MESI_LUNGHI[c.m - 1] : 'dicembre';
+    h += `<div class="card marg-hero${neg ? ' neg' : ''}">
+      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
+      <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
+      <div class="marg-sub">${neg
+        ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]} e ne riduce il margine.`
+        : `Circa ${fmt(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}.`}
+        ${Math.abs(c.rin) > 0.5 ? ` Comprende ${c.rin > 0 ? 'l’avanzo' : 'lo sforamento'} di ${mesePrec}: ${c.rin > 0 ? '+' : '−'}${fmt(Math.abs(c.rin))}.` : ''}</div>
+    </div>`;
+    // Come si arriva alla cifra
+    const riga = (lab, v, segno, nota) => `<tr><td>${lab}${nota ? ` <small style="color:var(--text-faint);">${nota}</small>` : ''}</td><td class="num">${segno}${fmt(Math.abs(v))}</td></tr>`;
+    h += `<div class="card"><div class="card-title">Come si arriva a questa cifra</div><div class="bud-scroll"><table class="bud-table marg-conto"><tbody>`;
+    h += riga('Entrate incassate', c.entr, '+ ', 'solo quelle già arrivate');
+    h += riga('Quote dei fondi', c.fondi, '− ', 'spese certe, imposte e Cassa, salute, regali');
+    h += riga('Spese a budget effettuate', c.eff, '− ', 'ricorrenti e variabili');
+    h += riga('Spese a budget programmate', c.prog, '− ', 'previste e non ancora uscite');
+    if(c.progetti > 0.005) h += riga('Quote progetti', c.progetti, '− ');
+    h += riga('Extra effettuati', c.extra, '− ', 'spese fuori budget');
+    h += `<tr class="sub"><td>= Margine del mese</td><td class="num">${c.marg < 0 ? '−' : ''}${fmt(Math.abs(c.marg))}</td></tr>`;
+    if(Math.abs(c.rin) > 0.005) h += riga(c.rin > 0 ? 'Avanzo riportato' : 'Sforamento riportato', c.rin, c.rin > 0 ? '+ ' : '− ', `da ${mesePrec}`);
+    h += `<tr class="tot"><td>Disponibile per gli extra</td><td class="num" style="color:${c.disp < 0 ? 'var(--danger)' : 'var(--accent)'};">${c.disp < 0 ? '−' : ''}${fmt(Math.abs(c.disp))}</td></tr>`;
+    h += `</tbody></table></div></div>`;
+    // Avvisi su movimenti che pesano sugli extra ma forse non dovrebbero
+    const dc = c.extraCat.find(x => x[0] === 'Da classificare');
+    const tc = c.extraCat.find(x => x[0] === 'Tasse/Contributi');
+    if(dc && dc[1] > 0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">📌 ${fmt(dc[1])} di spese da classificare contano già come extra (di solito sono contanti). Classificale: se rientrano in una voce di budget il margine si ricalcola da solo. <a href="#" onclick="apriTransazioniCat('Da classificare');return false;" style="color:var(--accent);">Mostra</a></div>`;
+    if(tc && tc[1] > 0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">🏛 ${fmt(tc[1])} in Tasse/Contributi non sono abbinati a una voce e pesano sugli extra. Se sono imposte o Cassa, abbinali alla voce fiscale: escono dal fondo e non dal margine. <a href="#" onclick="apriTransazioniCat('Tasse/Contributi');return false;" style="color:var(--accent);">Mostra</a></div>`;
+    // Dettagli: programmate ed extra
+    const pend = c.dettVoci.filter(x => x.pend > 0.5).sort((a, b) => b.pend - a.pend);
+    h += `<div class="marg-due">`;
+    h += `<div class="card"><div class="card-title">Ancora da uscire a ${MESI_LUNGHI[c.m]}</div>`;
+    h += pend.length ? `<table class="bud-table"><tbody>${pend.map(x => `<tr><td>${_esc(x.voce.nome)}${x.reale > 0.5 ? ` <small style="color:var(--text-faint);">già ${_eur0(x.reale)} di ${_eur0(x.previsto)}</small>` : ''}</td><td class="num">${fmt(x.pend)}</td></tr>`).join('')}</tbody></table>`
+      : `<div style="font-size:13px;color:var(--text-faint);">Tutte le spese a budget del mese sono già uscite.</div>`;
+    h += `</div><div class="card"><div class="card-title">Extra del mese</div>`;
+    h += c.extraCat.length ? `<table class="bud-table"><tbody>${c.extraCat.map(([cat, v]) => `<tr><td>${catEmoji(cat)} ${_esc(cat)}</td><td class="num">${v < 0 ? '−' : ''}${fmt(Math.abs(v))}</td></tr>`).join('')}</tbody></table>`
+      : `<div style="font-size:13px;color:var(--text-faint);">Nessuna spesa extra finora.</div>`;
+    h += `</div></div>`;
+    // Spese a budget oltre il previsto: riducono il margine
+    const sfori = c.dettVoci.filter(x => x.reale - x.previsto > 20).sort((a, b) => (b.reale - b.previsto) - (a.reale - a.previsto));
+    if(sfori.length) h += `<div class="fisc-nota" style="margin:0 0 1rem;">Oltre il previsto, e quindi a carico del margine: ${sfori.map(x => `${_esc(x.voce.nome)} +${_eur0(x.reale - x.previsto)} €`).join(', ')}.</div>`;
+  } else {
+    h += `<div class="card"><div class="empty"><div class="empty-title">Nessun mese in corso nel budget</div><div class="empty-sub">Il margine in tempo reale si calcola per il mese corrente: crea il budget dell'anno per vederlo.</div></div></div>`;
+  }
+  // Riporto, tetto e risparmio
+  h += `<div class="metric-grid">
+    <div class="metric"><div class="metric-label">Risparmio accumulato</div><div class="metric-value">${fmt(M.risparmio)}</div><div class="metric-sub">avanzi oltre il tetto dei mesi chiusi</div></div>
+    ${M.nProgetti ? `<div class="metric"><div class="metric-label">Di cui accantonato per progetti</div><div class="metric-value">${fmt(M.accProgetti)}</div><div class="metric-sub">risparmio libero ${fmt(M.risparmio - M.accProgetti)}</div></div>` : ''}
+    <div class="metric"><div class="metric-label">Tetto al riporto</div><div class="metric-value" style="font-size:18px;"><input class="bud-in" style="width:110px;text-align:right;font-size:16px;" inputmode="decimal" placeholder="nessuno" value="${_numIn(M.tetto)}" onchange="margSetTetto(this.value)" /> €</div><div class="metric-sub">${M.tetto == null ? 'senza tetto tutto l’avanzo passa al mese dopo' : 'l’avanzo oltre il tetto va nel risparmio'}</div></div>
+  </div>`;
+  // Tabella mese per mese
+  const vis = M.mesi;
+  h += `<div class="card"><div class="card-title">Mese per mese</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th>Margine</th><th>+ Riporto</th><th>= Disponibile</th><th>Speso extra</th><th>Al mese dopo</th><th>A risparmio</th><th>Risparmio</th></tr></thead><tbody>`;
+  const nz = (v, forza) => (Math.abs(v) < 0.5 && !forza) ? '—' : _eur0(v);
+  const col = v => v < -0.5 ? 'var(--danger)' : 'inherit';
+  vis.forEach(r => {
+    const lab = `${MESI_BREVI[r.m]} ${r.anno}`;
+    if(r.stato === 'futuro') {
+      h += `<tr class="sub"><td>${lab} <small>previsto</small></td><td class="num">${_eur0(r.marg)}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+    } else {
+      const corso = r.stato === 'corso';
+      h += `<tr${corso ? ' class="marg-oggi"' : ''}><td>${lab}${corso ? ' <small>in corso</small>' : ''}</td><td class="num" style="color:${col(r.marg)};">${_eur0(r.marg)}</td><td class="num" style="color:${col(r.rin)};">${nz(r.rin)}</td><td class="num" style="color:${col(r.disp)};"><strong>${_eur0(r.disp)}</strong></td><td class="num">${nz(r.extra)}</td><td class="num" style="color:${col(r.rout || 0)};">${corso ? '' : nz(r.rout)}</td><td class="num">${corso ? '' : nz(r.aRisp)}</td><td class="num">${corso ? '' : _eur0(r.risp)}</td></tr>`;
+    }
+  });
+  h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.5;">Il margine usa le entrate effettivamente incassate: finché stipendio o fatture non arrivano, il disponibile resta prudente. «Disponibile» è già al netto degli extra spesi. A fine mese l’avanzo passa al mese dopo fino al tetto e il resto va nel risparmio; uno sforamento passa per intero. Per i mesi futuri è indicato il margine previsto dal budget, prima degli extra. Gli investimenti non abbinati a una voce non contano come extra.</p></div>`;
+  return h;
+}
+
+
 function renderBudget() {
   const el = document.getElementById('bud-content'); if(!el) return;
   try { if(fiscMigra()) budTocca(); } catch(e) { console.warn(e); }
@@ -1954,6 +2157,7 @@ function renderBudget() {
   let body = '';
   try {
     switch(budUi.tab) {
+      case 'margine': body = budViewMargine(); break;
       case 'riepilogo': body = budViewRiepilogo(anno); break;
       case 'consuntivo': body = budViewConsuntivo(anno); break;
       case 'scadenze': body = budViewScadenze(anno); break;
