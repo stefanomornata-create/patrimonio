@@ -457,6 +457,32 @@ canvas, img, svg { max-width: 100%; }
 .marg-due { display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:0 1rem; }
 .bud-table tr.marg-oggi td { background:var(--accent-light); }
 @media (max-width: 768px) { .marg-val { font-size:32px; } }
+/* ── Cruscotto (fase 4) ── */
+@media (min-width: 769px) { .main { flex:1 1 auto; } }
+.cr-click { cursor:pointer; }
+.cr-click:hover { box-shadow:0 0 0 1px var(--accent); }
+.cr-link { color:var(--accent); text-decoration:underline; white-space:nowrap; }
+.cr-verdetto.ok { border-left:4px solid var(--accent); }
+.cr-verdetto.ko { border-left:4px solid var(--danger); }
+.cr-verdetto-frase { font-size:15px; line-height:1.5; }
+.cr-todo-riga { display:flex; justify-content:space-between; align-items:center; gap:12px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
+.cr-todo-riga:last-child { border-bottom:none; }
+.cr-and { display:flex; flex-direction:column; gap:12px; }
+.cr-and-top { display:flex; justify-content:space-between; gap:10px; font-size:13px; margin-bottom:4px; font-variant-numeric:tabular-nums; }
+.cr-and-top small { color:var(--text-faint); }
+.cr-bar { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
+.cr-bar i { display:block; height:100%; border-radius:3px; }
+/* ── Andamento annuale (Spese) ── */
+.and-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.and-nav { display:flex; align-items:center; gap:10px; font-size:15px; }
+.and-nav .btn { padding:4px 12px; font-size:16px; line-height:1; }
+.and-nav .btn:disabled { opacity:.35; cursor:default; }
+.and-leg { display:flex; flex-wrap:wrap; gap:6px 16px; font-size:12px; color:var(--text-muted); margin-bottom:10px; }
+.and-leg i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px; }
+.and-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; scroll-behavior:auto; }
+.and-inner { position:relative; height:240px; min-width:640px; }
+.and-hint { display:none; font-size:11px; color:var(--text-faint); margin-top:6px; text-align:center; }
+@media (max-width: 768px) { .and-hint { display:block; } .and-inner { min-width:720px; } }
 </style>
 </head>
 <body>
@@ -510,43 +536,9 @@ canvas, img, svg { max-width: 100%; }
 <!-- PANORAMICA -->
 <div class="section active" id="sec-panoramica">
   <h1 class="page-title">Panoramica</h1>
-  <p class="page-sub" id="last-update-label">Patrimonio aggiornato al <span id="last-update-date">—</span></p>
+  <p class="page-sub" id="last-update-label">Situazione al <span id="last-update-date">—</span></p>
   <p class="page-sub" id="periodo-label" style="margin-top:-1rem;font-size:12px;color:var(--text-faint);">—</p>
-  <div class="metric-grid">
-    <div class="metric accent">
-      <div class="metric-label">Fondi liquidi totali</div>
-      <div class="metric-value" id="m-totale">€ 0,00</div>
-      <div class="metric-sub" id="m-conti-n">0 conti collegati</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Spese totali</div>
-      <div class="metric-value" id="m-spese-mese">€ 0,00</div>
-      <div class="metric-sub" id="m-spese-tx">0 transazioni</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Entrate totali</div>
-      <div class="metric-value" id="m-entrate-mese">€ 0,00</div>
-      <div class="metric-sub" id="m-entrate-tx">0 transazioni</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Saldo netto complessivo</div>
-      <div class="metric-value" id="m-netto">€ 0,00</div>
-      <div class="metric-sub" id="m-netto-sub">entrate − spese</div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Spese per categoria</div>
-    <div style="position:relative;height:220px;"><canvas id="chart-pie-cat" role="img" aria-label="Spese per categoria"></canvas></div>
-    <div id="legend-cat" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:#6b6b67;"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Andamento mensile (ultimi 6 mesi)</div>
-    <div style="position:relative;height:200px;"><canvas id="chart-mensile" role="img" aria-label="Andamento mensile spese e entrate"></canvas></div>
-  </div>
-  <div class="card" id="card-pct" style="display:none;">
-    <div class="card-title">🤝 Per conto terzi — crediti pendenti</div>
-    <div id="pct-content"></div>
-  </div>
+  <div id="cruscotto"></div>
 </div>
 
 
@@ -599,6 +591,19 @@ canvas, img, svg { max-width: 100%; }
       <div style="position:relative;height:220px;"><canvas id="chart-cat-doughnut" role="img" aria-label="Distribuzione spese per categoria"></canvas></div>
       <div id="legend-cat2" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px;color:#6b6b67;"></div>
     </div>
+  </div>
+  <div class="card">
+    <div class="and-head">
+      <div class="card-title" style="margin:0;">Andamento mensile</div>
+      <div class="and-nav"><button class="btn" id="and-prev" onclick="andSposta(-1)" aria-label="Anno precedente">‹</button><strong id="and-anno">—</strong><button class="btn" id="and-next" onclick="andSposta(1)" aria-label="Anno successivo">›</button></div>
+    </div>
+    <div class="and-leg"><span><i style="background:#2c5f2e;"></i>Entrate</span><span><i style="background:#cb4335;"></i>Uscite</span><span id="and-tot"></span></div>
+    <div class="and-scroll" id="and-scroll"><div class="and-inner"><canvas id="chart-mensile" role="img" aria-label="Andamento mensile di entrate e uscite nell'anno"></canvas></div></div>
+    <div class="and-hint">Scorri il grafico per vedere tutti i mesi</div>
+  </div>
+  <div class="card" id="card-pct" style="display:none;">
+    <div class="card-title">🤝 Per conto terzi — crediti pendenti</div>
+    <div id="pct-content"></div>
   </div>
 </div>
 
@@ -1107,6 +1112,7 @@ function renderPCT() {
 function renderAll() {
   if(migraCategorie()) save();
   renderMetrics();
+  renderCruscotto();
   renderPCT();
   renderBankList();
   renderGdriveStatus();
@@ -1120,10 +1126,11 @@ function renderAll() {
 }
 
 // ─── Metrics ─────────────────────────────────────────────────────
+function _setTxt(id, v) { const e = document.getElementById(id); if(e) e.textContent = v; }
 function renderMetrics() {
   const total = state.accounts.reduce((s,a) => s+(a.saldo||0), 0);
-  document.getElementById('m-totale').textContent = fmt(total);
-  document.getElementById('m-conti-n').textContent = state.accounts.length + ' conti collegati';
+  _setTxt('m-totale', fmt(total));
+  _setTxt('m-conti-n', state.accounts.length + ' conti collegati');
 
   // Solo transazioni non escluse e non giroconti
   const attive = state.transactions.filter(t => !t.esclusa && t.categoria !== 'Giroconto' && t.categoria !== 'Per conto terzi');
@@ -1137,20 +1144,19 @@ function renderMetrics() {
   const txRimborsi = attive.filter(t => isRimborso(t, agg.catSpese));
   const txEntrate = attive.filter(t => t.tipo === 'entrata' && !isRimborso(t, agg.catSpese));
 
-  document.getElementById('m-spese-mese').textContent = fmt(uscite);
-  document.getElementById('m-spese-tx').textContent =
-    txUscite.length + ' uscite'
+  _setTxt('m-spese-mese', fmt(uscite));
+  _setTxt('m-spese-tx', txUscite.length + ' uscite'
     + (txRimborsi.length ? ` − ${txRimborsi.length} rimborsi` : '')
-    + (escluse.length ? ` (${escluse.length} esclusa${escluse.length>1?'e':''})` : '');
-  document.getElementById('m-entrate-mese').textContent = fmt(entrate);
+    + (escluse.length ? ` (${escluse.length} esclusa${escluse.length>1?'e':''})` : ''));
+  _setTxt('m-entrate-mese', fmt(entrate));
   const elEntrateTx = document.getElementById('m-entrate-tx');
   if(elEntrateTx) elEntrateTx.textContent = txEntrate.length + ' transazioni'
     + (txRimborsi.length ? ' (rimborsi esclusi)' : '');
   const netto = entrate - uscite;
-  document.getElementById('m-netto').textContent = fmt(netto);
-  document.getElementById('m-netto-sub').textContent = netto >= 0 ? '✓ In attivo' : '⚠ In passivo';
+  _setTxt('m-netto', fmt(netto));
+  _setTxt('m-netto-sub', netto >= 0 ? '✓ In attivo' : '⚠ In passivo');
   const d = new Date();
-  document.getElementById('last-update-date').textContent = d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  _setTxt('last-update-date', d.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}));
 
   // Periodo coperto dai dati
   const elPeriodo = document.getElementById('periodo-label');
@@ -1163,14 +1169,14 @@ function renderMetrics() {
 
   // Spese sezione — al netto dei rimborsi
   const totU = agg.spese;
-  document.getElementById('sp-tot').textContent = fmt(totU);
-  document.getElementById('sp-num').textContent = txUscite.length;
-  document.getElementById('sp-avg').textContent = txUscite.length ? fmt(totU/txUscite.length) : '€ 0,00';
+  _setTxt('sp-tot', fmt(totU));
+  _setTxt('sp-num', txUscite.length);
+  _setTxt('sp-avg', txUscite.length ? fmt(totU/txUscite.length) : '€ 0,00');
 
   // Stats impostazioni
-  document.getElementById('stat-conti').textContent = state.accounts.length;
-  document.getElementById('stat-tx').textContent = state.transactions.length + (escluse.length ? ` (${escluse.length} escluse)` : '');
-  document.getElementById('stat-files').textContent = state.files.length;
+  _setTxt('stat-conti', state.accounts.length);
+  _setTxt('stat-tx', state.transactions.length + (escluse.length ? ` (${escluse.length} escluse)` : ''));
+  _setTxt('stat-files') == state.files.length;
 }
 
 // ─── Bank list ───────────────────────────────────────────────────
@@ -1792,7 +1798,14 @@ function budCalcVoce(anno, voceId) {
   }
   return r;
 }
+let _budCalcCache = { k: null, v: {} };
 function budCalcAnno(anno) {
+  const k = fiscChiave();
+  if(_budCalcCache.k !== k) _budCalcCache = { k, v: {} };
+  if(!(anno in _budCalcCache.v)) _budCalcCache.v[anno] = _budCalcAnnoRaw(anno);
+  return _budCalcCache.v[anno];
+}
+function _budCalcAnnoRaw(anno) {
   const A = budAnno(anno); if(!A) return null;
   const voci = Object.keys(A.righe).map(id => budCalcVoce(anno, id)).filter(Boolean);
   const tot = { entrate: _z12(), accant: _z12(), ricorrenti: _z12(), stime: _z12(), pag: _z12(), margine: _z12() };
@@ -2134,6 +2147,193 @@ function budViewMargine() {
   });
   h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.5;">Il margine usa le entrate effettivamente incassate: finché stipendio o fatture non arrivano, il disponibile resta prudente. «Disponibile» è già al netto degli extra spesi. A fine mese l’avanzo passa al mese dopo fino al tetto e il resto va nel risparmio; uno sforamento passa per intero. Per i mesi futuri è indicato il margine previsto dal budget, prima degli extra. Gli investimenti non abbinati a una voce non contano come extra.</p></div>`;
   return h;
+}
+
+
+// ═════════════════════════════════════════════════════════════════
+// CRUSCOTTO  (fase 4 — la Panoramica come cruscotto decisionale)
+// ─────────────────────────────────────────────────────────────────
+// Blocchi, dall'alto: margine del mese · patrimonio realmente
+// disponibile · test di sostenibilità · prossime scadenze ·
+// da sistemare · andamento del mese rispetto al budget.
+// Tutto è calcolato al volo dai dati del budget e dei movimenti:
+// il cruscotto non salva nulla.
+// ═════════════════════════════════════════════════════════════════
+// Anno di budget che contiene oggi (o, in mancanza, l'ultimo)
+function crAnnoOggi() {
+  const anni = budAnni(); if(!anni.length) return null;
+  const y = new Date().getFullYear();
+  if(anni.includes(y)) return y;
+  const prima = anni.filter(a => a < y);
+  return prima.length ? prima[prima.length - 1] : anni[0];
+}
+function crApriBudget(tab) { budUi.tab = tab; go('budget'); }
+
+function renderCruscotto() {
+  const el = document.getElementById('cruscotto'); if(!el) return;
+  let h = '';
+  try { h = crHtml(); } catch(err) { console.error(err); h = `<div class="card" style="color:var(--danger);">Errore nel calcolo del cruscotto: ${_esc(err.message)}</div>`; }
+  el.innerHTML = h;
+}
+
+function crHtml() {
+  const liquidita = state.accounts.reduce((s, a) => s + (a.saldo || 0), 0);
+  const anno = crAnnoOggi();
+  if(anno == null) {
+    return `<div class="metric-grid"><div class="metric accent"><div class="metric-label">Liquidità totale</div><div class="metric-value">${fmt(liquidita)}</div><div class="metric-sub">${state.accounts.length} conti</div></div></div>
+      <div class="card"><div class="empty"><div class="empty-icon">📒</div><div class="empty-title">Il cruscotto si attiva con il budget</div><div class="empty-sub">Importa il budget nella sezione Budget per vedere margine, fondi e scadenze.</div></div></div>`;
+  }
+  const M = margCalcola(), c = M && M.corrente;
+  const F = budFondiOggi(anno);
+  const vincolato = _sum(F.righe.map(r => Math.max(0, r.saldo)));
+  const fondiNeg = F.righe.filter(r => r.saldo < -0.5);
+  const libero = liquidita - vincolato;
+  let h = '';
+
+  // 1. Margine del mese
+  if(c) {
+    const d = new Date(), giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1, neg = c.disp < 0;
+    h += `<div class="card marg-hero cr-click${neg ? ' neg' : ''}" onclick="crApriBudget('margine')">
+      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
+      <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
+      <div class="marg-sub">${neg ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]}.` : `Circa ${fmt(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}.`}
+        Entrate incassate finora ${fmt(c.entr)}. <span class="cr-link">Vedi il dettaglio</span></div>
+    </div>`;
+  }
+
+  // 2. Patrimonio realmente disponibile
+  h += `<div class="metric-grid">
+    <div class="metric"><div class="metric-label">Liquidità totale</div><div class="metric-value">${fmt(liquidita)}</div><div class="metric-sub">${state.accounts.length} conti</div></div>
+    <div class="metric"><div class="metric-label">Vincolato nei fondi</div><div class="metric-value">${fmt(vincolato)}</div><div class="metric-sub">già destinato a scadenze e fondi</div></div>
+    <div class="metric accent"><div class="metric-label">Realmente disponibile</div><div class="metric-value">${fmt(libero)}</div><div class="metric-sub">liquidità meno vincolato</div></div>
+    <div class="metric"><div class="metric-label">Risparmio accumulato</div><div class="metric-value">${fmt(M ? M.risparmio : 0)}</div><div class="metric-sub">dagli avanzi oltre il tetto</div></div>
+  </div>`;
+
+  // 3. Test di sostenibilità
+  const ok = libero >= -0.5;
+  h += `<div class="card cr-verdetto ${ok ? 'ok' : 'ko'}"><div class="card-title">Test di sostenibilità</div>
+    <div class="cr-verdetto-frase">${ok
+      ? `✅ La liquidità copre tutti i fondi maturati, e restano ${fmt(libero)} liberi.`
+      : `⚠️ La liquidità non copre i fondi maturati: mancano ${fmt(-libero)}.`}</div>`;
+  if(fondiNeg.length) h += `<div class="fisc-hint">Fondi sotto zero, cioè pagato più di quanto accantonato finora: ${fondiNeg.map(r => `${_esc(r.voce.nome)} ${fmt(r.saldo)}`).join(' · ')}. Lo scoperto si riassorbe con le quote dei mesi successivi.</div>`;
+  h += `</div>`;
+
+  // 4. Prossime scadenze (mese corrente e due successivi)
+  const o = budOggi(anno), cor = Math.max(0, Math.min(11, o.corrente));
+  const fondoDi = {}; F.righe.forEach(r => { fondoDi[r.voce.id] = r.saldo; });
+  let prox = budScadenze(anno).filter(s => s.stato !== 'pagata' && s.mese <= cor + 2).map(s => Object.assign({ anno }, s));
+  if(cor + 2 > 11 && budAnno(anno + 1)) {
+    prox = prox.concat(budScadenze(anno + 1).filter(s => s.stato !== 'pagata' && s.mese <= cor + 2 - 12).map(s => Object.assign({ anno: anno + 1 }, s)));
+  }
+  h += `<div class="card"><div class="card-title">Prossime scadenze</div>`;
+  if(!prox.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessuna scadenza da pagare tra ${MESI_LUNGHI[cor]} e ${MESI_LUNGHI[(cor + 2) % 12]}.</div>`;
+  else {
+    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th style="text-align:left;">Voce</th><th>Da pagare</th><th style="text-align:left;">Fondo</th></tr></thead><tbody>`;
+    prox.forEach(s => {
+      const residuo = s.importo - s.pagato, fondo = fondoDi[s.voce.id];
+      let stFondo = '<span style="color:var(--text-faint);">—</span>';
+      if(fondo != null) {
+        if(fondo >= residuo - 0.5) stFondo = `<span style="color:var(--accent);">✅ pronto</span>`;
+        else if(s.stato === 'scaduta' || s.stato === 'mese') stFondo = `<span style="color:var(--danger);">⚠️ ci sono ${_eur0(fondo)} €</span>`;
+        else stFondo = `<span style="color:var(--text-muted);">in accantonamento (${_eur0(fondo)} €)</span>`;
+      }
+      const quando = s.stato === 'scaduta' ? `<span style="color:var(--danger);">${MESI_LUNGHI[s.mese]} · scaduta</span>` : `${MESI_LUNGHI[s.mese]}${s.anno !== anno ? ' ' + s.anno : ''}`;
+      h += `<tr><td>${quando}</td><td>${_esc(s.voce.nome)}${s.nota ? ` <small style="color:var(--text-faint);">${_esc(s.nota)}</small>` : ''}</td><td class="num">${fmt(residuo)}</td><td>${stFondo}</td></tr>`;
+    });
+    h += `</tbody></table></div>`;
+  }
+  h += `<div class="fisc-hint"><a href="#" onclick="crApriBudget('scadenze');return false;" style="color:var(--accent);">Tutte le scadenze e i fondi</a></div></div>`;
+
+  // 5. Da sistemare
+  const todo = [];
+  const dc = state.transactions.filter(t => !t.esclusa && t.categoria === 'Da classificare');
+  if(dc.length) todo.push([`📌 ${dc.length} ${dc.length === 1 ? 'movimento' : 'movimenti'} da classificare (${fmt(_sum(dc.map(t => (t.tipo === 'uscita' ? 1 : -1) * (+t.importo || 0))))})`, `apriTransazioniCat('Da classificare')`]);
+  const inizio = anno + '-' + String((budAnno(anno).meseInizio || 0) + 1).padStart(2, '0');
+  const tna = state.transactions.filter(t => {
+    if(t.esclusa || t.categoria !== 'Tasse/Contributi' || String(t.data || '') < inizio) return false;
+    const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{ voce: t.voce }] : []);
+    return !parti.some(p => vocePerId(p.voce));
+  });
+  if(tna.length) todo.push([`🏛 ${tna.length} ${tna.length === 1 ? 'movimento' : 'movimenti'} in Tasse/Contributi non abbinati a una voce: pesano sugli extra`, `apriTransazioniCat('Tasse/Contributi')`]);
+  if(c) c.dettVoci.filter(x => x.reale - x.previsto > 20).forEach(x => todo.push([`📈 ${_esc(x.voce.nome)} oltre il previsto di ${fmt(x.reale - x.previsto)} a ${MESI_LUNGHI[c.m]}`, `crApriBudget('consuntivo')`]));
+  budScadenze(anno).filter(s => s.stato === 'scaduta').forEach(s => todo.push([`⏰ ${_esc(s.voce.nome)} di ${MESI_LUNGHI[s.mese]} risulta non pagata (${fmt(s.importo - s.pagato)}): se l'hai pagata, abbina il movimento alla voce`, `crApriBudget('scadenze')`]));
+  if(todo.length) {
+    h += `<div class="card cr-todo"><div class="card-title">Da sistemare</div>${todo.map(([t, az]) => `<div class="cr-todo-riga"><span>${t}</span><button class="btn" style="font-size:12px;padding:4px 10px;" onclick="${az}">Apri</button></div>`).join('')}</div>`;
+  }
+
+  // 6. Andamento del mese rispetto al budget
+  if(o.corrente >= 0 && o.corrente <= 11 && o.corrente >= (budAnno(anno).meseInizio || 0)) {
+    const m = o.corrente, C = budCalcAnno(anno), R = budRealeVoci(anno).voci, X = margRealeAnno(anno, C);
+    const gr = (g, campo) => {
+      const rs = C.voci.filter(r => r.voce.gruppo === g);
+      return { b: _sum(rs.map(r => r[campo][m])), r: _sum(rs.map(r => (R[r.voce.id] || _z12())[m])), n: rs.length };
+    };
+    const righe = [
+      ['Entrate', { b: C.tot.entrate[m], r: X.entrate[m], n: 1 }, true],
+      ['Imposte e contributi', gr('fiscale', 'pag')],
+      ['Spese certe', gr('certe', 'pag')],
+      ['Spese ricorrenti', gr('ricorrenti', 'prev')],
+      ['Spese variabili', gr('stime', 'prev')],
+      ['Salute e regali', gr('fondi', 'quote')],
+      ['Extra fuori budget', { b: Math.max(0, C.tot.margine[m]), r: _sum(Object.values(X.extra).map(a => a[m])), n: 1 }, false, 'margine previsto'],
+    ].filter(x => x[1].n && (Math.abs(x[1].b) > 0.5 || Math.abs(x[1].r) > 0.5));
+    h += `<div class="card"><div class="card-title">${MESI_LUNGHI[m].charAt(0).toUpperCase() + MESI_LUNGHI[m].slice(1)}: reale e budget</div><div class="cr-and">`;
+    righe.forEach(([lab, v, ent, nota]) => {
+      const pct = v.b > 0.5 ? Math.max(0, Math.min(100, v.r / v.b * 100)) : (v.r > 0.5 ? 100 : 0);
+      const oltre = !ent && v.r > v.b + 0.5;
+      h += `<div class="cr-and-riga"><div class="cr-and-top"><span>${lab}</span><span><strong>${_eur0(v.r)}</strong> <small>di ${_eur0(v.b)}${nota ? ' ' + nota : ''}</small></span></div>
+        <div class="cr-bar"><i style="width:${pct}%;background:${oltre ? 'var(--danger)' : ent ? 'var(--accent)' : 'var(--text-muted)'};"></i></div></div>`;
+    });
+    h += `</div><div class="fisc-hint">Per imposte e spese certe il budget è il pagamento previsto nel mese, per salute e regali la quota. <a href="#" onclick="crApriBudget('consuntivo');return false;" style="color:var(--accent);">Consuntivo per voce</a></div></div>`;
+  }
+  return h;
+}
+
+// ─── Grafico annuale entrate/uscite (sezione Spese) ──────────────
+let andUi = { anno: null };
+function andAnni() {
+  const s = new Set(); state.transactions.forEach(t => { const y = parseInt(String(t.data || '').substring(0, 4), 10); if(y > 1900) s.add(y); });
+  s.add(new Date().getFullYear());
+  return [...s].sort((a, b) => a - b);
+}
+function andSposta(d) {
+  const anni = andAnni(), i = anni.indexOf(andUi.anno);
+  const j = Math.max(0, Math.min(anni.length - 1, i + d));
+  andUi.anno = anni[j]; renderAndamento();
+}
+function renderAndamento() {
+  const canvas = document.getElementById('chart-mensile'); if(!canvas) return;
+  const anni = andAnni(), oggi = new Date();
+  if(!andUi.anno || !anni.includes(andUi.anno)) andUi.anno = oggi.getFullYear();
+  const Y = andUi.anno, i = anni.indexOf(Y);
+  const lab = document.getElementById('and-anno'); if(lab) lab.textContent = Y;
+  const bp = document.getElementById('and-prev'), bn = document.getElementById('and-next');
+  if(bp) bp.disabled = i <= 0; if(bn) bn.disabled = i >= anni.length - 1;
+  const usc = [], ent = [], att = txAttive();
+  for(let m = 0; m < 12; m++) {
+    const futuro = Y > oggi.getFullYear() || (Y === oggi.getFullYear() && m > oggi.getMonth());
+    if(futuro) { usc.push(null); ent.push(null); continue; }
+    const k = Y + '-' + String(m + 1).padStart(2, '0');
+    const aggM = aggregaNetto(att.filter(t => String(t.data || '').startsWith(k)));
+    usc.push(aggM.spese); ent.push(aggM.entrate);
+  }
+  const tot = document.getElementById('and-tot');
+  if(tot) tot.innerHTML = `Entrate ${fmt(_sum(ent))} · Uscite ${fmt(_sum(usc))}`;
+  mkChart('chart-mensile', {
+    type: 'line',
+    data: { labels: MESI_BREVI, datasets: [
+      { label: 'Uscite', data: usc, borderColor: '#cb4335', backgroundColor: 'rgba(203,67,53,.06)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointBackgroundColor: '#cb4335', borderWidth: 2, spanGaps: false },
+      { label: 'Entrate', data: ent, borderColor: '#2c5f2e', backgroundColor: 'rgba(44,95,46,.06)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointBackgroundColor: '#2c5f2e', borderWidth: 2, spanGaps: false }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } } },
+      scales: { x: { grid: { display: false }, ticks: { color: '#9e9e9a', font: { size: 12 } } }, y: { min: 0, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { color: '#9e9e9a', font: { size: 11 }, callback: v => fmtNum(v, 0) } } } }
+  });
+  // Su schermi stretti il grafico scorre: si parte mostrando il mese corrente
+  const sc = document.getElementById('and-scroll');
+  if(sc && sc.scrollWidth > sc.clientWidth) {
+    const mFine = Y === oggi.getFullYear() ? oggi.getMonth() + 1 : (Y < oggi.getFullYear() ? 12 : 0);
+    sc.scrollLeft = Math.max(0, sc.scrollWidth * mFine / 12 - sc.clientWidth + 24);
+  }
 }
 
 
@@ -4537,28 +4737,8 @@ function renderCharts() {
     mkChart('chart-cat-bar', {type:'bar', data:{labels:labels.slice(0,5), datasets:[{data:vals.slice(0,5), backgroundColor:cols.slice(0,5), borderRadius:6, borderSkipped:false}]}, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+fmtNum(v,0)}}, y:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}}}});
   }
 
-  // Mensile — solo transazioni attive
-  const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-  const now = new Date();
-  const labels6 = [], dataUsc = [], dataEnt = [];
-  for(let i=5;i>=0;i--) {
-    const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
-    labels6.push(mesi[d.getMonth()]);
-    const m = d.getMonth(), y = d.getFullYear();
-    // Netting applicato mese per mese: un rimborso alleggerisce la sua categoria
-    // nel mese in cui arriva, quindi le barre non vanno mai in negativo.
-    const aggM = aggregaNetto(txAttive().filter(t=>{ const td=new Date(t.data); return td.getMonth()===m&&td.getFullYear()===y; }));
-    dataUsc.push(aggM.spese);
-    dataEnt.push(aggM.entrate);
-  }
-  mkChart('chart-mensile', {
-    type:'line',
-    data:{labels:labels6, datasets:[
-      {label:'Uscite', data:dataUsc, borderColor:'#cb4335', backgroundColor:'rgba(203,67,53,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:'#cb4335', borderWidth:2},
-      {label:'Entrate', data:dataEnt, borderColor:'#2c5f2e', backgroundColor:'rgba(44,95,46,.06)', fill:true, tension:.35, pointRadius:4, pointBackgroundColor:'#2c5f2e', borderWidth:2}
-    ]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmt(ctx.parsed.y)}}}, scales:{x:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}, y:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+fmtNum(v,0)}}}}
-  });
+  // Andamento annuale (sezione Spese)
+  renderAndamento();
 }
 
 // ─── Portafoglio contanti ────────────────────────────────────────
