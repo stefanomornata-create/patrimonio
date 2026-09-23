@@ -472,6 +472,7 @@ canvas, img, svg { max-width: 100%; }
 .cr-and-top small { color:var(--text-faint); }
 .cr-bar { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
 .cr-bar i { display:block; height:100%; border-radius:3px; }
+#bud-content select.form-input, #bud-content .bud-in { max-width:100%; }
 /* ── Progetti e simulatore (fase 5) ── */
 .prog-card { padding:14px 16px; }
 .prog-card .fisc-campo { flex:1 1 170px; max-width:260px; }
@@ -1537,6 +1538,17 @@ function rimuoviDoppioniFormato() {
 
 // ─── Conversioni una tantum (fase 1), registrate in state.migrazioni ──
 const MIGRAZIONI_UNA_TANTUM = [
+  { id: 'v5_date_giorno', run() {
+      let n = 0;
+      state.transactions.forEach(tx => {
+        const s = String(tx.data || '');
+        if(!/T/.test(s) || /T00:00:00(\.000)?Z$/.test(s)) return;
+        const d = new Date(s); if(isNaN(d)) return;
+        const iso = _isoGiorno(d.getFullYear(), d.getMonth() + 1, d.getDate());
+        if(iso && iso !== s) { tx.data = iso; n++; }
+      });
+      return n;
+  } },
   { id: 'f1_altro', run() {
       let n = 0;
       const spec = [
@@ -2014,7 +2026,7 @@ function margRealeAnno(anno, C) {
   Object.entries(R.voci).forEach(([id, arr]) => {
     const v = vocePerId(id); if(!v) return;
     if(v.gruppo === 'entrate') { for(let m = 0; m < 12; m++) entrate[m] += arr[m]; }
-    else if(!inBudget.has(id)) { for(let m = 0; m < 12; m++) if(arr[m]) addX(v.categoria || 'Da classificare', m, arr[m]); }
+    else if(!inBudget.has(id) && !MARG_NON_EXTRA.includes(v.categoria)) { for(let m = 0; m < 12; m++) if(arr[m]) addX(v.categoria || 'Da classificare', m, arr[m]); }
   });
   Object.entries(R.fuori).forEach(([c, arr]) => {
     if(MARG_NON_EXTRA.includes(c)) return;
@@ -2094,7 +2106,7 @@ function budViewMargine() {
     const neg = c.disp < 0;
     const mesePrec = c.m > 0 ? MESI_LUNGHI[c.m - 1] : 'dicembre';
     h += `<div class="card marg-hero${neg ? ' neg' : ''}">
-      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
+      <div class="marg-lab">${neg ? `A ${MESI_LUNGHI[c.m]} sei oltre il margine di` : `Puoi ancora spendere in extra a ${MESI_LUNGHI[c.m]}`}</div>
       <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
       <div class="marg-sub">${neg
         ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]} e ne riduce il margine.`
@@ -2206,7 +2218,7 @@ function crHtml() {
   if(c) {
     const d = new Date(), giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1, neg = c.disp < 0;
     h += `<div class="card marg-hero cr-click${neg ? ' neg' : ''}" onclick="crApriBudget('margine')">
-      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
+      <div class="marg-lab">${neg ? `A ${MESI_LUNGHI[c.m]} sei oltre il margine di` : `Puoi ancora spendere in extra a ${MESI_LUNGHI[c.m]}`}</div>
       <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
       <div class="marg-sub">${neg ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]}.` : `Circa ${fmt(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}.`}
         Entrate incassate finora ${fmt(c.entr)}. <span class="cr-link">Vedi il dettaglio</span></div>
@@ -2643,8 +2655,11 @@ function renderBudget() {
 }
 
 function budViewRiepilogo(anno) {
-  const C = budCalcAnno(anno), S = C.S, t = C.tot, mesi = [];
+  const C = budCalcAnno(anno), S = C.S, mesi = [];
   for(let m = S; m < 12; m++) mesi.push(m);
+  const qp = _z12(); mesi.forEach(m => { qp[m] = margQuoteProgetti(anno, m); });
+  const conProg = _sum(qp) > 0.005;
+  const t = Object.assign({}, C.tot, { progetti: qp, margine: C.tot.margine.map((x, m) => x - qp[m]) });
   const tt = k => _sum(mesi.map(m => t[k][m]));
   const periodo = S > 0 ? `${MESI_LUNGHI[S]}–dicembre ${anno}` : `anno ${anno}`;
   let h = `<div class="metric-grid">
@@ -2655,7 +2670,7 @@ function budViewRiepilogo(anno) {
   </div>`;
   h += `<div class="card"><div class="card-title">Piano mese per mese</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th></th>${mesi.map(m => `<th>${MESI_BREVI[m]}</th>`).join('')}<th>Totale</th></tr></thead><tbody>`;
   const riga = (lab, k, cls) => `<tr class="${cls||''}"><td>${lab}</td>${mesi.map(m => `<td class="num">${_eur0(t[k][m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt(k))}</strong></td></tr>`;
-  h += riga('Entrate', 'entrate') + riga('− Accantonamenti', 'accant') + riga('− Ricorrenti', 'ricorrenti') + riga('− Variabili', 'stime');
+  h += riga('Entrate', 'entrate') + riga('− Accantonamenti', 'accant') + riga('− Ricorrenti', 'ricorrenti') + riga('− Variabili', 'stime') + (conProg ? riga('− Quote progetti', 'progetti') : '');
   h += `<tr class="tot"><td>= Margine</td>${mesi.map(m => `<td class="num" style="color:${t.margine[m]<0?'var(--danger)':'var(--accent)'};">${_eur0(t.margine[m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt('margine'))}</strong></td></tr>`;
   h += `<tr class="sub"><td>Pagamenti dai fondi</td>${mesi.map(m => `<td class="num">${t.pag[m] > 0.5 ? _eur0(t.pag[m]) : '—'}</td>`).join('')}<td class="num">${_eur0(tt('pag'))}</td></tr>`;
   h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;">Gli accantonamenti mettono da parte ogni mese la quota delle spese certe, delle imposte e dei fondi: i pagamenti poi escono dai fondi e non pesano sul mese in cui cadono. Il margine è ciò che resta per gli extra e il risparmio.</p></div>`;
@@ -2774,7 +2789,7 @@ function budEditorVoce(anno, v, S) {
     if(c.metodo === 'manuale') h += `${_inNum(c.valoreManuale, `budSet('${id}','valoreManuale',this.value)`)} € al mese `;
     h += `<select class="bud-in" onchange="budSet('${id}','profilo',this.value)"><option value="costante"${c.profilo!=='stagionale'?' selected':''}>Uguale ogni mese</option><option value="stagionale"${c.profilo==='stagionale'?' selected':''}>Stagionale</option></select>
       margine ${_inNum(c.margine, `budSet('${id}','margine',this.value)`, 56)} %`;
-    if(st) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:6px;">${st.nPunti} mesi di dati (${st.nReali} da Patrimonio) · base ${fmt(st.base)} al mese${c.profilo==='stagionale'&&!st.stagionale?' · dati insufficienti per la stagionalità':''}</div>
+    if(st) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:6px;">${st.nPunti} ${st.nPunti === 1 ? 'mese' : 'mesi'} di dati (${st.nReali} da Patrimonio) · base ${fmt(st.base)} al mese${c.profilo==='stagionale'&&!st.stagionale?' · dati insufficienti per la stagionalità':''}</div>
       <div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<span><small>${MESI_BREVI[m]}</small> ${_eur0(st.mensili[m])}</span>`).join('')}</div>`;
   }
   h += `</div></div>`;
@@ -4148,6 +4163,13 @@ async function processFile(file, tipoHint) {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
+      // Celle data scritte come gg/mm/aaaa: il formato del file (es. m/d/yy) non conta
+      Object.keys(ws).forEach(k => {
+        const c = ws[k];
+        if(k[0] === '!' || !c || !(c.v instanceof Date)) return;
+        const d = new Date(c.v.getTime() + 12 * 3600e3); // arrotonda eventuali secondi di scarto
+        c.w = String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+      });
       rawText = XLSX.utils.sheet_to_csv(ws);
       logMsg(`📊 Excel letto: foglio "${wb.SheetNames[0]}", ${rawText.split('\n').length} righe`, 'info');
       transactions = parseCSV(rawText, file.name);
@@ -4631,8 +4653,8 @@ function parseCSV(text, filename) {
     if(iDare>=0 && iAvere>=0) {
       const dare  = parseNum(cleanVal(cells[iDare]||''), false);
       const avere = parseNum(cleanVal(cells[iAvere]||''), false);
-      if(dare)  { importo=dare;  tipo='uscita'; }
-      else if(avere) { importo=avere; tipo='entrata'; }
+      if(dare)  { importo=Math.abs(dare);  tipo='uscita'; }
+      else if(avere) { importo=Math.abs(avere); tipo='entrata'; }
     } else if(iImp>=0) {
       const raw = parseNum(cleanVal(cells[iImp]||''), false);
       importo = Math.abs(raw);
@@ -4707,12 +4729,31 @@ function parseNum(s, formatoAnglosassone) {
   }
   return parseFloat(s)||0;
 }
+// Data del giorno come mezzanotte UTC (formato usato in tutto l'archivio)
+function _isoGiorno(y, m, d) {
+  if(!(y > 1900 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.getUTCMonth() === m - 1 ? dt.toISOString() : null;
+}
+function _isoOggi() { const d = new Date(); return _isoGiorno(d.getFullYear(), d.getMonth() + 1, d.getDate()); }
+function _oggiLocale() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+// La data resta quella scritta nel file: ora e fuso orario non la fanno
+// slittare al giorno prima (es. Revolut alle 00:30 del 1° del mese).
 function parseDate(s) {
-  if(!s) return new Date().toISOString();
-  const cleaned = s.replace(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/, '$3-$2-$1')
-                    .replace(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/, '$1-$2-$3');
-  const d = new Date(cleaned);
-  return isNaN(d) ? new Date().toISOString() : d.toISOString();
+  if(!s) return _isoOggi();
+  s = String(s).trim();
+  let m = s.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/);
+  if(m) return _isoGiorno(+m[1], +m[2], +m[3]) || _isoOggi();
+  m = s.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/);
+  if(m) {
+    let a = +m[1], b = +m[2], y = +m[3];
+    if(y < 100) y += 2000;
+    // giorno/mese all'italiana; se il secondo numero non può essere un mese è mese/giorno
+    const r = (b > 12 && a <= 12) ? _isoGiorno(y, a, b) : _isoGiorno(y, b, a);
+    return r || _isoOggi();
+  }
+  const d = new Date(s);
+  return isNaN(d) ? _isoOggi() : (_isoGiorno(d.getFullYear(), d.getMonth() + 1, d.getDate()) || _isoOggi());
 }
 
 // Categorizzazione — 11 categorie personalizzate
@@ -5050,8 +5091,7 @@ function openModalContanti() {
   sel.innerHTML = cats.map(c => `<option value="${c}">${catEmoji(c)} ${c}</option>`).join('');
 
   // Set today as default date
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('mc-data').value = today;
+  document.getElementById('mc-data').value = _oggiLocale();
   document.getElementById('mc-importo').value = '';
   document.getElementById('mc-desc').value = '';
   document.getElementById('mc-tipo-sel').value = 'uscita';
@@ -5116,7 +5156,7 @@ function salvaSpesaContanti() {
     return;
   }
   const tipoSel = document.getElementById('mc-tipo-sel').value;
-  const data = document.getElementById('mc-data').value || new Date().toISOString().split('T')[0];
+  const data = document.getElementById('mc-data').value || _oggiLocale();
   const desc = document.getElementById('mc-desc').value.trim();
   const cat  = document.getElementById('mc-cat').value;
 
@@ -5240,8 +5280,9 @@ function aggiornaPreviewSaldo(conto, transactions) {
   const preview = document.getElementById('sel-conto-preview');
   if(!conto || !transactions.length) { preview.style.display='none'; return; }
 
-  // Calcola variazione netta (esclusi giroconti)
-  const attive = transactions.filter(t => t.categoria !== 'Giroconto');
+  // Variazione netta del conto: contano tutti i movimenti, giroconti compresi
+  // (un giroconto non è una spesa, ma sposta davvero soldi da un conto all'altro)
+  const attive = transactions;
   const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
   const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
   const delta = deltaEntrate - deltaUscite;
@@ -5276,12 +5317,12 @@ function confermaSelezioneContoOk() {
   const nomeContoIdx = state.accounts.indexOf(conto);
   _txDaAssegnare.forEach(t => { t.conto = conto.banca; });
 
-  // Calcola variazione netta ed aggiorna saldo (escludi giroconti)
-  const attive = _txDaAssegnare.filter(t => t.categoria !== 'Giroconto');
+  // Variazione netta del conto: contano tutti i movimenti, giroconti compresi
+  const attive = _txDaAssegnare;
   const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
   const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
   const delta = deltaEntrate - deltaUscite;
-  conto.saldo = (conto.saldo||0) + delta;
+  conto.saldo = _r2((conto.saldo||0) + delta);
 
   const segno = delta >= 0 ? '+' : '';
   logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
@@ -5315,31 +5356,39 @@ function importaContanti(input) {
       let aggiunte = 0;
       let totUscite = 0, totEntrate = 0;
 
+      let saltate = 0;
+      const esistenti = new Set(state.transactions.map(t => String(t.data || '').substring(0, 10) + '|' + (+t.importo || 0).toFixed(2) + '|' + _normDesc(t.descrizione)));
       transactions.forEach(t => {
-        state.transactions.push({
-          data: t.data,
+        const importo = Math.abs(parseFloat(t.importo) || 0);
+        if(!importo) return;
+        const nuova = {
+          data: parseDate(t.data ? String(t.data) : ''),
           descrizione: t.descrizione || 'Spesa contanti',
-          importo: parseFloat(t.importo) || 0,
-          tipo: t.tipo || 'uscita',
-          categoria: t.categoria || 'Da classificare',
+          importo,
+          tipo: t.tipo === 'entrata' ? 'entrata' : 'uscita',
+          categoria: ALL_CATS.includes(t.categoria) ? t.categoria : 'Da classificare',
           conto: t.conto || 'Portafoglio'
-        });
-        if(t.tipo === 'uscita') totUscite += parseFloat(t.importo)||0;
-        else totEntrate += parseFloat(t.importo)||0;
+        };
+        const k = nuova.data.substring(0, 10) + '|' + importo.toFixed(2) + '|' + _normDesc(nuova.descrizione);
+        if(esistenti.has(k)) { saltate++; return; }
+        esistenti.add(k);
+        state.transactions.push(nuova);
+        if(nuova.tipo === 'uscita') totUscite += importo;
+        else totEntrate += importo;
         aggiunte++;
       });
 
       // Aggiorna saldo portafoglio
       const p = getPortafoglio();
       if(p) {
-        p.saldo = (p.saldo||0) + totEntrate - totUscite;
+        p.saldo = _r2((p.saldo||0) + totEntrate - totUscite);
       }
 
       save();
       renderAll();
 
       const status = document.getElementById('import-contanti-status');
-      if(status) status.innerHTML = `✅ ${aggiunte} transazioni importate. Uscite: ${fmt(totUscite)}, Entrate: ${fmt(totEntrate)}. ${p ? 'Saldo portafoglio aggiornato: ' + fmt(p.saldo) : ''}`;
+      if(status) status.innerHTML = `✅ ${aggiunte} transazioni importate${saltate ? ` (${saltate} già presenti, saltate)` : ''}. Uscite: ${fmt(totUscite)}, Entrate: ${fmt(totEntrate)}. ${p ? 'Saldo portafoglio aggiornato: ' + fmt(p.saldo) : ''}`;
 
     } catch(err) {
       const status = document.getElementById('import-contanti-status');
@@ -5375,7 +5424,7 @@ function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'patrimonio_backup_' + new Date().toISOString().split('T')[0] + '.json';
+  a.download = 'patrimonio_backup_' + _oggiLocale() + '.json';
   a.click();
 }
 function importData(input) {
@@ -5385,7 +5434,13 @@ function importData(input) {
   r.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
+      if(!data || !Array.isArray(data.transactions) || !Array.isArray(data.accounts)) {
+        alert('Il file non è un backup di Patrimonio Monitor (mancano conti o transazioni).'); return;
+      }
       if(!confirm('Sovrascrivere tutti i dati attuali con il backup?')) return;
+      if(!Array.isArray(data.files)) data.files = [];
+      if(!Array.isArray(data.contiCifre)) data.contiCifre = [];
+      ['1143','5878','2321','3753'].forEach(c => { if(!data.contiCifre.includes(c)) data.contiCifre.push(c); });
       state = data;
       _driveNoMerge = true; // il prossimo salvataggio su Drive sostituisce, non unisce
       save();
@@ -5400,7 +5455,7 @@ function importData(input) {
 }
 function clearAll() {
   if(!confirm('Eliminare TUTTI i dati? Questa operazione non può essere annullata.')) return;
-  state = {accounts:[], transactions:[], files:[]};
+  state = {accounts:[], transactions:[], files:[], contiCifre:['1143','5878','2321','3753']};
   _driveNoMerge = true;
   save();
   renderAll();
@@ -5543,6 +5598,7 @@ async function gdriveSostituisci() {
   if(!gdriveFileId) { await gdriveFindOrCreateFile(); if(!gdriveFileId) { gdriveLog('⚠ Nessun file su Drive', 'warn'); return; } }
   try {
     const data = await gdriveScarica();
+    if(!data || !Array.isArray(data.transactions) || !Array.isArray(data.accounts)) { gdriveLog('✗ Il file su Drive non contiene un archivio valido: dati locali non toccati', 'err'); return; }
     if(!confirm('Sostituire i dati di questo dispositivo con quelli di Google Drive? Le modifiche locali non salvate andranno perse.')) return;
     state = data;
     if(!state.contiCifre) state.contiCifre = [];
