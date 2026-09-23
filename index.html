@@ -472,6 +472,19 @@ canvas, img, svg { max-width: 100%; }
 .cr-and-top small { color:var(--text-faint); }
 .cr-bar { height:6px; background:var(--surface2); border-radius:3px; overflow:hidden; }
 .cr-bar i { display:block; height:100%; border-radius:3px; }
+/* ── Progetti e simulatore (fase 5) ── */
+.prog-card { padding:14px 16px; }
+.prog-card .fisc-campo { flex:1 1 170px; max-width:260px; }
+.prog-bar { height:8px; background:var(--surface2); border-radius:4px; overflow:hidden; margin:4px 0 8px; }
+.prog-bar i { display:block; height:100%; background:var(--accent); border-radius:4px; }
+.prog-sintesi { font-size:13px; color:var(--text-muted); line-height:1.6; }
+.prog-azioni { display:flex; gap:8px; flex-wrap:wrap; margin-top:12px; }
+.sim-in { display:flex; flex-wrap:wrap; gap:12px 16px; margin-bottom:6px; }
+.sim-in .fisc-campo { flex:0 1 200px; }
+.sim-riga { display:flex; gap:10px; padding:10px 0; border-top:1px solid var(--border); font-size:13px; line-height:1.5; }
+.sim-ico { width:20px; flex:0 0 20px; text-align:center; }
+.sim-tit { font-weight:600; }
+.sim-txt { color:var(--text-muted); }
 /* ── Andamento annuale (Spese) ── */
 .and-head { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
 .and-nav { display:flex; align-items:center; gap:10px; font-size:15px; }
@@ -880,6 +893,11 @@ canvas, img, svg { max-width: 100%; }
       <div style="margin-top:6px;"><a href="#" id="etx-rip-toggle" onclick="etxToggleRip();return false;" style="font-size:12px;color:var(--accent);">Ripartisci tra più voci</a></div>
       <div id="etx-rip" style="display:none;margin-top:8px;"></div>
     </div>
+    <div class="form-group" id="etx-prog-group">
+      <label class="form-label">Progetto</label>
+      <select class="form-input" id="etx-prog"></select>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Una spesa abbinata esce dal fondo del progetto e non pesa sugli extra del mese.</div>
+    </div>
     <div class="form-group" id="etx-fatt-group" style="display:none;">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
         <input type="checkbox" id="etx-fattura" onchange="_etxFattToccato=true" /> 🧾 Da fattura (conta nel fatturato per la stima delle imposte)
@@ -1111,6 +1129,7 @@ function renderPCT() {
 // ─── Render all ──────────────────────────────────────────────────
 function renderAll() {
   if(migraCategorie()) save();
+  try { if(progCongela()) save(); } catch(e) { console.warn(e); }
   renderMetrics();
   renderCruscotto();
   renderPCT();
@@ -1584,7 +1603,7 @@ function renderDaClassificare() {
 const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 const BUD_TABS = [
-  ['margine','Margine'], ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
+  ['margine','Margine'], ['progetti','Progetti'], ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
   ['entrate','Entrate'], ['certe','Spese certe'], ['ricorrenti','Ricorrenti'],
   ['stime','Variabili'], ['fondi','Salute e regali']
 ];
@@ -1629,6 +1648,7 @@ function budRealeVoci(anno) {
   const add = (id, m, v) => { (out[id] = out[id] || _z12())[m] += v; };
   state.transactions.forEach(t => {
     if(t.esclusa || t.categoria === 'Giroconto' || t.categoria === 'Per conto terzi') return;
+    if(t.progetto && progPerId(t.progetto)) return; // esce dal fondo del progetto
     const ds = String(t.data || '');
     if(!ds.startsWith(prefisso)) return;
     const m = parseInt(ds.substring(5, 7), 10) - 1;
@@ -1963,8 +1983,7 @@ function _badgeStato(s) {
 // ─────────────────────────────────────────────────────────────────
 // Dati:  state.budget.margine = { tetto, progetti }
 //        tetto    → massimo riportabile al mese dopo (null = nessun tetto)
-//        progetti → [{id, nome, quota, da:'YYYY-MM', a:'YYYY-MM'|null}]
-//                   (quote mensili per progetti e grosse spese: fase 5)
+//        (le quote dei progetti arrivano da state.budget.progetti: fase 5)
 // Regole concordate:
 //  1. entrate: solo quelle effettive (incassate) del mese
 //  2. avanzo oltre il tetto → risparmio accumulato
@@ -1982,14 +2001,9 @@ const MARG_NON_EXTRA = ['Investimenti'];
 
 function margCfg() {
   const m = (state.budget && state.budget.margine) || {};
-  return { tetto: (m.tetto === null || m.tetto === undefined || m.tetto === '') ? null : +m.tetto, progetti: Array.isArray(m.progetti) ? m.progetti : [] };
+  return { tetto: (m.tetto === null || m.tetto === undefined || m.tetto === '') ? null : +m.tetto };
 }
 function _mk(anno, m) { return anno + '-' + String(m + 1).padStart(2, '0'); }
-function margQuoteProgetti(anno, m) {
-  const k = _mk(anno, m); let t = 0;
-  margCfg().progetti.forEach(p => { if(p.da && k >= p.da && (!p.a || k <= p.a)) t += (_num(p.quota) || 0); });
-  return t;
-}
 
 // Movimenti reali di un anno letti per il margine
 function margRealeAnno(anno, C) {
@@ -2009,7 +2023,7 @@ function margRealeAnno(anno, C) {
   // Entrate senza voce (categoria Entrate): anche queste sono soldi incassati
   const prefisso = String(anno) + '-';
   state.transactions.forEach(t => {
-    if(t.esclusa || t.categoria !== 'Entrate') return;
+    if(t.esclusa || t.categoria !== 'Entrate' || (t.progetto && progPerId(t.progetto))) return;
     const ds = String(t.data || ''); if(!ds.startsWith(prefisso)) return;
     const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{voce: t.voce}] : []);
     if(parti.some(p => vocePerId(p.voce))) return;
@@ -2059,17 +2073,13 @@ function margCalcola() {
       mesi.push(r);
     }
   });
-  // quanto è già stato accantonato per i progetti fino al mese corrente
-  let accProgetti = 0;
-  mesi.forEach(r => { if(r.stato !== 'futuro') accProgetti += r.progetti; });
-  return { mesi, corrente, risparmio, riporto, tetto, accProgetti, nProgetti: cfg.progetti.length };
+  return { mesi, corrente, risparmio, riporto, tetto };
 }
 
 function margSetTetto(raw) {
   if(!state.budget) return;
   const v = _num(raw);
   const m = state.budget.margine = (state.budget.margine && typeof state.budget.margine === 'object') ? state.budget.margine : {};
-  if(!Array.isArray(m.progetti)) m.progetti = [];
   m.tetto = v == null ? null : Math.max(0, v);
   budTocca(); renderBudget();
 }
@@ -2128,7 +2138,7 @@ function budViewMargine() {
   // Riporto, tetto e risparmio
   h += `<div class="metric-grid">
     <div class="metric"><div class="metric-label">Risparmio accumulato</div><div class="metric-value">${fmt(M.risparmio)}</div><div class="metric-sub">avanzi oltre il tetto dei mesi chiusi</div></div>
-    ${M.nProgetti ? `<div class="metric"><div class="metric-label">Di cui accantonato per progetti</div><div class="metric-value">${fmt(M.accProgetti)}</div><div class="metric-sub">risparmio libero ${fmt(M.risparmio - M.accProgetti)}</div></div>` : ''}
+    ${(() => { const RS = progRisparmio(M); return progTutti().length ? `<div class="metric"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">al netto delle somme assegnate ai progetti</div></div>` : ''; })()}
     <div class="metric"><div class="metric-label">Tetto al riporto</div><div class="metric-value" style="font-size:18px;"><input class="bud-in" style="width:110px;text-align:right;font-size:16px;" inputmode="decimal" placeholder="nessuno" value="${_numIn(M.tetto)}" onchange="margSetTetto(this.value)" /> €</div><div class="metric-sub">${M.tetto == null ? 'senza tetto tutto l’avanzo passa al mese dopo' : 'l’avanzo oltre il tetto va nel risparmio'}</div></div>
   </div>`;
   // Tabella mese per mese
@@ -2185,7 +2195,9 @@ function crHtml() {
   }
   const M = margCalcola(), c = M && M.corrente;
   const F = budFondiOggi(anno);
-  const vincolato = _sum(F.righe.map(r => Math.max(0, r.saldo)));
+  const vincProg = progVincolato();
+  const vincolato = _sum(F.righe.map(r => Math.max(0, r.saldo))) + vincProg;
+  const RS = progRisparmio(M);
   const fondiNeg = F.righe.filter(r => r.saldo < -0.5);
   const libero = liquidita - vincolato;
   let h = '';
@@ -2201,12 +2213,15 @@ function crHtml() {
     </div>`;
   }
 
+  // Simulatore «Posso permettermelo?»
+  h += simHtml();
+
   // 2. Patrimonio realmente disponibile
   h += `<div class="metric-grid">
     <div class="metric"><div class="metric-label">Liquidità totale</div><div class="metric-value">${fmt(liquidita)}</div><div class="metric-sub">${state.accounts.length} conti</div></div>
-    <div class="metric"><div class="metric-label">Vincolato nei fondi</div><div class="metric-value">${fmt(vincolato)}</div><div class="metric-sub">già destinato a scadenze e fondi</div></div>
+    <div class="metric"><div class="metric-label">Vincolato nei fondi</div><div class="metric-value">${fmt(vincolato)}</div><div class="metric-sub">${vincProg > 0.5 ? `di cui ${fmt(vincProg)} nei progetti` : 'già destinato a scadenze e fondi'}</div></div>
     <div class="metric accent"><div class="metric-label">Realmente disponibile</div><div class="metric-value">${fmt(libero)}</div><div class="metric-sub">liquidità meno vincolato</div></div>
-    <div class="metric"><div class="metric-label">Risparmio accumulato</div><div class="metric-value">${fmt(M ? M.risparmio : 0)}</div><div class="metric-sub">dagli avanzi oltre il tetto</div></div>
+    <div class="metric"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">${RS.assegnato > 0.5 ? `${fmt(RS.assegnato)} assegnati ai progetti` : 'dagli avanzi oltre il tetto'}</div></div>
   </div>`;
 
   // 3. Test di sostenibilità
@@ -2250,13 +2265,15 @@ function crHtml() {
   if(dc.length) todo.push([`📌 ${dc.length} ${dc.length === 1 ? 'movimento' : 'movimenti'} da classificare (${fmt(_sum(dc.map(t => (t.tipo === 'uscita' ? 1 : -1) * (+t.importo || 0))))})`, `apriTransazioniCat('Da classificare')`]);
   const inizio = anno + '-' + String((budAnno(anno).meseInizio || 0) + 1).padStart(2, '0');
   const tna = state.transactions.filter(t => {
-    if(t.esclusa || t.categoria !== 'Tasse/Contributi' || String(t.data || '') < inizio) return false;
+    if(t.esclusa || t.progetto || t.categoria !== 'Tasse/Contributi' || String(t.data || '') < inizio) return false;
     const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{ voce: t.voce }] : []);
     return !parti.some(p => vocePerId(p.voce));
   });
   if(tna.length) todo.push([`🏛 ${tna.length} ${tna.length === 1 ? 'movimento' : 'movimenti'} in Tasse/Contributi non abbinati a una voce: pesano sugli extra`, `apriTransazioniCat('Tasse/Contributi')`]);
   if(c) c.dettVoci.filter(x => x.reale - x.previsto > 20).forEach(x => todo.push([`📈 ${_esc(x.voce.nome)} oltre il previsto di ${fmt(x.reale - x.previsto)} a ${MESI_LUNGHI[c.m]}`, `crApriBudget('consuntivo')`]));
   budScadenze(anno).filter(s => s.stato === 'scaduta').forEach(s => todo.push([`⏰ ${_esc(s.voce.nome)} di ${MESI_LUNGHI[s.mese]} risulta non pagata (${fmt(s.importo - s.pagato)}): se l'hai pagata, abbina il movimento alla voce`, `crApriBudget('scadenze')`]));
+  progAttivi().forEach(p => { const P = progPiano(p); if(P.stato === 'scaduto') todo.push([`🎯 Il progetto «${_esc(p.nome)}» ha superato la scadenza senza essere coperto: sposta la data o segnalo come realizzato`, `crApriBudget('progetti')`]); });
+  if(RS.libero < -0.5) todo.push([`🎯 Le somme assegnate ai progetti superano il risparmio accumulato di ${fmt(-RS.libero)}`, `crApriBudget('progetti')`]);
   if(todo.length) {
     h += `<div class="card cr-todo"><div class="card-title">Da sistemare</div>${todo.map(([t, az]) => `<div class="cr-todo-riga"><span>${t}</span><button class="btn" style="font-size:12px;padding:4px 10px;" onclick="${az}">Apri</button></div>`).join('')}</div>`;
   }
@@ -2275,7 +2292,7 @@ function crHtml() {
       ['Spese ricorrenti', gr('ricorrenti', 'prev')],
       ['Spese variabili', gr('stime', 'prev')],
       ['Salute e regali', gr('fondi', 'quote')],
-      ['Extra fuori budget', { b: Math.max(0, C.tot.margine[m]), r: _sum(Object.values(X.extra).map(a => a[m])), n: 1 }, false, 'margine previsto'],
+      ['Extra fuori budget', { b: Math.max(0, C.tot.margine[m] - margQuoteProgetti(anno, m)), r: _sum(Object.values(X.extra).map(a => a[m])), n: 1 }, false, 'margine previsto'],
     ].filter(x => x[1].n && (Math.abs(x[1].b) > 0.5 || Math.abs(x[1].r) > 0.5));
     h += `<div class="card"><div class="card-title">${MESI_LUNGHI[m].charAt(0).toUpperCase() + MESI_LUNGHI[m].slice(1)}: reale e budget</div><div class="cr-and">`;
     righe.forEach(([lab, v, ent, nota]) => {
@@ -2337,6 +2354,261 @@ function renderAndamento() {
 }
 
 
+// ═════════════════════════════════════════════════════════════════
+// PROGETTI E SIMULATORE  (fase 5)
+// ─────────────────────────────────────────────────────────────────
+// Dati:  state.budget.progetti = [{
+//          id, nome, obiettivo, scadenza:'YYYY-MM', inizio:'YYYY-MM',
+//          dalRisparmio,            → somma assegnata subito dal risparmio
+//          quotaModo:'auto'|'manuale', quotaManuale,
+//          quoteFisse: {'YYYY-MM': q} → quote dei mesi chiusi, congelate
+//          stato:'attivo'|'realizzato', realizzatoIl:'YYYY-MM' }]
+//        tx.progetto = id del progetto a cui è abbinata la spesa
+// Due canali di finanziamento (concordati):
+//  · la quota mensile riduce il margine del mese;
+//  · la somma assegnata dal risparmio riduce il risparmio libero.
+// Le spese abbinate escono dal fondo del progetto: non sono extra.
+// Quando il progetto è realizzato, il saldo del fondo torna nel
+// risparmio (se positivo) o ne viene tolto (se negativo).
+// Quota automatica = (obiettivo − dal risparmio − quote già maturate)
+//                    ÷ mesi che restano fino alla scadenza (inclusa).
+// Le quote dei mesi chiusi vengono congelate: se cambi importo o data
+// il ricalcolo vale solo per i mesi rimanenti.
+// ═════════════════════════════════════════════════════════════════
+function _kOggi() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function _kAdd(k, n) { const y = +k.substring(0, 4), m = +k.substring(5, 7) - 1 + n; const yy = y + Math.floor(m / 12), mm = ((m % 12) + 12) % 12; return yy + '-' + String(mm + 1).padStart(2, '0'); }
+function _kDiff(a, b) { return (+b.substring(0, 4) - +a.substring(0, 4)) * 12 + (+b.substring(5, 7) - +a.substring(5, 7)); }
+function _kNome(k) { return MESI_LUNGHI[+k.substring(5, 7) - 1] + ' ' + k.substring(0, 4); }
+function _kOk(k) { return typeof k === 'string' && /^\d{4}-\d{2}$/.test(k); }
+
+function progTutti() { return (state.budget && Array.isArray(state.budget.progetti)) ? state.budget.progetti : []; }
+function progPerId(id) { return progTutti().find(p => p.id === id) || null; }
+function progAttivi() { return progTutti().filter(p => p.stato !== 'realizzato'); }
+
+// Spesa netta abbinata al progetto (uscite − rimborsi)
+function progSpeso(id) {
+  let s = 0;
+  state.transactions.forEach(t => { if(!t.esclusa && t.progetto === id) s += (t.tipo === 'entrata' ? -1 : 1) * (+t.importo || 0); });
+  return s;
+}
+
+// Piano del progetto: quote mese per mese, fondo e stato
+let _progCache = { k: null, v: {} };
+function progPiano(p) {
+  const ck = fiscChiave() + '|' + (state.budget && state.budget.aggiornato || '');
+  if(_progCache.k !== ck) _progCache = { k: ck, v: {} };
+  if(_progCache.v[p.id]) return _progCache.v[p.id];
+  const oggi = _kOggi(), quote = {};
+  const obiettivo = _num(p.obiettivo) || 0, dalR = _num(p.dalRisparmio) || 0;
+  const inizio = _kOk(p.inizio) ? p.inizio : oggi, scad = _kOk(p.scadenza) ? p.scadenza : inizio;
+  let fine = scad;
+  if(p.stato === 'realizzato' && _kOk(p.realizzatoIl)) { const f = _kAdd(p.realizzatoIl, -1); if(f < fine) fine = f; }
+  let acc = 0, maturato = 0;
+  const fisse = p.quoteFisse || {};
+  for(let k = inizio; k <= fine; k = _kAdd(k, 1)) {
+    let q;
+    if(fisse[k] != null) q = +fisse[k];
+    else {
+      const need = Math.max(0, obiettivo - dalR - acc);
+      if(p.quotaModo === 'manuale') q = Math.min(_num(p.quotaManuale) || 0, need);
+      else q = need / Math.max(1, _kDiff(k, scad) + 1);
+      q = _r2(q);
+    }
+    quote[k] = q; acc += q;
+    if(k <= oggi) maturato += q;
+  }
+  const speso = progSpeso(p.id);
+  const fondo = dalR + maturato - speso;
+  const coperto = dalR + maturato;
+  let stato = 'accumulo';
+  if(p.stato === 'realizzato') stato = 'realizzato';
+  else if(coperto >= obiettivo - 0.5) stato = 'pronto';
+  else if(oggi > scad) stato = 'scaduto';
+  const r = { quote, maturato, speso, fondo, coperto, obiettivo, dalR, mancante: Math.max(0, obiettivo - coperto),
+    quotaMese: quote[oggi] || 0, mesiRestanti: Math.max(0, _kDiff(oggi, scad) + 1), stato, inizio, scad, totPiano: acc };
+  _progCache.v[p.id] = r;
+  return r;
+}
+
+// Congela le quote dei mesi chiusi (così un cambio di importo o data non riscrive il passato)
+function progCongela() {
+  const oggi = _kOggi(); let n = 0;
+  progAttivi().forEach(p => {
+    const P = progPiano(p);
+    Object.entries(P.quote).forEach(([k, q]) => {
+      if(k < oggi) { p.quoteFisse = p.quoteFisse || {}; if(p.quoteFisse[k] == null) { p.quoteFisse[k] = q; n++; } }
+    });
+  });
+  if(n) _progCache = { k: null, v: {} };
+  return n;
+}
+
+function margQuoteProgetti(anno, m) {
+  const k = _mk(anno, m); let t = 0;
+  progTutti().forEach(p => { t += progPiano(p).quote[k] || 0; });
+  return t;
+}
+
+// Risparmio: libero = avanzi accumulati − somme assegnate + saldi dei progetti realizzati
+function progRisparmio(M) {
+  const lordo = M ? M.risparmio : 0;
+  let assegnato = 0, rientri = 0;
+  progTutti().forEach(p => {
+    const P = progPiano(p);
+    if(p.stato === 'realizzato') rientri += P.fondo - P.dalR;   // saldo finale tornato (o tolto) al netto dell'assegnazione consumata
+    else assegnato += P.dalR;
+  });
+  return { lordo, assegnato, rientri, libero: lordo - assegnato + rientri };
+}
+function progVincolato() { return _sum(progAttivi().map(p => Math.max(0, progPiano(p).fondo))); }
+
+// ─── Azioni ──────────────────────────────────────────────────────
+function progNuovo(dati) {
+  if(!state.budget) return;
+  if(!Array.isArray(state.budget.progetti)) state.budget.progetti = [];
+  const oggi = _kOggi();
+  const p = Object.assign({ id: 'prg_' + Date.now().toString(36), nome: 'Nuovo progetto', obiettivo: 0, scadenza: _kAdd(oggi, 6), inizio: oggi,
+    dalRisparmio: 0, quotaModo: 'auto', quotaManuale: null, quoteFisse: {}, stato: 'attivo' }, dati || {});
+  state.budget.progetti.push(p);
+  budTocca();
+  return p;
+}
+function progSet(id, campo, raw) {
+  const p = progPerId(id); if(!p) return;
+  if(campo === 'nome') p.nome = String(raw || '').trim() || 'Progetto';
+  else if(campo === 'scadenza' || campo === 'inizio') { if(_kOk(raw)) p[campo] = raw; }
+  else if(campo === 'quotaModo') p.quotaModo = raw === 'manuale' ? 'manuale' : 'auto';
+  else { const n = _num(raw); p[campo] = n == null ? (campo === 'quotaManuale' ? null : 0) : Math.max(0, n); }
+  budTocca(); renderBudget(); renderCruscotto();
+}
+function progRealizza(id) {
+  const p = progPerId(id); if(!p) return;
+  const P = progPiano(p);
+  const msg = P.fondo >= 0
+    ? `Segnare "${p.nome}" come realizzato? Il saldo del fondo (${fmt(P.fondo)}) torna nel risparmio e le quote mensili si fermano.`
+    : `Segnare "${p.nome}" come realizzato? Hai speso ${fmt(-P.fondo)} più del fondo: la differenza viene tolta dal risparmio.`;
+  if(!confirm(msg)) return;
+  progCongela();
+  p.stato = 'realizzato'; p.realizzatoIl = _kOggi();
+  budTocca(); renderBudget(); renderCruscotto();
+}
+function progRiapri(id) {
+  const p = progPerId(id); if(!p) return;
+  p.stato = 'attivo'; delete p.realizzatoIl;
+  budTocca(); renderBudget(); renderCruscotto();
+}
+function progElimina(id) {
+  const p = progPerId(id); if(!p) return;
+  const n = state.transactions.filter(t => t.progetto === id).length;
+  if(!confirm(`Eliminare il progetto "${p.nome}"?${n ? ` ${n} ${n === 1 ? 'movimento abbinato torna' : 'movimenti abbinati tornano'} tra le spese normali.` : ''} Le quote già tolte dal margine nei mesi passati non vengono restituite.`)) return;
+  state.transactions.forEach(t => { if(t.progetto === id) { delete t.progetto; t.mod = Date.now(); } });
+  state.budget.progetti = progTutti().filter(x => x.id !== id);
+  budTocca(); renderAll();
+}
+
+// ─── Scheda Progetti ─────────────────────────────────────────────
+function _badgeProg(s) {
+  const map = { accumulo: ['in accumulo', 'var(--text-muted)'], pronto: ['✅ pronto', 'var(--accent)'], scaduto: ['⚠️ scadenza passata', 'var(--danger)'], realizzato: ['realizzato', 'var(--text-faint)'] };
+  const [t, c] = map[s] || map.accumulo; return `<span style="color:${c};white-space:nowrap;font-size:13px;">${t}</span>`;
+}
+function budViewProgetti() {
+  const M = margCalcola(), RS = progRisparmio(M);
+  const att = progAttivi(), fatti = progTutti().filter(p => p.stato === 'realizzato');
+  let h = `<div class="metric-grid">
+    <div class="metric accent"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">accumulato ${fmt(RS.lordo)}${RS.assegnato > 0.5 ? ` − assegnato ai progetti ${fmt(RS.assegnato)}` : ''}${Math.abs(RS.rientri) > 0.5 ? ` ${RS.rientri >= 0 ? '+' : '−'} saldi dei progetti chiusi ${fmt(Math.abs(RS.rientri))}` : ''}</div></div>
+    <div class="metric"><div class="metric-label">Quote progetti di ${MESI_LUNGHI[new Date().getMonth()]}</div><div class="metric-value">${fmt(_sum(att.map(p => progPiano(p).quotaMese)))}</div><div class="metric-sub">tolte dal margine del mese</div></div>
+    <div class="metric"><div class="metric-label">Nei fondi dei progetti</div><div class="metric-value">${fmt(progVincolato())}</div><div class="metric-sub">conteggiati nel vincolato</div></div>
+  </div>`;
+  if(RS.libero < -0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">⚠️ Hai assegnato ai progetti più di quanto hai risparmiato: il risparmio libero è negativo di ${fmt(-RS.libero)}. Riduci le somme «dal risparmio» o affidati di più alle quote mensili.</div>`;
+  h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">Progetti in corso</div><button class="btn btn-primary" style="font-size:13px;" onclick="progNuovo();renderBudget();">+ Nuovo progetto</button></div>`;
+  if(!att.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessun progetto in corso. Creane uno qui oppure dal simulatore «Posso permettermelo?» nella Panoramica.</div>`;
+  att.forEach(p => {
+    const P = progPiano(p), pct = P.obiettivo > 0 ? Math.min(100, P.coperto / P.obiettivo * 100) : 0;
+    const id = p.id;
+    h += `<div class="bud-voce prog-card">
+      <div class="bud-voce-head"><input class="bud-in" style="font-size:14px;font-weight:600;min-width:180px;" value="${_esc(p.nome)}" onchange="progSet('${id}','nome',this.value)" /> ${_badgeProg(P.stato)}</div>
+      <div class="prog-bar"><i style="width:${pct}%;"></i></div>
+      <div class="prog-sintesi">Coperti <strong>${fmt(P.coperto)}</strong> su ${fmt(P.obiettivo)}${P.mancante > 0.5 ? ` · mancano ${fmt(P.mancante)}` : ''}${P.speso > 0.5 ? ` · già spesi ${fmt(P.speso)}` : ''} · nel fondo ${fmt(P.fondo)}</div>
+      <div class="prog-sintesi">${P.stato === 'scaduto' ? `La scadenza è passata: sposta la data o segna il progetto come realizzato.` : P.quotaMese > 0.005 ? `Quota di ${MESI_LUNGHI[new Date().getMonth()]}: <strong>${fmt(P.quotaMese)}</strong> · ${P.mesiRestanti} ${P.mesiRestanti === 1 ? 'mese' : 'mesi'} alla scadenza` : P.stato === 'pronto' ? 'Obiettivo coperto: nessuna quota da accantonare.' : 'Nessuna quota questo mese.'}</div>
+      <div class="fisc-campi">
+        <label class="fisc-campo">Obiettivo (€)${_inNum(p.obiettivo, `progSet('${id}','obiettivo',this.value)`, 120)}</label>
+        <label class="fisc-campo">Entro il mese<input type="month" class="bud-in" value="${_esc(p.scadenza || '')}" onchange="progSet('${id}','scadenza',this.value)" /></label>
+        <label class="fisc-campo">Dal risparmio (€)${_inNum(p.dalRisparmio, `progSet('${id}','dalRisparmio',this.value)`, 120)}<small>assegnati subito, riducono il risparmio libero</small></label>
+        <label class="fisc-campo">Quota mensile<select class="bud-in" onchange="progSet('${id}','quotaModo',this.value)"><option value="auto"${p.quotaModo !== 'manuale' ? ' selected' : ''}>calcolata</option><option value="manuale"${p.quotaModo === 'manuale' ? ' selected' : ''}>fissa</option></select>${p.quotaModo === 'manuale' ? _inNum(p.quotaManuale, `progSet('${id}','quotaManuale',this.value)`, 120) : ''}<small>riduce il margine di ogni mese</small></label>
+        <label class="fisc-campo">Accantona da<input type="month" class="bud-in" value="${_esc(p.inizio || '')}" onchange="progSet('${id}','inizio',this.value)" /></label>
+      </div>
+      <div class="prog-azioni"><button class="btn" style="font-size:12px;" onclick="progRealizza('${id}')">✓ Segna come realizzato</button><button class="btn" style="font-size:12px;color:var(--danger);" onclick="progElimina('${id}')">Elimina</button></div>
+    </div>`;
+  });
+  h += `<p class="fisc-hint">Per abbinare una spesa a un progetto apri il movimento con ✏️ e scegli il progetto: esce dal fondo del progetto e non pesa sugli extra del mese. Le quote dei mesi già chiusi restano quelle applicate; se cambi importo o scadenza la quota si ricalcola sui mesi che restano.</p></div>`;
+  if(fatti.length) {
+    h += `<div class="card"><div class="card-title">Realizzati</div><table class="bud-table"><thead><tr><th>Progetto</th><th>Speso</th><th>Saldo al risparmio</th><th></th></tr></thead><tbody>`;
+    fatti.forEach(p => { const P = progPiano(p); h += `<tr><td>${_esc(p.nome)} <small style="color:var(--text-faint);">${_kOk(p.realizzatoIl) ? _kNome(p.realizzatoIl) : ''}</small></td><td class="num">${fmt(P.speso)}</td><td class="num" style="color:${P.fondo < -0.5 ? 'var(--danger)' : 'inherit'};">${P.fondo >= 0 ? '+' : '−'}${fmt(Math.abs(P.fondo))}</td><td class="num"><a href="#" onclick="progRiapri('${p.id}');return false;" style="color:var(--accent);font-size:12px;">Riapri</a></td></tr>`; });
+    h += `</tbody></table></div>`;
+  }
+  return h;
+}
+
+// ─── Simulatore «Posso permettermelo?» (Panoramica) ──────────────
+let simUi = { imp: '', k: null };
+function simHtml() {
+  const oggi = _kOggi();
+  if(!simUi.k || simUi.k < oggi) simUi.k = oggi;
+  const opz = []; for(let i = 0; i <= 12; i++) { const k = _kAdd(oggi, i); opz.push(`<option value="${k}"${k === simUi.k ? ' selected' : ''}>${i === 0 ? 'questo mese' : _kNome(k)}</option>`); }
+  return `<div class="card"><div class="card-title">Posso permettermelo?</div>
+    <div class="sim-in">
+      <label class="fisc-campo">Importo (€)<input id="sim-imp" class="bud-in" inputmode="decimal" placeholder="es. 800" value="${_esc(simUi.imp)}" oninput="simUi.imp=this.value;simAggiorna()" /></label>
+      <label class="fisc-campo">Quando<select id="sim-mese" class="bud-in" onchange="simUi.k=this.value;simAggiorna()">${opz.join('')}</select></label>
+    </div>
+    <div id="sim-out">${simRisultato()}</div></div>`;
+}
+function simAggiorna() { const el = document.getElementById('sim-out'); if(el) el.innerHTML = simRisultato(); }
+function simRisultato() {
+  const A = _num(simUi.imp);
+  if(!A || A <= 0) return `<div class="fisc-hint" style="margin-top:4px;">Inserisci un importo: vedi subito se ci sta nel margine, nel risparmio o se conviene pianificarlo.</div>`;
+  const M = margCalcola(); if(!M) return '';
+  const oggi = _kOggi(), K = simUi.k || oggi, c = M.corrente;
+  const perK = k => M.mesi.find(r => _mk(r.anno, r.m) === k);
+  const disponibileDi = k => { const r = perK(k); if(!r) return null; return r.stato === 'corso' ? r.disp : r.marg; };
+  const riga = (ico, tit, testo) => `<div class="sim-riga"><div class="sim-ico">${ico}</div><div><div class="sim-tit">${tit}</div><div class="sim-txt">${testo}</div></div></div>`;
+  let h = '';
+  // A. dal margine del mese scelto
+  const dk = disponibileDi(K);
+  if(dk == null) h += riga('·', 'Dal margine', `Non c'è un budget per ${_kNome(K)}.`);
+  else {
+    const dopo = dk - A, stima = K !== oggi ? ' (stima sul margine previsto, prima degli extra)' : '';
+    if(dopo >= 0) {
+      let extra = '';
+      if(K === oggi && c) { const g = new Date(c.anno, c.m + 1, 0).getDate() - new Date().getDate() + 1; extra = `, circa ${fmt(dopo / Math.max(1, g))} al giorno`; }
+      h += riga('✅', `Dal margine di ${K === oggi ? MESI_LUNGHI[+K.substring(5, 7) - 1] : _kNome(K)}`, `Ci sta: restano ${fmt(dopo)}${extra}${stima}.`);
+    } else h += riga('⚠️', `Dal margine di ${K === oggi ? MESI_LUNGHI[+K.substring(5, 7) - 1] : _kNome(K)}`, `Superi il margine di ${fmt(-dopo)}${stima}: il mese dopo partirebbe con ${fmt(dopo)} di riporto.`);
+  }
+  // B. dal risparmio
+  const RS = progRisparmio(M), libero = RS.libero - A;
+  const liq = state.accounts.reduce((s, a) => s + (a.saldo || 0), 0);
+  const annoC = crAnnoOggi(), vinc = (annoC != null ? _sum(budFondiOggi(annoC).righe.map(r => Math.max(0, r.saldo))) : 0) + progVincolato();
+  const dispDopo = liq - vinc - A;
+  if(libero >= 0) h += riga(dispDopo >= 0 ? '✅' : '⚠️', 'Dal risparmio', `Il risparmio libero passa da ${fmt(RS.libero)} a ${fmt(libero)}.${dispDopo >= 0 ? ` La liquidità continua a coprire tutti i fondi (restano ${fmt(dispDopo)} liberi).` : ` Però la liquidità non coprirebbe più i fondi: mancherebbero ${fmt(-dispDopo)}.`}`);
+  else h += riga('⚠️', 'Dal risparmio', `Il risparmio libero (${fmt(RS.libero)}) non basta: mancano ${fmt(-libero)}.`);
+  // C. pianificata con una quota mensile
+  if(K > oggi) {
+    const n = _kDiff(oggi, K) + 1, q = A / n;
+    const disp = []; for(let i = 0; i < n; i++) { const d = disponibileDi(_kAdd(oggi, i)); if(d != null) disp.push(d - q); }
+    const media = disp.length ? _sum(disp) / disp.length : null;
+    h += riga(media == null ? '·' : media >= 0 ? '✅' : '⚠️', 'Pianificata', `Accantonando ${fmt(q)} al mese per ${n} mesi, fino a ${_kNome(K)}.${media != null ? ` Il margine medio di quei mesi scenderebbe a circa ${fmt(media)}.` : ''}
+      <div style="margin-top:6px;"><button class="btn" style="font-size:12px;padding:4px 10px;" onclick="simCreaProgetto()">Crea il progetto</button></div>`);
+  } else h += riga('·', 'Pianificata', 'Per pianificarla con una quota mensile scegli un mese futuro.');
+  return h;
+}
+function simCreaProgetto() {
+  const A = _num(simUi.imp); if(!A) return;
+  const nome = prompt('Nome del progetto:', 'Nuova spesa'); if(nome === null) return;
+  progNuovo({ nome: nome.trim() || 'Nuova spesa', obiettivo: A, scadenza: simUi.k || _kAdd(_kOggi(), 1) });
+  simUi.imp = '';
+  budUi.tab = 'progetti'; go('budget');
+}
+
+
 function renderBudget() {
   const el = document.getElementById('bud-content'); if(!el) return;
   try { if(fiscMigra()) budTocca(); } catch(e) { console.warn(e); }
@@ -2358,6 +2630,7 @@ function renderBudget() {
   try {
     switch(budUi.tab) {
       case 'margine': body = budViewMargine(); break;
+      case 'progetti': body = budViewProgetti(); break;
       case 'riepilogo': body = budViewRiepilogo(anno); break;
       case 'consuntivo': body = budViewConsuntivo(anno); break;
       case 'scadenze': body = budViewScadenze(anno); break;
@@ -3467,6 +3740,12 @@ function editTx(idx) {
   } else rip.style.display = 'none';
   etxAggiornaToggleRip();
 
+  // Progetto
+  const progSel = document.getElementById('etx-prog');
+  const progList = progTutti().filter(p => p.stato !== 'realizzato' || p.id === tx.progetto);
+  progSel.innerHTML = `<option value="">— nessuno —</option>` + progList.map(p => `<option value="${p.id}"${p.id === tx.progetto ? ' selected' : ''}>🎯 ${_esc(p.nome)}${p.stato === 'realizzato' ? ' (realizzato)' : ''}</option>`).join('');
+  document.getElementById('etx-prog-group').style.display = progList.length ? 'block' : 'none';
+
   // Da fattura
   _etxFattToccato = false;
   document.getElementById('etx-fattura').checked = isDaFattura(tx);
@@ -3606,6 +3885,10 @@ function saveTxEdit() {
   if(txChiave(tx) !== chiavePrima) { if(!Array.isArray(state.txEliminate)) state.txEliminate = []; state.txEliminate.push(chiavePrima); }
   tx.mod = Date.now();
 
+  // Progetto
+  const progVal = document.getElementById('etx-prog').value;
+  if(progVal && progPerId(progVal)) tx.progetto = progVal; else delete tx.progetto;
+
   // Da fattura (solo entrate; salvato solo se toccato a mano)
   if(tx.tipo !== 'entrata') delete tx.daFattura;
   else if(_etxFattToccato) tx.daFattura = document.getElementById('etx-fattura').checked;
@@ -3617,6 +3900,8 @@ function saveTxEdit() {
   renderCatList();
   renderCharts();
   renderMetrics();
+  renderCruscotto();
+  renderBudget();
 }
 
 // ─── Files list ───────────────────────────────────────────────────
