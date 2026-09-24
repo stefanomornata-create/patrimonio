@@ -904,6 +904,7 @@ canvas, img, svg { max-width: 100%; }
       </label>
     </div>
     <div class="btn-row" style="justify-content:flex-end;margin-top:1rem;">
+      <button class="btn btn-danger" style="margin-right:auto;" onclick="deleteTxSingola()">🗑 Elimina</button>
       <button class="btn" onclick="document.getElementById('modal-edit-tx').classList.remove('open')">Annulla</button>
       <button class="btn btn-primary" onclick="saveTxEdit()">Salva</button>
     </div>
@@ -1005,6 +1006,12 @@ let charts = {};
 // ─── Persist ─────────────────────────────────────────────────────
 function save() {
   state.modificato = new Date().toISOString();
+  // Lapidi di transazioni tornate presenti (reimportate o reinserite): vanno tolte,
+  // altrimenti la prossima unione con Drive le cancellerebbe di nuovo
+  if(Array.isArray(state.txEliminate) && state.txEliminate.length && typeof txChiave === 'function') {
+    const presenti = new Set((state.transactions || []).map(txChiave));
+    state.txEliminate = state.txEliminate.filter(k => !presenti.has(k));
+  }
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
   scheduleDriveSave();
 }
@@ -3858,6 +3865,7 @@ function saveTxEdit() {
   }
 
   const chiavePrima = txChiave(tx);
+  const giroPrima = txIsGiro(tx), deltaPrima = txDeltaSaldo(tx);
   if(nuovaData) tx.data = new Date(nuovaData + 'T00:00:00Z').toISOString();
   tx.importo = impFinale;
   if(nuovaDesc) tx.descrizione = nuovaDesc;
@@ -3881,6 +3889,17 @@ function saveTxEdit() {
     else { tx.voceManuale = true; tx.voce = voceSel; const v = vocePerId(voceSel); if(v) tx.categoria = v.categoria; }
   }
 
+  // Saldo del conto: si aggiorna solo se la transazione non è un giroconto né prima né dopo
+  // (spostarla da/verso Giroconto non tocca il saldo, coerente con l'import)
+  if(!giroPrima && !txIsGiro(tx)) {
+    const diff = txDeltaSaldo(tx) - deltaPrima;
+    const conto = txContoDi(tx);
+    if(conto && Math.abs(diff) >= 0.005) {
+      contoApplicaDelta(conto, diff);
+      logMsg('🏦 Saldo ' + conto.banca + ' aggiornato: ' + (diff >= 0 ? '+' : '') + fmt(diff) + ' → ' + fmt(conto.saldo), 'ok');
+    }
+  }
+
   // Se cambiano data, importo, tipo o descrizione la vecchia chiave va segnata come eliminata
   if(txChiave(tx) !== chiavePrima) { if(!Array.isArray(state.txEliminate)) state.txEliminate = []; state.txEliminate.push(chiavePrima); }
   tx.mod = Date.now();
@@ -3902,6 +3921,55 @@ function saveTxEdit() {
   renderMetrics();
   renderCruscotto();
   renderBudget();
+  renderBankList();
+}
+
+// ─── Effetto di una transazione sul saldo del suo conto ──────────
+// Stessa regola dell'import: entrate +, uscite −, giroconti esclusi.
+function txIsGiro(t) { return t.categoria === 'Giroconto' || t.tipo === 'Giroconto'; }
+function txContoDi(t) { return state.accounts.find(a => a.banca === t.conto) || null; }
+function txDeltaSaldo(t) {
+  if(txIsGiro(t)) return 0;
+  const imp = +t.importo || 0;
+  return t.tipo === 'entrata' ? imp : -imp;
+}
+function contoApplicaDelta(conto, delta) {
+  if(!conto || Math.abs(delta) < 0.005) return;
+  let v = (conto.saldo || 0) + delta;
+  if(conto.isPortafoglio || conto.isPaypal) v = Math.max(0, v); // come all'inserimento
+  conto.saldo = Math.round(v * 100) / 100;
+}
+
+// ─── Eliminazione singola transazione (dal modal ✏️) ─────────────
+function deleteTxSingola() {
+  const idx = _editTxIdx;
+  const tx = state.transactions[idx];
+  if(idx < 0 || !tx) return;
+  const segno = tx.tipo === 'entrata' ? '+' : '−';
+  const conto = txContoDi(tx);
+  const delta = -txDeltaSaldo(tx); // annulla l'effetto della transazione
+  const k = txChiave(tx);
+  const gemelle = state.transactions.filter((t, i) => i !== idx && txChiave(t) === k).length;
+  let msg = 'Eliminare questa transazione?\n\n' + fmtDate(tx.data) + '  ' + segno + fmt(tx.importo) +
+            '\n' + (tx.descrizione || '—') + '\n' + (tx.conto || '');
+  if(conto && Math.abs(delta) >= 0.005)
+    msg += '\n\nSaldo ' + conto.banca + ': ' + fmt(conto.saldo || 0) + ' → ' + fmt((conto.saldo || 0) + delta);
+  else if(conto && txIsGiro(tx))
+    msg += '\n\nGiroconto: il saldo di ' + conto.banca + ' non viene modificato.';
+  if(gemelle) msg += '\n\nAttenzione: esiste un\'altra transazione identica (stessa data, importo e descrizione). ' +
+                     'Verrà eliminata solo questa, ma una sincronizzazione con Drive potrebbe farla ricomparire.';
+  msg += '\n\nL\'operazione non si può annullare.';
+  if(!confirm(msg)) return;
+
+  // Lapide solo se non restano gemelle, altrimenti l'unione Drive cancellerebbe anche quelle
+  if(!gemelle) txSegnaEliminate([tx]);
+  contoApplicaDelta(conto, delta);
+  state.transactions.splice(idx, 1);
+  _editTxIdx = -1;
+  document.getElementById('modal-edit-tx').classList.remove('open');
+  save();
+  renderAll();
+  logMsg('🗑 Transazione eliminata: ' + (tx.descrizione || '—') + ' (' + segno + fmt(tx.importo) + ')', 'ok');
 }
 
 // ─── Files list ───────────────────────────────────────────────────
