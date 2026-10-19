@@ -684,6 +684,61 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .spese-leg .leg-p { display: none; }
   .and-inner { height: 190px; }
 }
+/* Movimenti */
+.tx-barra { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.tx-cerca { display: flex; align-items: center; gap: 10px; height: 46px; max-width: 420px; background: #fff; border: 1px solid rgba(0,0,0,0.12); border-radius: 12px; padding: 0 14px; }
+.tx-cerca input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; font: inherit; font-size: 15px; color: var(--text); }
+.tx-filtri { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+@media (max-width: 899px) { .tx-filtri { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px; padding: 0 16px 2px; scrollbar-width: none; } .tx-filtri::-webkit-scrollbar { display: none; } .tx-filtri > * { flex-shrink: 0; } }
+.pill-sel { position: relative; }
+.pill-sel select { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 16px; }
+.pill-dc { background: var(--arancio-bg); color: var(--arancio); border-color: #f0d9a8; font-weight: 600; }
+.pill-dc.on { background: var(--arancio); color: #fff; border-color: var(--arancio); }
+.tx-riep { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 13px; color: var(--text-muted); padding: 0 4px 6px; }
+.tx-riep strong { color: var(--text); }
+.tx-giorno { margin-bottom: 8px; }
+.tx-giorno-testa { display: flex; justify-content: space-between; gap: 10px; padding: 8px 4px 6px; font-size: 12px; color: var(--text-muted); }
+.tx-giorno-testa span:first-child { font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+.tx-giorno-corpo { background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 0 14px; }
+.tx-riga { width: 100%; background: none; border: none; border-top: 1px solid rgba(0,0,0,0.06); padding: 12px 0; display: flex; align-items: center; gap: 12px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.tx-riga:first-child { border-top: none; }
+.tx-riga.esclusa { opacity: 0.5; }
+.tx-punto { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.tx-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.tx-desc { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-sotto { font-size: 12px; color: var(--text-muted); display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.tx-cat.dc { color: var(--arancio); font-weight: 600; }
+.tx-tag { border: 1px solid rgba(0,0,0,0.15); border-radius: 6px; padding: 0 6px; font-size: 11px; }
+.tx-tag.fatt { background: #e8f0e8; color: var(--accent); border-color: transparent; font-weight: 600; }
+.tx-c-cat, .tx-c-conto { display: none; }
+.tx-imp { font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tx-imp.ent { color: var(--accent); }
+.tx-imp.giro { color: #8c8c87; }
+.tx-altri { width: 100%; height: 46px; margin-top: 6px; }
+.interr { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; padding: 8px 0; cursor: pointer; }
+.interr input { width: 22px; height: 22px; accent-color: var(--accent); flex-shrink: 0; }
+#modal-edit-tx .modal { width: 460px; max-height: calc(100vh - 40px); overflow-y: auto; }
+@media (min-width: 900px) {
+  .tx-barra { flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .tx-cerca { width: 300px; height: 40px; }
+  .tx-giorno-corpo { padding: 0 8px; }
+  .tx-riga { display: grid; grid-template-columns: 12px minmax(0,2.2fr) minmax(0,1fr) minmax(0,0.9fr) auto; gap: 14px; padding: 10px; border-radius: 10px; }
+  .tx-riga:hover { background: #faf8f3; }
+  .tx-riga.sel { background: #eef3ec; }
+  .tx-riga .tx-cat, .tx-riga .tx-conto { display: none; }
+  .tx-main { gap: 0; }
+  .tx-sotto { gap: 4px; }
+  .tx-sotto .tx-tag { margin-top: 3px; }
+  .tx-c-cat, .tx-c-conto { display: block; font-size: 13px; color: #4a4a47; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tx-c-conto { color: var(--text-muted); }
+  .tx-imp { text-align: right; }
+}
+@media (min-width: 1100px) {
+  body.etx-aperto #sec-transazioni.active ~ * { }
+  body.etx-aperto .main { margin-right: 380px; }
+  body.etx-aperto #modal-edit-tx { background: none; backdrop-filter: none; pointer-events: none; justify-content: flex-end; align-items: stretch; }
+  body.etx-aperto #modal-edit-tx .modal { pointer-events: auto; width: 360px; max-height: none; height: 100vh; border-radius: 0; border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,0.06); }
+}
 </style>
 </head>
 <body>
@@ -790,49 +845,17 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   <div id="bud-content"></div>
 </div>
 
-<!-- TRANSAZIONI -->
+<!-- TRANSAZIONI (Movimenti) -->
 <div class="section" id="sec-transazioni">
-  <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
-    <div><h1 class="page-title">Movimenti</h1><p class="page-sub">Tutti i movimenti dei tuoi conti</p></div>
-    <div class="btn-row tx-filters">
-      <select class="form-input" id="filter-conto" onchange="renderTransazioni()" style="width:160px;font-size:13px;">
-        <option value="">Tutti i conti</option>
-      </select>
-      <select class="form-input" id="filter-cat" onchange="renderTransazioni()" style="width:160px;font-size:13px;">
-        <option value="">Tutte le categorie</option>
-      </select>
-      <select class="form-input" id="filter-type" onchange="renderTransazioni()" style="width:130px;font-size:13px;">
-        <option value="">Tutti i tipi</option>
-        <option value="uscita">Solo uscite</option>
-        <option value="entrata">Solo entrate</option>
-      </select>
-      <button class="btn btn-sm" onclick="resetFiltriTx()" style="font-size:13px;" title="Azzera tutti i filtri">Azzera</button>
-    </div>
+  <div class="page-head"><div><h1 class="page-title">Movimenti</h1><p class="page-sub">Tutti i movimenti dei tuoi conti</p></div></div>
+  <div class="tx-barra">
+    <label class="tx-cerca"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b6b67" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="tx-q" type="search" placeholder="Cerca descrizione o importo" aria-label="Cerca" oninput="txUi.q=this.value;txUi.limite=120;renderTransazioni()" /></label>
+    <div class="tx-filtri" id="tx-filtri"></div>
   </div>
-  <div id="tx-da-classificare" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 16px;margin-bottom:1rem;font-size:13px;"></div>
-  <div id="tx-riepilogo" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 16px;margin-bottom:1rem;font-size:13px;flex-wrap:wrap;gap:16px;align-items:center;"></div>
-  <div class="card tx-card-wrap" style="padding:0;overflow:hidden;">
-    <div style="overflow-x:auto;">
-      <table class="tx-table">
-        <thead>
-          <tr>
-            <th style="width:36px;text-align:center;" title="Includi/escludi dalle statistiche">✓</th><th>Data</th>
-            <th>Descrizione</th>
-            <th>Categoria</th>
-            <th>Conto</th>
-            <th style="text-align:right;">Importo</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="tx-tbody"></tbody>
-      </table>
-    </div>
-    <div id="tx-empty" class="empty" style="display:none;">
-      <div class="empty-icon">📋</div>
-      <div class="empty-title">Nessuna transazione</div>
-      <div class="empty-sub">Carica un estratto conto per vedere le tue operazioni</div>
-    </div>
-  </div>
+  <div class="tx-riep" id="tx-riepilogo"></div>
+  <div id="tx-lista"></div>
+  <button class="btn tx-altri" id="tx-altri" style="display:none;" onclick="txAltri()">Mostra altri movimenti</button>
 </div>
 
 <!-- CARICA -->
@@ -992,56 +1015,48 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 
 <!-- MODAL SPESA CONTANTI -->
 <!-- Modal modifica transazione -->
-<div class="modal-bg" id="modal-edit-tx">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Modifica transazione">
-    <div class="modal-title">✏️ Modifica transazione</div>
+<div class="modal-bg" id="modal-edit-tx" onclick="if(event.target===this)etxChiudi()">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Modifica movimento">
+    <div class="maniglia"></div>
+    <div class="md-testa"><div class="modal-title" id="etx-titolo" style="margin:0;">Movimento</div>
+      <button class="x-chiudi" aria-label="Chiudi" onclick="etxChiudi()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="seg" style="margin-bottom:14px;"><button type="button" id="etx-seg-u" onclick="etxTipo('uscita')">Uscita</button><button type="button" id="etx-seg-e" onclick="etxTipo('entrata')">Entrata</button></div>
+    <select id="etx-tipo" hidden onchange="etxAggiornaFattura()"><option value="uscita">Uscita</option><option value="entrata">Entrata</option></select>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Data</label>
-        <input type="date" class="form-input" id="etx-data" />
+        <label class="form-label" for="etx-importo">Importo (€)</label>
+        <input type="number" class="form-input" id="etx-importo" step="0.01" min="0" inputmode="decimal" placeholder="0,00" oninput="etxAggiornaTotRip()" />
       </div>
       <div class="form-group">
-        <label class="form-label">Importo (€)</label>
-        <input type="number" class="form-input" id="etx-importo" step="0.01" min="0" placeholder="0.00" oninput="etxAggiornaTotRip()" />
+        <label class="form-label" for="etx-data">Data</label>
+        <input type="date" class="form-input" id="etx-data" />
       </div>
     </div>
     <div class="form-group">
-      <label class="form-label">Tipo</label>
-      <select class="form-input" id="etx-tipo" onchange="etxAggiornaFattura()">
-        <option value="uscita">💸 Uscita</option>
-        <option value="entrata">💰 Entrata</option>
-      </select>
-      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Per un giroconto scegli uscita o entrata e la categoria 🔄 Giroconto.</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Descrizione</label>
+      <label class="form-label" for="etx-desc">Descrizione</label>
       <input type="text" class="form-input" id="etx-desc" placeholder="Descrizione…" />
     </div>
-    <div class="form-group">
-      <label class="form-label">Categoria</label>
-      <select class="form-input" id="etx-cat" onchange="etxCatCambiata()"></select>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label" for="etx-cat">Categoria</label>
+        <select class="form-input" id="etx-cat" onchange="etxCatCambiata()"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="etx-voce">Voce di budget</label>
+        <select class="form-input" id="etx-voce" onchange="etxVoceCambiata()"></select>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Voce di budget</label>
-      <select class="form-input" id="etx-voce" onchange="etxVoceCambiata()"></select>
-      <div style="margin-top:6px;"><a href="#" id="etx-rip-toggle" onclick="etxToggleRip();return false;" style="font-size:12px;color:var(--accent);">Ripartisci tra più voci</a></div>
-      <div id="etx-rip" style="display:none;margin-top:8px;"></div>
-    </div>
+    <div style="margin:-6px 0 12px;"><a href="#" id="etx-rip-toggle" class="link" onclick="etxToggleRip();return false;">Ripartisci tra più voci</a></div>
+    <div id="etx-rip" style="display:none;margin-bottom:12px;"></div>
     <div class="form-group" id="etx-prog-group">
-      <label class="form-label">Progetto</label>
+      <label class="form-label" for="etx-prog">Progetto</label>
       <select class="form-input" id="etx-prog"></select>
-      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Una spesa abbinata esce dal fondo del progetto e non pesa sugli extra del mese.</div>
+      <div class="riga-sotto" style="margin-top:4px;">Una spesa abbinata esce dal fondo del progetto e non pesa sugli extra del mese.</div>
     </div>
-    <div class="form-group" id="etx-fatt-group" style="display:none;">
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;">
-        <input type="checkbox" id="etx-fattura" onchange="_etxFattToccato=true" /> 🧾 Da fattura (conta nel fatturato per la stima delle imposte)
-      </label>
-    </div>
-    <div class="btn-row" style="justify-content:flex-end;margin-top:1rem;">
-      <button class="btn btn-danger" style="margin-right:auto;" onclick="deleteTxSingola()">🗑 Elimina</button>
-      <button class="btn" onclick="document.getElementById('modal-edit-tx').classList.remove('open')">Annulla</button>
-      <button class="btn btn-primary" onclick="saveTxEdit()">Salva</button>
-    </div>
+    <label class="interr" id="etx-fatt-group"><span>Entrata da fattura (conta per le imposte)</span><input type="checkbox" id="etx-fattura" onchange="_etxFattToccato=true" /></label>
+    <label class="interr"><span>Escludi dalle statistiche</span><input type="checkbox" id="etx-esclusa" /></label>
+    <button class="btn btn-primary btn-largo" style="margin-top:6px;" onclick="saveTxEdit()">Salva</button>
+    <div class="conto-elimina"><button class="link rosso" onclick="deleteTxSingola()">Elimina il movimento</button></div>
   </div>
 </div>
 
@@ -1718,16 +1733,6 @@ const MIGRAZIONI_UNA_TANTUM = [
 ];
 
 // ─── Pannello "da classificare" in Transazioni ───────────────────
-function renderDaClassificare() {
-  const el = document.getElementById('tx-da-classificare');
-  if(!el) return;
-  const n = state.transactions.filter(t => t.categoria === 'Da classificare' && !t.esclusa).length;
-  const fc = document.getElementById('filter-cat');
-  if(!n || (fc && fc.value === 'Da classificare')) { el.style.display = 'none'; return; }
-  el.style.display = 'flex';
-  el.innerHTML = `<span>📌 <strong>${n}</strong> ${n===1?'transazione':'transazioni'} da classificare</span>
-    <button class="btn" style="font-size:12px;padding:4px 10px;" onclick="apriTransazioniCat('Da classificare')">Mostra</button>`;
-}
 
 // ═════════════════════════════════════════════════════════════════
 // MODULO BUDGET  (fase 2a — piano annuale, fondi, consuntivo)
@@ -3880,146 +3885,110 @@ const ALL_CATS = [
 ];
 
 // ─── Transazioni ─────────────────────────────────────────────────
+// ─── Movimenti (nuova grafica) ───────────────────────────────────
+let txUi = { q: '', mese: null, conto: '', cat: '', tipo: '', dc: false, limite: 120, sel: null };
+const GIORNI_SETT = ['domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato'];
+function _ymdUTC(iso) { return String(iso || '').substring(0, 10); }
+function txTitoloGiorno(ymd) {
+  const d = new Date(ymd + 'T00:00:00Z'), oggi = _oggiYMD();
+  const ieri = (() => { const x = new Date(); x.setDate(x.getDate() - 1); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); })();
+  const base = `${GIORNI_SETT[d.getUTCDay()]} ${d.getUTCDate()} ${MESI_LUNGHI[d.getUTCMonth()]}${d.getUTCFullYear() !== new Date().getFullYear() ? ' ' + d.getUTCFullYear() : ''}`;
+  return ymd === oggi ? 'Oggi, ' + base : ymd === ieri ? 'Ieri, ' + base : _maiu(base);
+}
+function txSet(campo, val) { txUi[campo] = val; txUi.limite = 120; if(campo !== 'dc' && campo !== 'q') txUi.dc = campo === 'cat' ? val === 'Da classificare' : txUi.dc; renderTransazioni(); }
+function txToggleDc() { txUi.dc = !txUi.dc; txUi.cat = ''; txUi.limite = 120; renderTransazioni(); }
+function txAltri() { txUi.limite += 200; renderTransazioni(); }
+function _pillSelect(id, etichetta, opzioni, val, onch) {
+  return `<label class="pill pill-sel${val ? ' on' : ''}">${_esc(etichetta)}<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b6b67" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+    <select id="${id}" aria-label="${_esc(etichetta)}" onchange="${onch}">${opzioni.map(([v, l]) => `<option value="${_esc(v)}"${v === val ? ' selected' : ''}>${_esc(l)}</option>`).join('')}</select></label>`;
+}
+
 function renderTransazioni() {
-  const tbody = document.getElementById('tx-tbody');
-  const emptyEl = document.getElementById('tx-empty');
-  if(!tbody) return;
+  const lista = document.getElementById('tx-lista');
+  if(!lista) return;
+  if(txUi.mese === null) txUi.mese = _oggiYMD().substring(0, 7);
+  const tutte = state.transactions.map((t, i) => ({ ...t, _idx: i }));
 
-  const filterCat = document.getElementById('filter-cat')?.value || '';
-  const filterType = document.getElementById('filter-type')?.value || '';
-  const filterConto = document.getElementById('filter-conto')?.value || '';
+  // Filtri a pastiglia
+  const mesi = [...new Set(tutte.map(t => String(t.data || '').substring(0, 7)).filter(k => /^\d{4}-\d{2}$/.test(k)))].sort().reverse();
+  if(txUi.mese && !mesi.includes(txUi.mese)) mesi.unshift(txUi.mese);
+  const conti = [...new Set([...state.accounts.map(a => a.banca), ...state.transactions.map(t => t.conto)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  const cats = [...new Set([...ALL_CATS, ...state.transactions.map(t => t.categoria)].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'it'));
+  const nDc = state.transactions.filter(t => t.categoria === 'Da classificare' && !t.esclusa).length;
+  const f = document.getElementById('tx-filtri');
+  if(f) f.innerHTML = (nDc ? `<button class="pill pill-dc${txUi.dc ? ' on' : ''}" onclick="txToggleDc()">Da classificare · ${nDc}</button>` : '')
+    + _pillSelect('filter-mese', txUi.mese ? _maiu(_kNome(txUi.mese)) : 'Tutti i mesi', [['', 'Tutti i mesi'], ...mesi.map(k => [k, _maiu(_kNome(k))])], txUi.mese, "txSet('mese',this.value)")
+    + _pillSelect('filter-conto', txUi.conto || 'Tutti i conti', [['', 'Tutti i conti'], ...conti.map(c => [c, c])], txUi.conto, "txSet('conto',this.value)")
+    + _pillSelect('filter-cat', txUi.cat || 'Tutte le categorie', [['', 'Tutte le categorie'], ...cats.map(c => [c, c])], txUi.cat, "txSet('cat',this.value)")
+    + _pillSelect('filter-type', txUi.tipo === 'uscita' ? 'Solo uscite' : txUi.tipo === 'entrata' ? 'Solo entrate' : 'Entrate e uscite', [['', 'Entrate e uscite'], ['uscita', 'Solo uscite'], ['entrata', 'Solo entrate']], txUi.tipo, "txSet('tipo',this.value)")
+    + ((txUi.mese !== _oggiYMD().substring(0, 7) || txUi.conto || txUi.cat || txUi.tipo || txUi.dc || txUi.q) ? `<button class="link" onclick="resetFiltriTx()">Azzera</button>` : '');
 
-  // Populate filter dropdown (include all categories seen + all known)
-  const cats = [...new Set([...ALL_CATS, ...state.transactions.map(t=>t.categoria)])].sort();
-  const fc = document.getElementById('filter-cat');
-  if(fc) {
-    const cur = fc.value;
-    fc.innerHTML = '<option value="">Tutte le categorie</option>' + cats.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+  let txs = tutte;
+  if(txUi.dc) txs = txs.filter(t => t.categoria === 'Da classificare');
+  // con «Da classificare» acceso si vedono tutti i mesi, così non ne sfugge nessuno
+  if(txUi.mese && !txUi.dc) txs = txs.filter(t => String(t.data || '').startsWith(txUi.mese));
+  if(txUi.conto) txs = txs.filter(t => t.conto === txUi.conto);
+  if(txUi.cat) txs = txs.filter(t => t.categoria === txUi.cat);
+  if(txUi.tipo) txs = txs.filter(t => t.tipo === txUi.tipo);
+  const q = txUi.q.trim().toLowerCase();
+  if(q) {
+    const qn = q.replace(/\./g, '').replace(',', '.');
+    txs = txs.filter(t => String(t.descrizione || '').toLowerCase().includes(q) || String(t.conto || '').toLowerCase().includes(q)
+      || (/^\d+([.,]\d+)?$/.test(q) && (String(t.importo).startsWith(qn) || fmt(t.importo).includes(q))));
   }
+  txs.sort((a, b) => String(b.data).localeCompare(String(a.data)) || (b.creato || 0) - (a.creato || 0));
 
-  // Populate conto dropdown (conti registrati + conti presenti nelle transazioni)
-  const conti = [...new Set([
-    ...state.accounts.map(a=>a.banca),
-    ...state.transactions.map(t=>t.conto)
-  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'it'));
-  const fco = document.getElementById('filter-conto');
-  if(fco) {
-    const cur = fco.value;
-    fco.innerHTML = '<option value="">Tutti i conti</option>' + conti.map(c=>`<option value="${_esc(c)}" ${c===cur?'selected':''}>${_esc(c)}</option>`).join('');
-  }
-
-  renderDaClassificare();
-
-  let txs = [...state.transactions].map((t,i) => ({...t, _idx: i}));
-  if(filterCat) txs = txs.filter(t=>t.categoria===filterCat);
-  if(filterType) txs = txs.filter(t=>t.tipo===filterType);
-  if(filterConto) txs = txs.filter(t=>t.conto===filterConto);
-  txs.sort((a,b)=>new Date(b.data)-new Date(a.data));
-
-  // Riepilogo del set filtrato
+  // Riepilogo su una riga (giroconti, per conto terzi ed escluse fuori dai totali)
   const riep = document.getElementById('tx-riepilogo');
-  if(riep) {
-    if(!txs.length) {
-      riep.style.display = 'none';
-    } else {
-      // Come in Dashboard: esclusi Giroconto e Per conto terzi,
-      // salvo quando si filtra esplicitamente per una di queste categorie
-      const catNeutre = ['Giroconto','Per conto terzi'];
-      const inc = catNeutre.includes(filterCat)
-        ? txs.filter(t=>!t.esclusa)
-        : txAttive(txs);
-      const nNeutre = catNeutre.includes(filterCat) ? 0
-        : txs.filter(t=>!t.esclusa && catNeutre.includes(t.categoria)).length;
-      const tu = inc.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-      const te = inc.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
-      const mostrate = Math.min(txs.length, 200);
-      riep.style.display = 'flex';
-      const aggF = aggregaNetto(txAttive(inc));
-      const mostraNetto = aggF.spese > EPS && te > EPS && aggF.spese < tu - EPS;
-      riep.innerHTML = `
-        <span><strong>${txs.length}</strong> transazioni${txs.length>200?` (mostrate le ${mostrate} più recenti)`:''}</span>
-        <span style="color:var(--danger);">Uscite: <strong>${fmt(tu)}</strong></span>
-        <span style="color:var(--accent);">Entrate: <strong>${fmt(te)}</strong></span>
-        ${mostraNetto ? `<span title="Uscite meno i rimborsi ricevuti sulle stesse categorie">Spesa netta: <strong>${fmt(aggF.spese)}</strong></span>` : ''}
-        <span>Saldo: <strong>${fmt(te-tu)}</strong></span>
-        ${nNeutre ? `<span style="color:var(--text-faint);font-size:11px;" title="Giroconti e movimenti per conto terzi non sono conteggiati nei totali (come in Dashboard)">🔄🤝 ${nNeutre} escluse dai totali</span>` : ''}`;
-    }
-  }
+  const neutre = ['Giroconto', 'Per conto terzi'];
+  const inc = neutre.includes(txUi.cat) ? txs.filter(t => !t.esclusa) : txAttive(txs);
+  const tu = inc.filter(t => t.tipo === 'uscita').reduce((s, t) => s + t.importo, 0);
+  const te = inc.filter(t => t.tipo === 'entrata').reduce((s, t) => s + t.importo, 0);
+  if(riep) riep.innerHTML = txs.length ? `<span><strong>${txs.length}</strong> ${txs.length === 1 ? 'movimento' : 'movimenti'}</span><span>Uscite <strong>${fmt(tu)}</strong></span><span>Entrate <strong style="color:var(--accent);">${fmt(te)}</strong></span>` : '';
 
+  const altri = document.getElementById('tx-altri');
   if(!txs.length) {
-    tbody.innerHTML = '';
-    emptyEl.style.display = 'block';
+    lista.innerHTML = `<div class="card"><div class="empty"><div class="empty-title">Nessun movimento</div><div class="empty-sub">${state.transactions.length ? 'Nessun movimento con questi filtri.' : 'Carica un estratto conto per vedere le tue operazioni.'}</div></div></div>`;
+    if(altri) altri.style.display = 'none';
     return;
   }
-  emptyEl.style.display = 'none';
+  const vis = txs.slice(0, txUi.limite);
+  if(altri) { altri.style.display = txs.length > vis.length ? '' : 'none'; altri.textContent = `Mostra altri movimenti (${txs.length - vis.length})`; }
 
-  const catOptions = ALL_CATS.map(c=>`<option value="${c}">${catEmoji(c)} ${c}</option>`).join('');
-
-  tbody.innerHTML = txs.slice(0,200).map(t => {
-    const col = CAT_COLORS[t.categoria] || '#707070';
-    const esclusa = !!t.esclusa;
-    const rowStyle = esclusa ? 'opacity:0.38;' : '';
-    const toggleTitle = esclusa ? 'Esclusa dalle statistiche — clicca per includere' : 'Inclusa nelle statistiche — clicca per escludere';
-    const toggleIcon = esclusa
-      ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--border-strong);background:var(--surface2);color:var(--text-faint);font-size:13px;cursor:pointer;" title="${toggleTitle}" onclick="toggleExclude(${t._idx})">✕</span>`
-      : `<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--accent);background:var(--accent-light);color:var(--accent);font-size:13px;cursor:pointer;" title="${toggleTitle}" onclick="toggleExclude(${t._idx})">✓</span>`;
-    return `<tr style="${rowStyle}">
-      <td class="tx-c-tog" style="text-align:center;">${toggleIcon}</td>
-      <td class="tx-c-date" style="color:var(--text-muted);white-space:nowrap;">${fmtDate(t.data)}</td>
-      <td class="tx-c-desc" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_esc(t.descrizione||'')}">${_esc(t.descrizione||'—')}${(() => {
-        const lab = voceEtichetta(t), fatt = isDaFattura(t);
-        if(!lab && !fatt) return '';
-        return `<div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;">${lab ? '🎯 ' + _esc(lab) : ''}${fatt ? (lab?' · ':'') + '🧾 da fattura' : ''}</div>`;
-      })()}</td>
-      <td class="tx-c-cat">
-        <div style="position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;">
-          <span class="cat-pill" style="background:${col}18;color:${col};cursor:default;">${catEmoji(t.categoria)} ${t.categoria||'Da classificare'}</span>
-          <select
-            onchange="changeCat(${t._idx}, this.value)"
-            title="Modifica categoria"
-            style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;font-size:13px;">
-            <option value="" disabled selected>Cambia categoria…</option>
-            ${catOptions}
-          </select>
-        </div>
-        <span style="font-size:10px;color:var(--text-faint);margin-left:3px;" title="Clicca sulla categoria per modificarla">✎</span>
-      </td>
-      <td class="tx-c-conto" style="color:var(--text-muted);font-size:12px;">${_esc(t.conto||'—')}</td>
-      <td style="text-align:right;" class="tx-c-amt ${t.tipo==='entrata'?'amount-pos':'amount-neg'}">${t.tipo==='entrata'?'+':'−'}${fmt(t.importo)}</td>
-      <td class="tx-c-edit" style="text-align:center;padding:0 4px;">
-        <span title="Modifica transazione" onclick="editTx(${t._idx})" style="cursor:pointer;font-size:14px;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✏️</span>
-      </td>
-    </tr>`;
+  // Raggruppati per giorno
+  const giorni = [];
+  vis.forEach(t => { const g = _ymdUTC(t.data); const ult = giorni[giorni.length - 1]; if(ult && ult.g === g) ult.tx.push(t); else giorni.push({ g, tx: [t] }); });
+  lista.innerHTML = giorni.map(G => {
+    const att = txAttive(G.tx), tot = _sum(att.map(t => (t.tipo === 'entrata' ? 1 : -1) * (+t.importo || 0)));
+    return `<section class="tx-giorno"><div class="tx-giorno-testa"><span>${txTitoloGiorno(G.g)}</span><span>${att.length ? (tot >= 0 ? '+ ' : '− ') + fmt(Math.abs(tot)) : ''}</span></div>
+      <div class="tx-giorno-corpo">${G.tx.map(t => {
+        const col = CAT_COLORS[t.categoria] || '#707070', giro = txIsGiro(t), ent = t.tipo === 'entrata', dc = t.categoria === 'Da classificare';
+        return `<button class="tx-riga${t.esclusa ? ' esclusa' : ''}${txUi.sel === t._idx ? ' sel' : ''}" onclick="editTx(${t._idx})">
+          <span class="tx-punto" style="background:${col};"></span>
+          <span class="tx-main"><span class="tx-desc">${_esc(t.descrizione || '—')}</span>
+            <span class="tx-sotto"><span class="tx-cat${dc ? ' dc' : ''}">${_esc(t.categoria || 'Da classificare')}</span><span class="tx-conto">${_esc(t.conto || '—')}</span>${isDaFattura(t) ? '<span class="tx-tag fatt">da fattura</span>' : ''}${t.esclusa ? '<span class="tx-tag">esclusa</span>' : ''}</span></span>
+          <span class="tx-c-cat">${_esc(t.categoria || 'Da classificare')}</span><span class="tx-c-conto">${_esc(t.conto || '—')}</span>
+          <span class="tx-imp${giro ? ' giro' : ent ? ' ent' : ''}">${ent ? '+ ' : '− '}${fmt(t.importo)}</span>
+        </button>`;
+      }).join('')}</div></section>`;
   }).join('');
 }
 
-// ─── Azzera i filtri della sezione Transazioni ───────────────────
 function resetFiltriTx() {
-  ['filter-cat','filter-type','filter-conto'].forEach(id => {
-    const el = document.getElementById(id);
-    if(el) el.value = '';
-  });
+  txUi = Object.assign(txUi, { q: '', mese: _oggiYMD().substring(0, 7), conto: '', cat: '', tipo: '', dc: false, limite: 120 });
+  const qi = document.getElementById('tx-q'); if(qi) qi.value = '';
   renderTransazioni();
 }
 
-// ─── Apri Transazioni pre-filtrate su una categoria ──────────────
+// Apri Movimenti filtrati su una categoria (tutti i mesi)
 function apriTransazioniCat(cat) {
-  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
-  document.getElementById('sec-transazioni').classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(b => {
-    if(b.getAttribute('onclick') && b.getAttribute('onclick').includes("'transazioni'")) b.classList.add('active');
-  });
-  renderAll();
-  const fc = document.getElementById('filter-cat');
-  const ft = document.getElementById('filter-type');
-  const fco = document.getElementById('filter-conto');
-  if(fco) fco.value = '';
-  if(ft) ft.value = '';
-  if(fc) fc.value = cat;
-  renderTransazioni();
-  window.scrollTo({top:0, behavior:'smooth'});
+  txUi = Object.assign(txUi, { q: '', mese: '', conto: '', cat: cat === 'Da classificare' ? '' : cat, tipo: '', dc: cat === 'Da classificare', limite: 120 });
+  const qi = document.getElementById('tx-q'); if(qi) qi.value = '';
+  margChiudi();
+  go('transazioni');
 }
+
+function renderDaClassificare() {}
 
 // ─── Cambia categoria di una transazione ─────────────────────────
 // ─── Escludi/includi transazione dalle statistiche ───────────────
@@ -4076,9 +4045,13 @@ function editTx(idx) {
   document.getElementById('etx-importo').value = tx.importo != null ? tx.importo : '';
   document.getElementById('etx-desc').value = tx.descrizione || '';
 
-  // Tipo
+  // Tipo, titolo, esclusa
   const tipoSel = document.getElementById('etx-tipo');
   tipoSel.value = tx.tipo === 'entrata' ? 'entrata' : 'uscita';
+  etxSegAggiorna();
+  document.getElementById('etx-titolo').textContent = tx.descrizione || 'Movimento';
+  document.getElementById('etx-esclusa').checked = !!tx.esclusa;
+  txUi.sel = idx;
 
   // Categoria
   const catSel = document.getElementById('etx-cat');
@@ -4107,7 +4080,21 @@ function editTx(idx) {
   etxAggiornaFattura();
 
   document.getElementById('modal-edit-tx').classList.add('open');
+  document.body.classList.add('etx-aperto');
+  if(document.getElementById('sec-transazioni').classList.contains('active')) renderTransazioni();
 }
+function etxChiudi() {
+  document.getElementById('modal-edit-tx').classList.remove('open');
+  document.body.classList.remove('etx-aperto');
+  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
+  if(txUi.sel != null) { txUi.sel = null; renderTransazioni(); }
+}
+function etxSegAggiorna() {
+  const v = document.getElementById('etx-tipo').value;
+  document.getElementById('etx-seg-u').classList.toggle('on', v !== 'entrata');
+  document.getElementById('etx-seg-e').classList.toggle('on', v === 'entrata');
+}
+function etxTipo(v) { document.getElementById('etx-tipo').value = v; etxSegAggiorna(); etxAggiornaFattura(); }
 
 // ── Helper modal: voci di budget ──
 let _etxFattToccato = false;
@@ -4139,7 +4126,7 @@ function etxVoceCambiata() {
 }
 function etxAggiornaFattura() {
   document.getElementById('etx-fatt-group').style.display =
-    document.getElementById('etx-tipo').value === 'entrata' ? 'block' : 'none';
+    document.getElementById('etx-tipo').value === 'entrata' ? 'flex' : 'none';
 }
 function etxToggleRip() {
   const rip = document.getElementById('etx-rip');
@@ -4251,9 +4238,9 @@ function saveTxEdit() {
   // Da fattura (solo entrate; salvato solo se toccato a mano)
   if(tx.tipo !== 'entrata') delete tx.daFattura;
   else if(_etxFattToccato) tx.daFattura = document.getElementById('etx-fattura').checked;
+  tx.esclusa = document.getElementById('etx-esclusa').checked;
 
-  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
-  document.getElementById('modal-edit-tx').classList.remove('open');
+  etxChiudi();
   save();
   renderTransazioni();
   renderCatList();
@@ -4353,8 +4340,7 @@ function deleteTxSingola() {
   // Lapide solo se non restano gemelle, altrimenti l'unione Drive cancellerebbe anche quelle
   if(!gemelle) txSegnaEliminate([tx]);
   state.transactions.splice(idx2, 1);
-  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
-  document.getElementById('modal-edit-tx').classList.remove('open');
+  etxChiudi();
   save();
   renderAll();
   logMsg('🗑 Transazione eliminata: ' + (tx.descrizione || '—') + ' (' + segno + fmt(tx.importo) + ')', 'ok');
