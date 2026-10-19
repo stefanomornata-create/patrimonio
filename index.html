@@ -739,6 +739,31 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   body.etx-aperto #modal-edit-tx { background: none; backdrop-filter: none; pointer-events: none; justify-content: flex-end; align-items: stretch; }
   body.etx-aperto #modal-edit-tx .modal { pointer-events: auto; width: 360px; max-height: none; height: 100vh; border-radius: 0; border-left: 1px solid var(--border); box-shadow: -8px 0 30px rgba(0,0,0,0.06); }
 }
+/* Impostazioni e Carica */
+.imp-wrap { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
+.imp-wrap > .card { margin: 0; }
+.imp-card { display: flex; flex-direction: column; gap: 12px; }
+.imp-card .card-title { margin: 0; }
+.imp-stato { display: flex; align-items: center; gap: 12px; }
+.imp-punto { width: 10px; height: 10px; border-radius: 50%; background: #c4c4c0; flex-shrink: 0; }
+.imp-testo { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+.imp-btn { display: flex; gap: 10px; }
+.imp-btn > .btn, .imp-btn > label.btn { flex: 1; height: 44px; display: flex; align-items: center; justify-content: center; }
+.imp-btn > .form-input { flex: 1; min-width: 0; }
+.imp-btn > .form-input + .btn { flex: 0 0 auto; }
+.imp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.imp-chip { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 4px 0 12px; border-radius: 999px; background: #f0ede6; font-size: 14px; font-variant-numeric: tabular-nums; }
+.imp-chip button { width: 28px; height: 28px; border: none; background: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; }
+.imp-avanzate { padding-top: 4px; padding-bottom: 4px; gap: 0; }
+.imp-avanzate summary { list-style: none; height: 52px; display: flex; align-items: center; justify-content: space-between; font-size: 16px; font-weight: 600; cursor: pointer; }
+.imp-avanzate summary::-webkit-details-marker { display: none; }
+.imp-avanzate[open] summary svg { transform: rotate(180deg); }
+.imp-av-voce { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; padding: 12px 0; border-top: 1px solid rgba(0,0,0,0.06); }
+.imp-av-voce strong { font-size: 14px; font-weight: 500; }
+.upload-zone { border-radius: 18px; padding: 32px 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.upload-zone-title { margin: 8px 0 0; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; }
+.upload-btn-trigger { margin-top: 10px; display: inline-flex; align-items: center; color: #fff; background: var(--accent); border-color: var(--accent); padding: 0 20px; font-size: 14px; }
+@media (max-width: 900px) { .imp-wrap { grid-template-columns: minmax(0,1fr); } }
 </style>
 </head>
 <body>
@@ -861,87 +886,58 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 <!-- CARICA -->
 <div class="section" id="sec-carica">
   <h1 class="page-title">Carica estratti</h1>
-  <p class="page-sub">Importa i report della tua banca per aggiornare automaticamente saldi e spese</p>
-  <div style="margin-bottom:1.25rem;">
-    <div class="upload-zone" id="zone-excel" ondragover="dragOver(event,'zone-excel')" ondragleave="dragLeave('zone-excel')" ondrop="dropFile(event,'excel')">
-      <div class="upload-zone-icon">📊</div>
-      <div class="upload-zone-title">Report CSV / Excel</div>
-      <div class="upload-zone-sub">Trascina qui o clicca per selezionare</div>
-      <label class="upload-btn-trigger">Seleziona file<input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFile(this,'excel')"></label>
-    </div>
+  <p class="page-sub">Importa i file della tua banca per aggiornare movimenti e saldi</p>
+  <div class="upload-zone" id="zone-excel" ondragover="dragOver(event,'zone-excel')" ondragleave="dragLeave('zone-excel')" ondrop="dropFile(event,'excel')">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#2c5f2e" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div class="upload-zone-title">File CSV o Excel</div>
+    <div class="upload-zone-sub">Trascina qui il file o sceglilo dal dispositivo</div>
+    <label class="btn btn-primary upload-btn-trigger">Scegli il file<input type="file" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleFile(this,'excel')"></label>
   </div>
-  <div class="card">
-    <div class="card-title">File importati</div>
-    <div id="files-container">
-      <div class="empty"><div class="empty-icon">📂</div><div class="empty-title">Nessun file ancora</div><div class="empty-sub">Carica il tuo primo estratto conto</div></div>
-    </div>
-  </div>
-  <div class="card" id="log-card" style="display:none;">
-    <div class="card-title">Log elaborazione</div>
+  <section class="card" style="margin-top:var(--gap);">
+    <h2 class="card-title">File importati</h2>
+    <div id="files-container"></div>
+  </section>
+  <section class="card" id="log-card" style="display:none;">
+    <h2 class="card-title">Ultima importazione</h2>
     <div class="proc-log" id="proc-log"></div>
-  </div>
+  </section>
 </div>
 
 <!-- IMPOSTAZIONI -->
 <div class="section" id="sec-impostazioni">
-  <h1 class="page-title">Impostazioni</h1>
-  <p class="page-sub">Configura l'app per il tuo utilizzo</p>
-  <div class="card" style="border:1.5px solid #4285f4;background:#f0f4ff;">
-    <div class="card-title" style="color:#4285f4;">☁ Sincronizzazione Google Drive</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">
-      Sincronizza i dati su Google Drive per accedervi da qualsiasi dispositivo. I dati vengono salvati automaticamente ad ogni modifica.
-    </p>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1rem;flex-wrap:wrap;">
-      <button class="btn btn-primary" id="gdrive-btn" onclick="gdriveSignIn()" style="background:#4285f4;border-color:#4285f4;">☁ Connetti Google Drive</button>
-      <span id="gdrive-status" style="font-size:13px;color:var(--text-faint);">Non connesso</span>
-      <span id="gdrive-last-sync" style="font-size:12px;color:var(--text-faint);"></span>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;" id="gdrive-actions" style="display:none;">
-      <button class="btn" onclick="gdriveSave()" style="font-size:13px;">⬆ Salva ora su Drive</button>
-      <button class="btn" onclick="gdriveSincronizza()" style="font-size:13px;">🔄 Sincronizza ora (unisci)</button>
-      <button class="btn" onclick="gdriveSostituisci()" style="font-size:13px;">⬇ Sostituisci con dati Drive</button>
-    </div>
-    <div id="gdrive-log" style="font-size:12px;margin-top:.75rem;min-height:18px;"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Riconoscimento giroconti</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">
-      Inserisci le ultime 4 cifre dei tuoi conti collegati. L'app le usa per riconoscere automaticamente i bonifici tra conti tuoi (giroconti) ed escluderli dalle statistiche.
-    </p>
-    <div id="cifre-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:1rem;"></div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input class="form-input" id="nuova-cifre" maxlength="6" placeholder="es. 6908" style="width:120px;font-family:monospace;" />
-      <button class="btn btn-primary" onclick="aggiungiCifre()">+ Aggiungi</button>
-    </div>
-    <p style="font-size:11px;color:var(--text-faint);margin-top:.5rem;">I prelievi ATM/contanti vengono riconosciuti automaticamente da tutti i conti (Revolut, Intesa, UniCredit, ecc.) e classificati come 🔄 Giroconto verso il portafoglio.</p>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Importa transazioni contanti</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Importa un file JSON di transazioni contanti generato da Claude. Le transazioni vengono aggiunte al conto Portafoglio e il saldo si aggiorna automaticamente.</p>
-    <div class="btn-row">
-      <label class="btn btn-primary" style="cursor:pointer;">⬆ Importa transazioni contanti<input type="file" accept=".json" style="display:none;" onchange="importaContanti(this)"></label>
-    </div>
-    <div id="import-contanti-status" style="font-size:12px;margin-top:.75rem;color:var(--text-muted);"></div>
-  </div>
-
-  <div class="card">
-    <div class="card-title">Dati dell'app</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Tutti i dati sono salvati localmente nel browser (localStorage). Nessun dato viene trasmesso online.</p>
-    <div class="btn-row">
-      <button class="btn" onclick="exportData()">⬇ Esporta backup JSON</button>
-      <label class="btn" style="cursor:pointer;">⬆ Importa backup<input type="file" accept=".json" style="display:none;" onchange="importData(this)"></label>
-      <button class="btn" style="color:var(--danger);border-color:var(--danger);" onclick="clearAll()">🗑 Cancella tutti i dati</button>
-    </div>
-  </div>
-  <div class="card">
-    <div class="card-title">Statistiche</div>
-    <div class="three-col">
-      <div class="metric"><div class="metric-label">Conti salvati</div><div class="metric-value" id="stat-conti">0</div></div>
-      <div class="metric"><div class="metric-label">Transazioni totali</div><div class="metric-value" id="stat-tx">0</div></div>
-      <div class="metric"><div class="metric-label">File caricati</div><div class="metric-value" id="stat-files">0</div></div>
-    </div>
+  <h1 class="page-title" style="margin-bottom:var(--gap);">Impostazioni</h1>
+  <div class="imp-wrap">
+    <section class="card imp-card">
+      <h2 class="card-title">Sincronizzazione</h2>
+      <div class="imp-stato"><span class="imp-punto" id="gdrive-punto"></span><div class="riga-main"><span class="riga-nome" id="gdrive-status">Non collegato</span><span class="riga-sotto" id="gdrive-last-sync"></span></div></div>
+      <p class="imp-testo">Ogni modifica si salva da sola e si unisce con gli altri dispositivi.</p>
+      <div class="imp-btn"><button class="btn btn-primary" id="gdrive-btn" onclick="gdriveSignIn()">Collega Google Drive</button><button class="btn" id="gdrive-btn2" style="display:none;" onclick="gdriveSignOut()">Scollega</button></div>
+      <div id="gdrive-log" class="riga-sotto"></div>
+    </section>
+    <section class="card imp-card">
+      <h2 class="card-title">Riconoscimento giroconti</h2>
+      <p class="imp-testo">Ultime cifre dei tuoi conti: i bonifici verso questi conti diventano giroconti.</p>
+      <div id="cifre-list" class="imp-chips"></div>
+      <div class="imp-btn"><input class="form-input" id="nuova-cifre" maxlength="6" placeholder="es. 6908" inputmode="numeric" aria-label="Ultime cifre" onkeydown="if(event.key==='Enter')aggiungiCifre()" /><button class="btn" onclick="aggiungiCifre()">Aggiungi</button></div>
+    </section>
+    <section class="card imp-card">
+      <h2 class="card-title">Backup</h2>
+      <p class="imp-testo" id="imp-stat">—</p>
+      <div class="imp-btn"><button class="btn" onclick="exportData()">Scarica backup</button><label class="btn" style="cursor:pointer;text-align:center;">Ripristina<input type="file" accept=".json" style="display:none;" onchange="importData(this)"></label></div>
+    </section>
+    <details class="card imp-card imp-avanzate">
+      <summary>Opzioni avanzate<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b67" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+      <div class="imp-av-voce">
+        <strong>Sostituisci con i dati di Drive</strong>
+        <p class="imp-testo">Butta i dati di questo dispositivo e prende quelli salvati su Drive. Da usare solo se qualcosa non torna.</p>
+        <button class="btn" onclick="gdriveSostituisci()">Sostituisci</button>
+      </div>
+      <div class="imp-av-voce">
+        <strong style="color:var(--rosso);">Cancella tutti i dati</strong>
+        <p class="imp-testo">Cancella tutto, anche su Drive e sugli altri dispositivi. Ti chiederà di scrivere CANCELLA.</p>
+        <button class="btn" style="color:var(--rosso);border-color:#e3b4ae;" onclick="clearAll()">Cancella tutto</button>
+      </div>
+    </details>
   </div>
 </div>
 
@@ -4351,39 +4347,30 @@ function renderFilesList() {
   const el = document.getElementById('files-container');
   if(!el) return;
   if(!state.files.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📂</div><div class="empty-title">Nessun file ancora</div><div class="empty-sub">Carica il tuo primo estratto conto</div></div>';
+    el.innerHTML = '<div class="riga-sotto">Nessun file ancora: carica il tuo primo estratto conto.</div>';
     return;
   }
   el.innerHTML = state.files.map((f,i) => `
-    <div class="file-item">
-      <span style="font-size:18px;">${f.tipo==='pdf'?'📄':'📊'}</span>
-      <span class="file-name" style="flex:1;font-weight:500;min-width:0;overflow-wrap:anywhere;">${_esc(f.nome)}</span>
-      <span class="file-badge ${f.tipo==='pdf'?'badge-pdf':f.tipo==='csv'?'badge-csv':'badge-excel'}">${f.tipo.toUpperCase()}</span>
-      <span style="font-size:11px;color:var(--text-faint);">${fmtDate(f.data)}</span>
-      <span class="file-badge ${f.ok?'badge-ok':'badge-err'}">${f.ok?'✓ OK':'✗ Errore'}</span>
-      <span style="font-size:12px;color:var(--text-muted);">${f.txCount||0} transazioni</span>
-      <button class="btn-danger" onclick="deleteFile(${i})">✕</button>
+    <div class="riga">
+      <div class="riga-main"><span class="riga-nome">${_esc(f.nome)}</span>
+        <span class="riga-sotto">${_esc((f.tipo || '').toUpperCase())} · ${fmtDate(f.data)} · ${f.txCount || 0} movimenti${f.ok ? '' : ' · <span style="color:var(--rosso);">errore</span>'}</span></div>
+      <button class="x-chiudi" style="margin:0;width:40px;height:40px;" onclick="deleteFile(${i})" aria-label="Togli dall'elenco"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>`).join('');
 }
 
 // ─── Impostazioni ─────────────────────────────────────────────────
 function renderImpostazioni() {
   renderCifreList();
+  const n = (x, uno, tanti) => x + ' ' + (x === 1 ? uno : tanti);
+  _setTxt('imp-stat', `${n(state.accounts.length, 'conto', 'conti')} · ${n(state.transactions.length, 'movimento', 'movimenti')} · ${n(state.files.length, 'estratto caricato', 'estratti caricati')}`);
 }
 
 function renderCifreList() {
   const el = document.getElementById('cifre-list');
   if(!el) return;
   const cifre = state.contiCifre || [];
-  if(!cifre.length) {
-    el.innerHTML = '<span style="font-size:13px;color:var(--text-faint);">Nessun conto aggiunto ancora.</span>';
-    return;
-  }
-  el.innerHTML = cifre.map((c,i) => `
-    <span style="display:inline-flex;align-items:center;gap:6px;background:var(--surface2);border:0.5px solid var(--border-strong);border-radius:20px;padding:4px 12px;font-size:13px;font-family:monospace;">
-      *${c}
-      <button onclick="rimuoviCifre(${i})" style="background:none;border:none;cursor:pointer;color:var(--text-faint);font-size:14px;line-height:1;padding:0;" title="Rimuovi">✕</button>
-    </span>`).join('');
+  el.innerHTML = cifre.length ? cifre.map((c,i) => `<span class="imp-chip">··${_esc(c)}<button onclick="rimuoviCifre(${i})" aria-label="Rimuovi ${_esc(c)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></span>`).join('')
+    : '<span class="riga-sotto">Nessun conto aggiunto.</span>';
 }
 
 function aggiungiCifre() {
@@ -5656,51 +5643,6 @@ function chiudiModaleSelezioneContoAndRender() {
 }
 
 // ─── Importa transazioni contanti da JSON ────────────────────────
-function importaContanti(input) {
-  const file = input.files[0];
-  if(!file) return;
-  const r = new FileReader();
-  r.onload = e => {
-    try {
-      const transactions = JSON.parse(e.target.result);
-      if(!Array.isArray(transactions)) throw new Error('Formato non valido');
-
-      // Aggiunge le transazioni
-      let aggiunte = 0;
-      let totUscite = 0, totEntrate = 0;
-
-      transactions.forEach(t => {
-        state.transactions.push({
-          data: t.data,
-          descrizione: t.descrizione || 'Spesa contanti',
-          importo: parseFloat(t.importo) || 0,
-          tipo: t.tipo || 'uscita',
-          categoria: t.categoria || 'Da classificare',
-          conto: t.conto || 'Portafoglio'
-        });
-        if(t.tipo === 'uscita') totUscite += parseFloat(t.importo)||0;
-        else totEntrate += parseFloat(t.importo)||0;
-        aggiunte++;
-      });
-
-      // il saldo del portafoglio si ricalcola dai movimenti (quelli dopo il saldo verificato)
-      const p = getPortafoglio();
-      save();
-      renderAll();
-
-      const status = document.getElementById('import-contanti-status');
-      if(status) status.innerHTML = `✅ ${aggiunte} transazioni importate. Uscite: ${fmt(totUscite)}, Entrate: ${fmt(totEntrate)}. ${p ? 'Saldo portafoglio aggiornato: ' + fmt(p.saldo) : ''}`;
-
-    } catch(err) {
-      const status = document.getElementById('import-contanti-status');
-      if(status) status.textContent = '✗ Errore: ' + err.message;
-    }
-  };
-  r.readAsText(file);
-  input.value = '';
-}
-
-// ─── Export / Import ─────────────────────────────────────────────
 function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
@@ -5902,7 +5844,7 @@ async function gdriveSave() {
     if(resp.ok) {
       const now = new Date().toLocaleTimeString('it-IT');
       gdriveLog('✓ Salvato su Google Drive (' + now + ')', 'ok');
-      const ls = document.getElementById('gdrive-last-sync'); if(ls) ls.textContent = 'Ultimo salvataggio: ' + now;
+      try { localStorage.setItem('gdrive_ultimo', String(Date.now())); } catch(e) {}
       try { localStorage.removeItem('gdrive_pending'); } catch(e) {}
       renderGdriveStatus();
     } else if(resp.status === 401 || resp.status === 403) {
@@ -5961,19 +5903,27 @@ function renderGdriveStatus() {
         <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;white-space:nowrap;" onclick="gdriveSignIn(true)">Ricollega</button>`;
     } else ban.style.display = 'none';
   }
-  const btn = document.getElementById('gdrive-btn');
-  const status = document.getElementById('gdrive-status');
+  const btn = document.getElementById('gdrive-btn'), btn2 = document.getElementById('gdrive-btn2');
+  const status = document.getElementById('gdrive-status'), punto = document.getElementById('gdrive-punto'), ls = document.getElementById('gdrive-last-sync');
   if(!btn || !status) return;
+  let ultimo = 0; try { ultimo = +localStorage.getItem('gdrive_ultimo') || 0; } catch(e) {}
+  if(ls) {
+    if(!ultimo) ls.textContent = '';
+    else { const d = new Date(ultimo), oggi = new Date(); const ora = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+      ls.textContent = 'Ultima sincronizzazione ' + (d.toDateString() === oggi.toDateString() ? 'oggi' : 'il ' + d.toLocaleDateString('it-IT')) + ' alle ' + ora; }
+  }
   if(gdriveIsConnected()) {
-    btn.textContent = '🔌 Disconnetti';
-    btn.onclick = gdriveSignOut;
-    status.textContent = '✓ Connesso';
-    status.style.color = 'var(--accent)';
+    btn.textContent = 'Sincronizza ora';
+    btn.onclick = gdriveSincronizza;
+    if(btn2) btn2.style.display = '';
+    status.textContent = 'Collegato a Google Drive';
+    if(punto) punto.style.background = 'var(--accent)';
   } else {
-    btn.textContent = '☁ Connetti Google Drive';
-    btn.onclick = gdriveSignIn;
-    status.textContent = 'Non connesso';
-    status.style.color = 'var(--text-faint)';
+    btn.textContent = 'Collega Google Drive';
+    btn.onclick = () => gdriveSignIn();
+    if(btn2) btn2.style.display = 'none';
+    status.textContent = 'Non collegato';
+    if(punto) punto.style.background = '#c4c4c0';
   }
 }
 
