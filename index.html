@@ -655,6 +655,35 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .link.rosso { color: var(--rosso); font-size: 14px; padding: 8px 0; }
 #modal-conto .modal { width: 460px; max-height: calc(100vh - 40px); overflow-y: auto; }
 @media (max-width: 900px) { .conti-wrap { display: flex; flex-direction: column; align-items: stretch; } }
+/* Analisi spese */
+.anno-nav { display: flex; align-items: center; gap: 2px; }
+.anno-nav .btn { width: 36px; height: 36px; min-height: 36px; padding: 0; font-size: 16px; }
+.anno-nav .btn:disabled { color: #c4c4c0; cursor: default; }
+.anno-nav strong { width: 52px; text-align: center; font-size: 15px; }
+.and-leg { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+.and-leg i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: 3px; }
+.and-inner { position: relative; height: 260px; min-width: 0 !important; }
+.spese-wrap { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(0,1fr); gap: 0 var(--gap); align-items: start; }
+.sp-cat { border-top: 1px solid rgba(0,0,0,0.06); }
+.sp-cat:first-child { border-top: none; }
+.sp-cat-testa { width: 100%; background: none; border: none; padding: 12px 0; display: flex; flex-direction: column; gap: 6px; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.sp-cat-riga { display: flex; align-items: center; gap: 10px; width: 100%; }
+.sp-cat-nome { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; }
+.sp-cat-pct { width: 44px; text-align: right; font-size: 12px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.sp-det { background: #f7f5f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; display: flex; flex-direction: column; }
+.sp-det-tot { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--text-muted); padding-bottom: 6px; }
+.sp-det-tot strong { color: var(--text); }
+.sp-det-riga { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 0; border: none; border-top: 1px solid rgba(0,0,0,0.06); background: none; font: inherit; font-size: 13px; color: inherit; text-align: left; cursor: pointer; }
+.sp-det-imp { white-space: nowrap; font-weight: 500; }
+.sp-det .link { align-self: flex-start; padding: 10px 0 2px; }
+.spese-anello { position: relative; height: 200px; }
+.spese-leg { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 6px 14px; margin-top: 14px; }
+.spese-leg .leg-riga { font-size: 12px; }
+@media (max-width: 900px) {
+  .spese-wrap { display: flex; flex-direction: column; align-items: stretch; }
+  .spese-leg .leg-p { display: none; }
+  .and-inner { height: 190px; }
+}
 </style>
 </head>
 <body>
@@ -723,49 +752,32 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 
 <!-- SPESE -->
 <div class="section" id="sec-spese">
-  <h1 class="page-title">Analisi spese</h1>
-  <p class="page-sub">Dove vanno i tuoi soldi</p>
-  <div class="three-col">
-    <div class="metric">
-      <div class="metric-label">Totale spese</div>
-      <div class="metric-value" id="sp-tot">€ 0,00</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Transazioni</div>
-      <div class="metric-value" id="sp-num">0</div>
-    </div>
-    <div class="metric">
-      <div class="metric-label">Media per operazione</div>
-      <div class="metric-value" id="sp-avg">€ 0,00</div>
-    </div>
+  <div class="page-head">
+    <div><h1 class="page-title">Analisi spese</h1><p class="page-sub">Dove vanno i tuoi soldi</p></div>
+    <div class="anno-nav"><button class="btn" id="and-prev" onclick="andSposta(-1)" aria-label="Anno precedente">‹</button><strong id="and-anno">—</strong><button class="btn" id="and-next" onclick="andSposta(1)" aria-label="Anno successivo">›</button></div>
   </div>
-  <div class="card">
-    <div class="card-title">Spese per categoria</div>
-    <div id="cat-list-container"></div>
-  </div>
-  <div class="two-col">
-    <div class="card">
-      <div class="card-title">Top 5 categorie</div>
-      <div style="position:relative;height:220px;"><canvas id="chart-cat-bar" role="img" aria-label="Top categorie di spesa"></canvas></div>
+  <section class="card">
+    <h2 class="card-title">Entrate e uscite</h2>
+    <div class="and-leg" id="and-tot"></div>
+    <div class="and-inner"><canvas id="chart-mensile" role="img" aria-label="Andamento mensile di entrate e uscite nell'anno"></canvas></div>
+    <div class="riga-sotto" id="and-saldo" style="margin-top:8px;"></div>
+  </section>
+  <div class="spese-wrap">
+    <section class="card">
+      <div class="cr-tit-riga"><h2 class="card-title">Spese per categoria</h2><span class="riga-sotto" id="sp-tot-cat"></span></div>
+      <div id="cat-list-container"></div>
+    </section>
+    <div>
+      <section class="card">
+        <h2 class="card-title">Distribuzione</h2>
+        <div class="spese-anello"><canvas id="chart-cat-doughnut" role="img" aria-label="Distribuzione delle spese per categoria"></canvas></div>
+        <div id="legend-cat2" class="spese-leg"></div>
+      </section>
+      <section class="card" id="card-pct" style="display:none;">
+        <h2 class="card-title">Per conto terzi</h2>
+        <div id="pct-content"></div>
+      </section>
     </div>
-    <div class="card">
-      <div class="card-title">Distribuzione</div>
-      <div style="position:relative;height:220px;"><canvas id="chart-cat-doughnut" role="img" aria-label="Distribuzione spese per categoria"></canvas></div>
-      <div id="legend-cat2" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px;color:#6b6b67;"></div>
-    </div>
-  </div>
-  <div class="card">
-    <div class="and-head">
-      <div class="card-title" style="margin:0;">Andamento mensile</div>
-      <div class="and-nav"><button class="btn" id="and-prev" onclick="andSposta(-1)" aria-label="Anno precedente">‹</button><strong id="and-anno">—</strong><button class="btn" id="and-next" onclick="andSposta(1)" aria-label="Anno successivo">›</button></div>
-    </div>
-    <div class="and-leg"><span><i style="background:#2c5f2e;"></i>Entrate</span><span><i style="background:#cb4335;"></i>Uscite</span><span id="and-tot"></span></div>
-    <div class="and-scroll" id="and-scroll"><div class="and-inner"><canvas id="chart-mensile" role="img" aria-label="Andamento mensile di entrate e uscite nell'anno"></canvas></div></div>
-    <div class="and-hint">Scorri il grafico per vedere tutti i mesi</div>
-  </div>
-  <div class="card" id="card-pct" style="display:none;">
-    <div class="card-title">🤝 Per conto terzi — crediti pendenti</div>
-    <div id="pct-content"></div>
   </div>
 </div>
 
@@ -1242,25 +1254,10 @@ function renderPCT() {
 
   card.style.display = 'block';
 
-  const color = pendente > 0 ? 'var(--danger)' : 'var(--accent)';
-  const label = pendente > 0
-    ? `Hai ancora <strong>${fmt(pendente)}</strong> di crediti da riscuotere`
-    : pendente < 0
-      ? `Hai ricevuto <strong>${fmt(Math.abs(pendente))}</strong> in più rispetto alle spese`
-      : '✓ Tutto rimborsato — saldo in pari';
-
-  el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:1rem;">
-      <div style="font-size:13px;color:var(--text-muted);">${label}</div>
-      <div style="font-family:'DM Serif Display',serif;font-size:22px;color:${color};">
-        ${pendente > 0 ? '−' : pendente < 0 ? '+' : ''}${fmt(Math.abs(pendente))}
-      </div>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:.5rem 1.5rem;font-size:13px;color:var(--text-muted);">
-      <span>Spese sostenute: <strong style="color:var(--text);">${fmt(uscite)}</strong></span>
-      <span>Rimborsi ricevuti: <strong style="color:var(--text);">${fmt(entrate)}</strong></span>
-      <span>${pct.length} transazioni</span>
-    </div>`;
+  const color = pendente > 0 ? 'var(--rosso)' : 'var(--accent)';
+  const label = pendente > 0 ? 'Crediti ancora da riscuotere' : pendente < 0 ? 'Ricevuto più delle spese' : 'Tutto rimborsato';
+  el.innerHTML = `<div class="cr-patr-tot" style="font-weight:400;"><span class="riga-sotto" style="font-size:13px;">${label}</span><span style="color:${color};font-size:22px;">${_eur0(Math.abs(pendente))}</span></div>
+    <div class="sp-det-tot" style="margin-top:10px;"><span>Spese sostenute ${_eur0(uscite)}</span><span>Rimborsi ricevuti ${_eur0(entrate)}</span><span>${pct.length} movimenti</span></div>`;
 }
 
 // ─── Render all ──────────────────────────────────────────────────
@@ -1361,22 +1358,27 @@ function toggleCatDettaglio(cat) {
   renderCatList();
 }
 
+function spAnno() { if(!andUi.anno) andUi.anno = new Date().getFullYear(); return andUi.anno; }
+function spTxAnno() { const Y = String(spAnno()); return txAttive(state.transactions.map((t,i) => ({...t, _idx: i}))).filter(t => String(t.data || '').startsWith(Y)); }
 function renderCatList() {
   const el = document.getElementById('cat-list-container');
   if(!el) return;
-  const movimenti = txAttive(state.transactions.map((t,i) => ({...t, _idx: i})));
+  const movimenti = spTxAnno();
   const agg = aggregaNetto(movimenti);
   const catMap = agg.catSpese;
   const total = agg.spese;
   const sorted = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  _setTxt('sp-tot-cat', sorted.length ? _eur0(total) : '');
   if(!sorted.length) {
     _catEspansa = null;
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-title">Nessuna spesa</div><div class="empty-sub">Carica un estratto conto per vedere le categorie</div></div>';
+    el.innerHTML = `<div class="empty"><div class="empty-title">Nessuna spesa nel ${spAnno()}</div><div class="empty-sub">Carica un estratto conto per vedere le categorie.</div></div>`;
     return;
   }
+  const max = sorted[0][1];
   el.innerHTML = sorted.map(([cat, amt]) => {
     const pct = total ? (amt/total*100) : 0;
     const col = CAT_COLORS[cat] || '#707070';
+    const q = cat.replace(/'/g,"\\'");
     const txCat = movimenti.filter(t=>t.categoria===cat).sort((a,b)=>new Date(b.data)-new Date(a.data));
     const txCatUsc = txCat.filter(t=>t.tipo==='uscita');
     const txCatRim = txCat.filter(t=>t.tipo==='entrata');
@@ -1384,50 +1386,24 @@ function renderCatList() {
     const rimborsi = txCatRim.reduce((s,t)=>s+t.importo,0);
     const cnt = txCatUsc.length;
     const aperta = _catEspansa === cat;
-
-    const header = `<div class="cat-row" onclick="toggleCatDettaglio('${cat.replace(/'/g,"\\'")}')" style="cursor:pointer;" title="Clicca per vedere le transazioni di questa categoria">
-      <div class="cat-icon" style="background:${col}18;">
-        <span style="font-size:16px;">${catEmoji(cat)}</span>
-      </div>
-      <div class="cat-name">
-        <div style="font-weight:500;font-size:14px;">${cat} <span style="color:var(--text-faint);font-size:11px;">${aperta ? '▾' : '▸'}</span></div>
-        <div style="font-size:11px;color:var(--text-faint);">${cnt} operazion${cnt===1?'e':'i'}${txCatRim.length ? ` · al netto di ${txCatRim.length} rimbors${txCatRim.length===1?'o':'i'} (${fmt(rimborsi)})` : ''}</div>
-      </div>
-      <div class="cat-bar-track"><div class="cat-bar-fill" style="width:${pct}%;background:${col};"></div></div>
-      <div class="cat-amount">${fmt(amt)}</div>
-      <div class="cat-pct">${pct.toFixed(1)}%</div>
-    </div>`;
-
-    if(!aperta) return header;
-
-    const media = cnt ? amt/cnt : 0;
-    const righe = txCat.slice(0,150).map(t => {
-      const rimb = t.tipo === 'entrata';
-      return `
-      <div class="cat-det-row" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
-        <div class="cdr-date" style="color:var(--text-muted);white-space:nowrap;min-width:78px;font-size:12px;">${fmtDate(t.data)}</div>
-        <div class="cdr-desc" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${_esc(t.descrizione||'')}">${rimb ? '<span style="color:var(--accent);font-size:11px;">↩ rimborso</span> ' : ''}${_esc(t.descrizione||'—')}</div>
-        <div class="cdr-conto" style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${_esc(t.conto||'—')}</div>
-        <div class="cdr-amt" style="text-align:right;white-space:nowrap;font-weight:500;${rimb?'color:var(--accent);':''}">${rimb?'+':''}${fmt(t.importo)}</div>
-        <span class="cdr-edit" onclick="event.stopPropagation();editTx(${t._idx})" title="Modifica transazione" style="cursor:pointer;font-size:13px;opacity:.55;">✏️</span>
-      </div>`;
-    }).join('');
-
-    return header + `<div class="cat-det-box" style="background:var(--surface2);border-radius:10px;padding:10px 14px;margin:0 0 10px 0;">
-      <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--text-muted);margin-bottom:8px;">
-        ${rimborsi > EPS
-          ? `<span>Speso: <strong style="color:var(--text);">${fmt(lordo)}</strong></span>
-             <span>Rimborsi: <strong style="color:var(--accent);">− ${fmt(rimborsi)}</strong></span>
-             <span>Costo netto: <strong style="color:var(--text);">${fmt(amt)}</strong></span>`
-          : `<span>Totale: <strong style="color:var(--text);">${fmt(amt)}</strong></span>`}
-        <span>Media: <strong style="color:var(--text);">${fmt(media)}</strong></span>
-        <span style="margin-left:auto;color:var(--accent);cursor:pointer;text-decoration:underline;" onclick="event.stopPropagation();apriTransazioniCat('${cat.replace(/'/g,"\\'")}')">Apri in Transazioni →</span>
-      </div>
-      ${righe}
-      ${txCat.length > 150 ? `<div style="padding-top:8px;font-size:12px;color:var(--text-faint);">Mostrate le 150 più recenti su ${txCat.length}.</div>` : ''}
-    </div>`;
+    let h = `<div class="sp-cat"><button class="sp-cat-testa" onclick="toggleCatDettaglio('${q}')" aria-expanded="${aperta}">
+      <span class="sp-cat-riga"><span class="leg-q" style="background:${col};"></span><span class="sp-cat-nome">${_esc(cat)}</span><span class="riga-imp">${_eur0(amt)}</span><span class="sp-cat-pct">${fmtNum(pct, 1)}%</span></span>
+      <span class="barretta"><i style="width:${(amt / max * 100).toFixed(1)}%;background:${col};"></i></span></button>`;
+    if(aperta) {
+      const media = cnt ? amt/cnt : 0;
+      const ultimi = txCat.slice(0, 5).map(t => {
+        const rimb = t.tipo === 'entrata';
+        return `<button class="sp-det-riga" onclick="editTx(${t._idx})"><span class="riga-main"><span>${rimb ? '<span style="color:var(--accent);">rimborso · </span>' : ''}${_esc(t.descrizione || '—')}</span><span class="riga-sotto">${fmtGiornoBreve(t.data)} · ${_esc(t.conto || '—')}</span></span><span class="sp-det-imp"${rimb ? ' style="color:var(--accent);"' : ''}>${rimb ? '+ ' : ''}${fmt(t.importo)}</span></button>`;
+      }).join('');
+      h += `<div class="sp-det">
+        <div class="sp-det-tot">${rimborsi > EPS ? `<span>Speso <strong>${_eur0(lordo)}</strong></span><span>Rimborsi <strong style="color:var(--accent);">− ${_eur0(rimborsi)}</strong></span>` : `<span>Speso <strong>${_eur0(amt)}</strong></span>`}<span>${cnt} ${cnt === 1 ? 'spesa' : 'spese'}</span><span>Media <strong>${fmt(media)}</strong></span></div>
+        ${ultimi}
+        <button class="link" onclick="apriTransazioniCat('${q}')">Apri in Movimenti</button></div>`;
+    }
+    return h + '</div>';
   }).join('');
 }
+function fmtGiornoBreve(iso) { if(!iso) return '—'; const d = new Date(iso); return d.getUTCDate() + ' ' + MESI_BREVI[d.getUTCMonth()].toLowerCase(); }
 
 function catEmoji(cat) {
   const map = {
@@ -2589,7 +2565,7 @@ function andAnni() {
 function andSposta(d) {
   const anni = andAnni(), i = anni.indexOf(andUi.anno);
   const j = Math.max(0, Math.min(anni.length - 1, i + d));
-  andUi.anno = anni[j]; renderAndamento();
+  andUi.anno = anni[j]; _catEspansa = null; renderCatList(); renderCharts();
 }
 function renderAndamento() {
   const canvas = document.getElementById('chart-mensile'); if(!canvas) return;
@@ -2608,22 +2584,20 @@ function renderAndamento() {
     usc.push(aggM.spese); ent.push(aggM.entrate);
   }
   const tot = document.getElementById('and-tot');
-  if(tot) tot.innerHTML = `Entrate ${fmt(_sum(ent))} · Uscite ${fmt(_sum(usc))}`;
+  if(tot) tot.innerHTML = `<span><i style="background:#2c5f2e;"></i>Entrate ${_eur0(_sum(ent))}</span><span><i style="background:#cb4335;"></i>Uscite ${_eur0(_sum(usc))}</span>`;
+  const saldoA = _sum(ent) - _sum(usc), elS = document.getElementById('and-saldo');
+  if(elS) elS.innerHTML = `Saldo dell'anno: <strong style="color:${saldoA >= 0 ? 'var(--accent)' : 'var(--rosso)'};">${saldoA >= 0 ? '+ ' : '− '}${_eur0(Math.abs(saldoA))}</strong>`;
+  const stretto = window.innerWidth <= 768;
+  const etichette = stretto ? MESI_BREVI.map(x => x.charAt(0)) : MESI_LUNGHI.map(_maiu);
   mkChart('chart-mensile', {
     type: 'line',
-    data: { labels: MESI_BREVI, datasets: [
-      { label: 'Uscite', data: usc, borderColor: '#cb4335', backgroundColor: 'rgba(203,67,53,.06)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointBackgroundColor: '#cb4335', borderWidth: 2, spanGaps: false },
-      { label: 'Entrate', data: ent, borderColor: '#2c5f2e', backgroundColor: 'rgba(44,95,46,.06)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: 4, pointBackgroundColor: '#2c5f2e', borderWidth: 2, spanGaps: false }
+    data: { labels: etichette, datasets: [
+      { label: 'Uscite', data: usc, borderColor: '#cb4335', backgroundColor: 'rgba(203,67,53,.05)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: stretto ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: '#cb4335', borderWidth: 2.2, spanGaps: false },
+      { label: 'Entrate', data: ent, borderColor: '#2c5f2e', backgroundColor: 'rgba(44,95,46,.05)', fill: true, tension: .3, cubicInterpolationMode: 'monotone', pointRadius: stretto ? 0 : 3, pointHoverRadius: 5, pointBackgroundColor: '#2c5f2e', borderWidth: 2.2, spanGaps: false }
     ] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + fmt(ctx.parsed.y) } } },
-      scales: { x: { grid: { display: false }, ticks: { color: '#9e9e9a', font: { size: 12 } } }, y: { min: 0, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { color: '#9e9e9a', font: { size: 11 }, callback: v => fmtNum(v, 0) } } } }
+      scales: { x: { grid: { display: false }, ticks: { color: '#6b6b67', font: { size: stretto ? 10 : 12 }, maxRotation: 0, autoSkip: false } }, y: { min: 0, grid: { color: 'rgba(0,0,0,.05)' }, ticks: { color: '#9e9e9a', font: { size: 11 }, callback: v => fmtNum(v, 0) } } } }
   });
-  // Su schermi stretti il grafico scorre: si parte mostrando il mese corrente
-  const sc = document.getElementById('and-scroll');
-  if(sc && sc.scrollWidth > sc.clientWidth) {
-    const mFine = Y === oggi.getFullYear() ? oggi.getMonth() + 1 : (Y < oggi.getFullYear() ? 12 : 0);
-    sc.scrollLeft = Math.max(0, sc.scrollWidth * mFine / 12 - sc.clientWidth + 24);
-  }
 }
 
 
@@ -5428,8 +5402,10 @@ function renderCharts() {
   }
 
   // Pie categorie — solo transazioni attive
-  const catMap = aggregaNetto(txAttive()).catSpese;
+  const catMap = aggregaNetto(spTxAnno()).catSpese;
   const catEntries = Object.entries(catMap).sort((a,b)=>b[1]-a[1]);
+  const totCat = catEntries.reduce((t, e) => t + e[1], 0);
+  if(!catEntries.length) { const l2 = document.getElementById('legend-cat2'); if(l2) l2.innerHTML = '<span class="riga-sotto">Nessuna spesa nell\'anno.</span>'; if(charts['chart-cat-doughnut']) { charts['chart-cat-doughnut'].destroy(); delete charts['chart-cat-doughnut']; } }
   if(catEntries.length) {
     const labels = catEntries.map(e=>e[0]);
     const vals = catEntries.map(e=>e[1]);
@@ -5437,10 +5413,9 @@ function renderCharts() {
     const leg = document.getElementById('legend-cat');
     if(leg) leg.innerHTML = labels.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${cols[i]};"></span>${l}</span>`).join('');
     const leg2 = document.getElementById('legend-cat2');
-    if(leg2) leg2.innerHTML = labels.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${cols[i]};"></span>${l}</span>`).join('');
+    if(leg2) leg2.innerHTML = labels.map((l,i)=>`<div class="leg-riga"><span class="leg-q" style="background:${cols[i]};"></span><span class="leg-n">${_esc(l)}</span><span class="leg-p">${fmtNum(vals[i] / totCat * 100, 1)}%</span></div>`).join('');
     mkChart('chart-pie-cat', {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff', hoverOffset:6}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}});
-    mkChart('chart-cat-doughnut', {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff', hoverOffset:6}]}, options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}});
-    mkChart('chart-cat-bar', {type:'bar', data:{labels:labels.slice(0,5), datasets:[{data:vals.slice(0,5), backgroundColor:cols.slice(0,5), borderRadius:6, borderSkipped:false}]}, options:{responsive:true, maintainAspectRatio:false, indexAxis:'y', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}, scales:{x:{grid:{color:'rgba(0,0,0,0.04)'}, ticks:{color:'#9e9e9a', font:{size:11}, callback:v=>'€'+fmtNum(v,0)}}, y:{grid:{display:false}, ticks:{color:'#9e9e9a', font:{size:12}}}}}});
+    mkChart('chart-cat-doughnut', {type:'doughnut', data:{labels, datasets:[{data:vals, backgroundColor:cols, borderWidth:2, borderColor:'#fff', hoverOffset:6}]}, options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}});
   }
 
   // Andamento annuale (sezione Spese)
