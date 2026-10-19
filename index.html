@@ -483,7 +483,7 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: var(--gap); }
 .page-head .page-sub { margin-bottom: 0; }
 .card { border-radius: 18px; box-shadow: none; padding: 20px; margin-bottom: var(--gap); }
-.card-title { font-size: 16px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text); margin-bottom: 12px; }
+.card-title { font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--text); margin-bottom: 12px; }
 .metric { box-shadow: none; border-radius: 18px; }
 .metric-label { font-size: 12px; text-transform: none; letter-spacing: 0; color: var(--text-muted); }
 .btn { border-radius: 10px; min-height: 40px; }
@@ -540,6 +540,100 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .altro-voce:last-child { border-bottom: none; }
   .altro-voce svg { width: 22px; height: 22px; }
 }
+/* Panoramica */
+.cr-wrap { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 var(--gap); align-items: start; }
+.cr-a, .cr-b { min-width: 0; }
+.cr-hero { background: var(--accent); color: #fff; border-radius: 18px; padding: 24px; display: flex; flex-direction: column; gap: 10px; margin-bottom: var(--gap); cursor: pointer; }
+.cr-hero.neg { background: #8f2f25; }
+.cr-hero-lab, .cr-hero-sub, .cr-hero-leg { font-size: 13px; color: rgba(255,255,255,0.86); }
+.cr-hero-lab { font-size: 14px; }
+.cr-hero-val { font-family: 'DM Serif Display', serif; font-size: 52px; line-height: 1; font-variant-numeric: tabular-nums; }
+.cr-hero-bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,0.22); overflow: hidden; margin-top: 6px; }
+.cr-hero-bar i { display: block; height: 100%; background: #fff; border-radius: 4px; }
+.cr-hero-leg { display: flex; justify-content: space-between; font-size: 12px; }
+.cr-hero-link { font-size: 13px; font-weight: 600; margin-top: 4px; }
+.cr-manca { border: 2px solid #e8c77e; display: flex; flex-direction: column; gap: 10px; }
+.cr-manca-top { display: flex; align-items: center; gap: 10px; }
+.cr-manca h2 { font-family: 'DM Sans', sans-serif; font-size: 18px; font-weight: 600; }
+.cr-manca p { font-size: 14px; line-height: 1.55; color: #3a3a37; }
+.cr-manca .btn { height: 48px; font-size: 15px; }
+.cr-ico, .cr-num { width: 28px; height: 28px; flex-shrink: 0; border-radius: 50%; background: var(--arancio-bg); color: var(--arancio); font-size: 13px; font-weight: 600; display: flex; align-items: center; justify-content: center; }
+.cr-manca .cr-ico { width: 36px; height: 36px; }
+.cr-tit-riga { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.cr-tit-riga .card-title { margin: 0; }
+.cr-tot { font-size: 14px; }
+.cr-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.cr-badge i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.cr-badge.ok { background: #e8f0e8; color: var(--accent); }
+.cr-badge.warn { background: var(--arancio-bg); color: var(--arancio); }
+.cr-badge.ko { background: #fbe9e7; color: var(--rosso); }
+.cr-and { display: flex; flex-direction: column; gap: 14px; }
+.cr-and-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; margin-bottom: 6px; }
+.cr-and-top > span:first-child { font-weight: 500; }
+.cr-and-top small { color: var(--text-muted); font-size: 12px; }
+.cr-bar { height: 6px; }
+.cr-and-nota { font-size: 12px; margin-top: 6px; }
+.cr-data { width: 44px; flex-shrink: 0; text-align: center; background: #f0ede6; border-radius: 10px; padding: 6px 0; display: flex; flex-direction: column; }
+.cr-data b { font-size: 17px; line-height: 1; }
+.cr-data small { font-size: 11px; color: var(--text-muted); }
+.cr-data b.solo-mese { font-size: 13px; font-weight: 600; line-height: 30px; }
+.cr-scad.pagata { color: var(--text-muted); }
+.cr-scad.pagata .riga-nome { text-decoration: line-through; }
+.cr-scad.pagata .cr-data { background: none; border: 1px solid var(--border); }
+.cr-piede { display: flex; justify-content: space-between; align-items: center; gap: 10px; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 4px; }
+.link.grigio { color: var(--text-muted); }
+.link.forte { font-weight: 600; color: inherit; text-decoration: underline; padding: 0; }
+.cr-todo .link { padding: 10px 4px; }
+.cr-patr { display: flex; flex-direction: column; gap: 12px; }
+.cr-patr .card-title { margin: 0; }
+.cr-patr-riga { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
+.cr-patr-riga > span:first-child { color: var(--text-muted); }
+.cr-patr-riga.piccola { font-size: 13px; color: var(--text-muted); padding-top: 4px; }
+.cr-patr-sep { height: 1px; background: var(--border); }
+.cr-patr-tot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; font-weight: 600; }
+.cr-patr-tot span:last-child { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 26px; color: var(--accent); }
+.cr-check { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.cr-check.ok { color: var(--accent); }
+.cr-check.ko { color: #6b4100; background: var(--arancio-bg); padding: 8px 10px; border-radius: 10px; font-size: 13px; }
+.cr-sim { padding-top: 6px; padding-bottom: 6px; }
+.cr-sim-testa { width: 100%; background: none; border: none; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; font: inherit; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; }
+.cr-sim-corpo { padding: 4px 0 14px; }
+/* Dettaglio margine */
+.modal.modal-margine { width: 760px; max-height: calc(100vh - 60px); overflow-y: auto; }
+.md-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+.md-testa strong { font-size: 14px; }
+.md-val { font-family: 'DM Serif Display', serif; font-size: 34px; line-height: 1.15; color: var(--accent); }
+.md-val.neg { color: var(--rosso); }
+.x-chiudi { width: 44px; height: 44px; flex-shrink: 0; border: none; background: none; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; justify-content: center; margin: -8px -8px 0 0; }
+.md-corpo { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(0,1fr); gap: 28px; align-items: start; }
+.md-sx, .md-dx { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.md-riga { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid rgba(0,0,0,0.06); }
+.md-conto .md-riga:first-child, .md-riga.primo { border-top: none; }
+.md-riga > span:first-child { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.md-riga small { font-size: 12px; color: var(--text-muted); }
+.md-lab, .md-v { font-size: 14px; }
+.md-v { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.md-riga.tot { border-top: 1.5px solid rgba(0,0,0,0.25); }
+.md-riga.tot .md-lab, .md-riga.tot .md-v { font-weight: 600; }
+.md-riga.fin .md-v { color: var(--accent); font-size: 16px; }
+.md-riga.fin.neg .md-v { color: var(--rosso); }
+.md-tit { font-size: 14px; font-weight: 600; padding-bottom: 4px; }
+.md-nota { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
+.md-nota .link { font-size: 12px; padding: 0; }
+@media (max-width: 900px) {
+  .cr-wrap { display: flex; flex-direction: column; align-items: stretch; }
+  .cr-a, .cr-b { display: contents; }
+  .cr-wrap > .cr-a > *, .cr-wrap > .cr-b > * { width: 100%; }
+  .cr-a > .cr-hero, .cr-a > .cr-manca { order: 1; }
+  .cr-b > section:first-child { order: 2; }
+  .cr-a > section:not(.cr-hero):not(.cr-manca) { order: 3; }
+  .cr-b > section:nth-child(2), .cr-b > section:only-child:not(:first-child) { order: 4; }
+  .cr-hero-val { font-size: 46px; }
+  .cr-hero { padding: 20px; }
+  .md-corpo { display: flex; flex-direction: column; gap: 16px; }
+  .md-sx { display: contents; }
+  .md-conto { order: 1; width: 100%; } .md-dx { order: 2; width: 100%; } .md-nota { order: 3; width: 100%; }
+}
 </style>
 </head>
 <body>
@@ -585,11 +679,10 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 <!-- PANORAMICA -->
 <div class="section active" id="sec-panoramica">
   <h1 class="page-title">Panoramica</h1>
-  <p class="page-sub" id="last-update-label">Situazione al <span id="last-update-date">—</span></p>
-  <p class="page-sub" id="periodo-label" style="margin-top:-1rem;font-size:12px;color:var(--text-faint);">—</p>
+  <p class="page-sub" id="cr-sub">—</p>
+  <span id="last-update-date" hidden></span><span id="periodo-label" hidden></span>
   <div id="cruscotto"></div>
 </div>
-
 
 <!-- CONTI -->
 <div class="section" id="sec-conti">
@@ -965,6 +1058,11 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
       <button class="btn btn-primary" onclick="salvaSpesaContanti()">Registra</button>
     </div>
   </div>
+</div>
+
+<!-- DETTAGLIO MARGINE -->
+<div class="modal-bg" id="modal-margine" onclick="if(event.target===this)margChiudi()">
+  <div class="modal modal-margine" role="dialog" aria-modal="true" aria-label="Come si arriva a questa cifra"><div class="maniglia"></div><div id="marg-dett"></div></div>
 </div>
 
 <!-- PROGRESS OVERLAY -->
@@ -2281,127 +2379,203 @@ function renderCruscotto() {
   el.innerHTML = h;
 }
 
+// ─── Panoramica (nuova grafica) ──────────────────────────────────
+let crUi = { sim: false, pagate: false };
+const _CHEV = '<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><polyline points="9 6 15 12 9 18"></polyline></svg>';
+const _ICO_CAL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>';
+function _maiu(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+function _elencoNomi(a, max) {
+  const n = a.slice(0, max || 3);
+  const testo = n.length <= 1 ? (n[0] || '') : n.slice(0, -1).join(', ') + ' e ' + n[n.length - 1];
+  return a.length > n.length ? testo + ' e altre' : testo;
+}
+// Giorno della scadenza, se noto (le imposte e la Cassa hanno la data esatta)
+function crGiorno(anno, s) {
+  try { const F = fiscScadenzeVoce(anno, s.voce.id); if(F) { const i = F.dettaglio.find(x => x.m === s.mese); if(i && i.d) return String(i.d); } } catch(e) {}
+  return '';
+}
+function crToggleSim() { crUi.sim = !crUi.sim; renderCruscotto(); }
+function crTogglePagate() { crUi.pagate = !crUi.pagate; renderCruscotto(); }
+function budCreaApri() { if(typeof budCreaFinestra === 'function') budCreaFinestra(); else budCreaAnno(); }
+
 function crHtml() {
+  const d = new Date(), Y = d.getFullYear(), mOggi = d.getMonth();
+  const sub = document.getElementById('cr-sub');
+  if(sub) sub.textContent = `${_maiu(MESI_LUNGHI[mOggi])} ${Y} · aggiornato al ${d.getDate()} ${MESI_LUNGHI[mOggi]}`;
   const liquidita = state.accounts.reduce((s, a) => s + (a.saldo || 0), 0);
+  const anni = budAnni();
   const anno = crAnnoOggi();
   if(anno == null) {
-    return `<div class="metric-grid"><div class="metric accent"><div class="metric-label">Liquidità totale</div><div class="metric-value">${fmt(liquidita)}</div><div class="metric-sub">${state.accounts.length} conti</div></div></div>
-      <div class="card"><div class="empty"><div class="empty-icon">📒</div><div class="empty-title">Il cruscotto si attiva con il budget</div><div class="empty-sub">Importa il budget nella sezione Budget per vedere margine, fondi e scadenze.</div></div></div>`;
+    return `<div class="cr-wrap"><div class="cr-a"><section class="card cr-manca"><div class="cr-manca-top"><span class="cr-ico">${_ICO_CAL}</span><h2>Crea il tuo budget</h2></div>
+      <p>Con il budget l'app calcola quanto puoi spendere ogni mese, le quote dei fondi e le scadenze.</p>
+      <button class="btn btn-primary" onclick="go('budget')">Vai al budget</button></section></div></div>` + crPatrimonio(liquidita, 0, null, []);
   }
-  const M = margCalcola(), c = M && M.corrente;
+  const mancaAnno = !budAnno(Y) && anni.length && Y > anni[anni.length - 1];
+  const M = margCalcola(), c = !mancaAnno && M && M.corrente;
   const F = budFondiOggi(anno);
   const vincProg = progVincolato();
   const vincolato = _sum(F.righe.map(r => Math.max(0, r.saldo))) + vincProg;
   const RS = progRisparmio(M);
   const fondiNeg = F.righe.filter(r => r.saldo < -0.5);
-  const libero = liquidita - vincolato;
-  let h = '';
+  let A = '', B = '';
 
-  // 1. Margine del mese
-  if(c) {
-    const d = new Date(), giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1, neg = c.disp < 0;
-    h += `<div class="card marg-hero cr-click${neg ? ' neg' : ''}" onclick="crApriBudget('margine')">
-      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
-      <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
-      <div class="marg-sub">${neg ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]}.` : `Circa ${fmt(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}.`}
-        Entrate incassate finora ${fmt(c.entr)}. <span class="cr-link">Vedi il dettaglio</span></div>
-    </div>`;
+  // 1. Riquadro verde: quanto posso ancora spendere
+  if(mancaAnno) {
+    A += `<section class="card cr-manca"><div class="cr-manca-top"><span class="cr-ico">${_ICO_CAL}</span><h2>Manca il budget ${Y}</h2></div>
+      <p>Senza il budget dell'anno non posso calcolare quanto puoi spendere a ${MESI_LUNGHI[mOggi]} né le quote dei fondi. Si crea in pochi minuti partendo da quello del ${anni[anni.length - 1]}.</p>
+      <button class="btn btn-primary" onclick="budCreaApri()">Crea budget ${Y}</button></section>`;
+  } else if(c) {
+    const giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1, neg = c.disp < 0;
+    const dispExtra = c.disp + c.extra, pct = dispExtra > 0.5 ? Math.max(0, Math.min(100, c.extra / dispExtra * 100)) : 100;
+    A += `<section class="cr-hero${neg ? ' neg' : ''}" onclick="margApri()" role="button" tabindex="0">
+      <div class="cr-hero-lab">${neg ? 'Sei oltre il margine di ' + MESI_LUNGHI[c.m] + ' di' : 'Puoi ancora spendere a ' + MESI_LUNGHI[c.m]}</div>
+      <div class="cr-hero-val">${_eur0(Math.abs(c.disp))}</div>
+      <div class="cr-hero-sub">${neg ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]} e ne riduce il margine.` : `circa ${_eur0(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}`}</div>
+      <div class="cr-hero-bar"><i style="width:${pct}%;"></i></div>
+      <div class="cr-hero-leg"><span>Extra spesi ${_eur0(c.extra)}</span><span>disponibili ${_eur0(dispExtra)}</span></div>
+      <div class="cr-hero-link">Come si arriva a questa cifra ›</div>
+    </section>`;
   }
 
-  // Simulatore «Posso permettermelo?»
-  h += simHtml();
-
-  // 2. Patrimonio realmente disponibile
-  h += `<div class="metric-grid">
-    <div class="metric"><div class="metric-label">Liquidità totale</div><div class="metric-value">${fmt(liquidita)}</div><div class="metric-sub">${state.accounts.length} conti</div></div>
-    <div class="metric"><div class="metric-label">Vincolato nei fondi</div><div class="metric-value">${fmt(vincolato)}</div><div class="metric-sub">${vincProg > 0.5 ? `di cui ${fmt(vincProg)} nei progetti` : 'già destinato a scadenze e fondi'}</div></div>
-    <div class="metric accent"><div class="metric-label">Realmente disponibile</div><div class="metric-value">${fmt(libero)}</div><div class="metric-sub">liquidità meno vincolato</div></div>
-    <div class="metric"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">${RS.assegnato > 0.5 ? `${fmt(RS.assegnato)} assegnati ai progetti` : 'dagli avanzi oltre il tetto'}</div></div>
-  </div>`;
-
-  // 3. Test di sostenibilità
-  const ok = libero >= -0.5;
-  h += `<div class="card cr-verdetto ${ok ? 'ok' : 'ko'}"><div class="card-title">Test di sostenibilità</div>
-    <div class="cr-verdetto-frase">${ok
-      ? `✅ La liquidità copre tutti i fondi maturati, e restano ${fmt(libero)} liberi.`
-      : `⚠️ La liquidità non copre i fondi maturati: mancano ${fmt(-libero)}.`}</div>`;
-  if(fondiNeg.length) h += `<div class="fisc-hint">Fondi sotto zero, cioè pagato più di quanto accantonato finora: ${fondiNeg.map(r => `${_esc(r.voce.nome)} ${fmt(r.saldo)}`).join(' · ')}. Lo scoperto si riassorbe con le quote dei mesi successivi.</div>`;
-  h += `</div>`;
-
-  // 4. Prossime scadenze (mese corrente e due successivi)
+  // 2. Come sta andando il mese
   const o = budOggi(anno), cor = Math.max(0, Math.min(11, o.corrente));
-  const fondoDi = {}; F.righe.forEach(r => { fondoDi[r.voce.id] = r.saldo; });
-  let prox = budScadenze(anno).filter(s => s.stato !== 'pagata' && s.mese <= cor + 2).map(s => Object.assign({ anno }, s));
-  if(cor + 2 > 11 && budAnno(anno + 1)) {
-    prox = prox.concat(budScadenze(anno + 1).filter(s => s.stato !== 'pagata' && s.mese <= cor + 2 - 12).map(s => Object.assign({ anno: anno + 1 }, s)));
+  if(c && o.corrente >= (budAnno(anno).meseInizio || 0) && o.corrente <= 11) {
+    const m = o.corrente, C = budCalcAnno(anno), R = budRealeVoci(anno).voci, X = margRealeAnno(anno, C);
+    const gr = g => C.voci.filter(r => r.voce.gruppo === g).map(r => ({ nome: r.voce.nome, b: r.prev[m], r: (R[r.voce.id] || _z12())[m] }));
+    const ric = gr('ricorrenti'), vari = gr('stime');
+    const tb = a => _sum(a.map(x => x.b)), tr = a => _sum(a.map(x => x.r));
+    const righe = [];
+    const eB = C.tot.entrate[m], eR = X.entrate[m];
+    righe.push({ nome: 'Entrate', r: eR, b: eB, col: 'var(--accent)', nota: eR >= eB - 0.5 ? 'Tutte incassate' : `Mancano ${_eur0(eB - eR)}`, notaCol: eR >= eB - 0.5 ? 'var(--accent)' : 'var(--text-muted)' });
+    if(ric.length) {
+      const manc = ric.filter(x => x.b - x.r > 0.5).map(x => x.nome);
+      righe.push({ nome: 'Spese fisse e ricorrenti', r: tr(ric), b: tb(ric), col: '#8c8c87', nota: manc.length ? 'Mancano ancora ' + _elencoNomi(manc) : 'Tutte uscite', notaCol: 'var(--text-muted)' });
+    }
+    if(vari.length) {
+      const oltre = vari.filter(x => x.r - x.b > 0.5), vr = tr(vari), vb = tb(vari);
+      const over = vr > vb + 0.5;
+      righe.push({ nome: 'Spese variabili', r: vr, b: vb, col: over ? '#c27c0e' : '#8c8c87',
+        nota: over ? `Oltre il previsto di ${_eur0(vr - vb)}${oltre.length ? ' (' + _elencoNomi(oltre.map(x => x.nome.toLowerCase()), 2) + ')' : ''}` : `Restano ${_eur0(vb - vr)}`,
+        notaCol: over ? 'var(--arancio)' : 'var(--text-muted)' });
+    }
+    const dispExtra = c.disp + c.extra;
+    const cats = c.extraCat.filter(x => x[1] > 0.5);
+    const notaExtra = cats.length ? cats.slice(0, 2).map(([k, v]) => `${k} ${_eur0(v)}`).join(' · ') + (cats.length > 2 ? ` · altro ${_eur0(_sum(cats.slice(2).map(x => x[1])))}` : '') : 'Nessuna spesa extra finora';
+    righe.push({ nome: 'Extra', r: c.extra, b: dispExtra, col: c.extra > dispExtra + 0.5 ? 'var(--rosso)' : 'var(--accent)', nota: notaExtra, notaCol: 'var(--text-muted)' });
+    const sfora = c.disp < -0.5, attenz = !sfora && righe.some(x => x.nome === 'Spese variabili' && x.r > x.b + 0.5);
+    const badge = sfora ? ['Stai sforando', 'ko'] : attenz ? ['Qualche voce oltre', 'warn'] : ['In linea', 'ok'];
+    B += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Come sta andando il mese</h2><span class="cr-badge ${badge[1]}"><i></i>${badge[0]}</span></div>
+      <div class="cr-and">${righe.map(x => {
+        const pct = x.b > 0.5 ? Math.max(0, Math.min(100, x.r / x.b * 100)) : (x.r > 0.5 ? 100 : 0);
+        return `<div><div class="cr-and-top"><span>${x.nome}</span><span><strong>${_eur0(x.r)}</strong> <small>di ${_eur0(x.b)}</small></span></div>
+          <div class="cr-bar"><i style="width:${pct}%;background:${x.col};"></i></div><div class="cr-and-nota" style="color:${x.notaCol};">${_esc(x.nota)}</div></div>`;
+      }).join('')}</div></section>`;
   }
-  h += `<div class="card"><div class="card-title">Prossime scadenze</div>`;
-  if(!prox.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessuna scadenza da pagare tra ${MESI_LUNGHI[cor]} e ${MESI_LUNGHI[(cor + 2) % 12]}.</div>`;
-  else {
-    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th style="text-align:left;">Voce</th><th>Da pagare</th><th style="text-align:left;">Fondo</th></tr></thead><tbody>`;
-    prox.forEach(s => {
-      const residuo = s.importo - s.pagato, fondo = fondoDi[s.voce.id];
-      let stFondo = '<span style="color:var(--text-faint);">—</span>';
-      if(fondo != null) {
-        if(fondo >= residuo - 0.5) stFondo = `<span style="color:var(--accent);">✅ pronto</span>`;
-        else if(s.stato === 'scaduta' || s.stato === 'mese') stFondo = `<span style="color:var(--danger);">⚠️ ci sono ${_eur0(fondo)} €</span>`;
-        else stFondo = `<span style="color:var(--text-muted);">in accantonamento (${_eur0(fondo)} €)</span>`;
-      }
-      const quando = s.stato === 'scaduta' ? `<span style="color:var(--danger);">${MESI_LUNGHI[s.mese]} · scaduta</span>` : `${MESI_LUNGHI[s.mese]}${s.anno !== anno ? ' ' + s.anno : ''}`;
-      h += `<tr><td>${quando}</td><td>${_esc(s.voce.nome)}${s.nota ? ` <small style="color:var(--text-faint);">${_esc(s.nota)}</small>` : ''}</td><td class="num">${fmt(residuo)}</td><td>${stFondo}</td></tr>`;
-    });
-    h += `</tbody></table></div>`;
-  }
-  h += `<div class="fisc-hint"><a href="#" onclick="crApriBudget('scadenze');return false;" style="color:var(--accent);">Tutte le scadenze e i fondi</a></div></div>`;
 
-  // 5. Da sistemare
+  // 3. Da pagare nel mese
+  if(!mancaAnno) {
+    const tutte = budScadenze(anno).filter(s => s.mese === cor || (s.stato === 'scaduta' && s.mese < cor));
+    const daPag = tutte.filter(s => s.stato !== 'pagata'), pagate = tutte.filter(s => s.stato === 'pagata' && s.mese === cor);
+    const fondoDi = {}; F.righe.forEach(r => { fondoDi[r.voce.id] = r.saldo; });
+    const mb = MESI_BREVI[cor].toLowerCase();
+    const riga = (s, pagata) => {
+      const residuo = s.importo - s.pagato, fondo = fondoDi[s.voce.id], g = crGiorno(anno, s);
+      let st = '', stCol = 'var(--text-muted)';
+      if(pagata) st = 'pagata';
+      else if(s.stato === 'scaduta') { st = `di ${MESI_LUNGHI[s.mese]}, risulta non pagata`; stCol = 'var(--rosso)'; }
+      else if(fondo == null) st = '';
+      else if(fondo >= residuo - 0.5) { st = 'Pronta: il fondo la copre'; stCol = 'var(--accent)'; }
+      else { st = `Nel fondo ${_eur0(Math.max(0, fondo))} su ${_eur0(residuo)}`; stCol = 'var(--arancio)'; }
+      return `<div class="riga cr-scad${pagata ? ' pagata' : ''}"><div class="cr-data">${g ? `<b>${g}</b><small>${s.mese === cor ? mb : MESI_BREVI[s.mese].toLowerCase()}</small>` : `<b class="solo-mese">${s.mese === cor ? mb : MESI_BREVI[s.mese].toLowerCase()}</b>`}</div>
+        <div class="riga-main"><span class="riga-nome">${_esc(s.voce.nome)}${s.nota ? ' · ' + _esc(s.nota) : ''}</span>${st ? `<span class="riga-sotto" style="color:${stCol};">${st}</span>` : ''}</div>
+        <span class="riga-imp">${_eur0(pagata ? s.importo : residuo)}</span></div>`;
+    };
+    A += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Da pagare a ${MESI_LUNGHI[cor]}</h2><strong class="cr-tot">${_eur0(_sum(daPag.map(s => s.importo - s.pagato)))}</strong></div>`;
+    A += daPag.length ? daPag.map(s => riga(s, false)).join('') : `<div class="riga-sotto" style="padding:4px 0 8px;">Niente da pagare per ora.</div>`;
+    if(crUi.pagate) A += pagate.map(s => riga(s, true)).join('');
+    A += `<div class="cr-piede">${pagate.length ? `<button class="link grigio" onclick="crTogglePagate()">${crUi.pagate ? 'Nascondi le pagate' : `Mostra ${pagate.length} già ${pagate.length === 1 ? 'pagata' : 'pagate'}`}</button>` : '<span></span>'}<button class="link" onclick="crApriBudget('fondi')">Tutte le scadenze</button></div></section>`;
+  }
+
+  // 4. Da sistemare
   const todo = [];
+  if(d.getMonth() === 11 && budAnno(Y) && !budAnno(Y + 1)) todo.push({ ico: _ICO_CAL, t: `Prepara il budget ${Y + 1}`, s: `Pochi minuti: parte da quello del ${Y}`, az: 'budCreaApri()', lab: 'Crea' });
   const daVerif = state.accounts.filter(a => a.verificaStimata);
-  if(daVerif.length) todo.push([`🏦 ${daVerif.length === 1 ? 'Il saldo di ' + _esc(daVerif[0].banca) + ' non è verificato' : daVerif.length + ' conti senza saldo verificato (' + daVerif.map(a => _esc(a.banca)).join(', ') + ')'}: inserisci il saldo che vedi nell'app della banca`, `go('conti')`]);
+  if(daVerif.length) todo.push({ n: daVerif.length, t: daVerif.length === 1 ? `Saldo di ${_esc(daVerif[0].banca)} da verificare` : `Saldi da verificare: ${daVerif.map(a => _esc(a.banca)).join(', ')}`, az: `go('conti')` });
   const dc = state.transactions.filter(t => !t.esclusa && t.categoria === 'Da classificare');
-  if(dc.length) todo.push([`📌 ${dc.length} ${dc.length === 1 ? 'movimento' : 'movimenti'} da classificare (${fmt(_sum(dc.map(t => (t.tipo === 'uscita' ? 1 : -1) * (+t.importo || 0))))})`, `apriTransazioniCat('Da classificare')`]);
+  if(dc.length) todo.push({ n: dc.length, t: dc.length === 1 ? 'Movimento da classificare' : 'Movimenti da classificare', s: _eur0(_sum(dc.map(t => (t.tipo === 'uscita' ? 1 : -1) * (+t.importo || 0)))) + ' che contano come extra', az: `apriTransazioniCat('Da classificare')` });
   const inizio = anno + '-' + String((budAnno(anno).meseInizio || 0) + 1).padStart(2, '0');
   const tna = state.transactions.filter(t => {
     if(t.esclusa || t.progetto || t.categoria !== 'Tasse/Contributi' || String(t.data || '') < inizio) return false;
     const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{ voce: t.voce }] : []);
     return !parti.some(p => vocePerId(p.voce));
   });
-  if(tna.length) todo.push([`🏛 ${tna.length} ${tna.length === 1 ? 'movimento' : 'movimenti'} in Tasse/Contributi non abbinati a una voce: pesano sugli extra`, `apriTransazioniCat('Tasse/Contributi')`]);
-  if(c) c.dettVoci.filter(x => x.reale - x.previsto > 20).forEach(x => todo.push([`📈 ${_esc(x.voce.nome)} oltre il previsto di ${fmt(x.reale - x.previsto)} a ${MESI_LUNGHI[c.m]}`, `crApriBudget('consuntivo')`]));
-  budScadenze(anno).filter(s => s.stato === 'scaduta').forEach(s => todo.push([`⏰ ${_esc(s.voce.nome)} di ${MESI_LUNGHI[s.mese]} risulta non pagata (${fmt(s.importo - s.pagato)}): se l'hai pagata, abbina il movimento alla voce`, `crApriBudget('scadenze')`]));
-  progAttivi().forEach(p => { const P = progPiano(p); if(P.stato === 'scaduto') todo.push([`🎯 Il progetto «${_esc(p.nome)}» ha superato la scadenza senza essere coperto: sposta la data o segnalo come realizzato`, `crApriBudget('progetti')`]); });
-  if(RS.libero < -0.5) todo.push([`🎯 Le somme assegnate ai progetti superano il risparmio accumulato di ${fmt(-RS.libero)}`, `crApriBudget('progetti')`]);
+  if(tna.length) todo.push({ n: tna.length, t: 'Tasse o contributi non abbinati a una voce', s: 'pesano sugli extra: abbinali alla voce fiscale', az: `apriTransazioniCat('Tasse/Contributi')` });
+  progAttivi().forEach(p => { const P = progPiano(p); if(P.stato === 'scaduto') todo.push({ n: '!', t: `Progetto «${_esc(p.nome)}» oltre la scadenza`, s: 'sposta la data o segnalo come realizzato', az: `crApriBudget('risparmio')` }); });
+  if(RS.libero < -0.5) todo.push({ n: '!', t: 'Progetti oltre il risparmio', s: `le somme assegnate superano il risparmio di ${_eur0(-RS.libero)}`, az: `crApriBudget('risparmio')` });
   if(todo.length) {
-    h += `<div class="card cr-todo"><div class="card-title">Da sistemare</div>${todo.map(([t, az]) => `<div class="cr-todo-riga"><span>${t}</span><button class="btn" style="font-size:12px;padding:4px 10px;" onclick="${az}">Apri</button></div>`).join('')}</div>`;
+    B += `<section class="card"><h2 class="card-title">Da sistemare</h2>${todo.map(x => `<div class="riga cr-todo"><span class="cr-num">${x.ico || x.n}</span>
+      <div class="riga-main"><span class="riga-nome">${x.t}</span>${x.s ? `<span class="riga-sotto">${x.s}</span>` : ''}</div>
+      <button class="link" onclick="${x.az}">${x.lab || 'Apri'}</button></div>`).join('')}</section>`;
   }
 
-  // 6. Andamento del mese rispetto al budget
-  if(o.corrente >= 0 && o.corrente <= 11 && o.corrente >= (budAnno(anno).meseInizio || 0)) {
-    const m = o.corrente, C = budCalcAnno(anno), R = budRealeVoci(anno).voci, X = margRealeAnno(anno, C);
-    const gr = (g, campo) => {
-      const rs = C.voci.filter(r => r.voce.gruppo === g);
-      return { b: _sum(rs.map(r => r[campo][m])), r: _sum(rs.map(r => (R[r.voce.id] || _z12())[m])), n: rs.length };
-    };
-    const righe = [
-      ['Entrate', { b: C.tot.entrate[m], r: X.entrate[m], n: 1 }, true],
-      ['Imposte e contributi', gr('fiscale', 'pag')],
-      ['Spese certe', gr('certe', 'pag')],
-      ['Spese ricorrenti', gr('ricorrenti', 'prev')],
-      ['Spese variabili', gr('stime', 'prev')],
-      ['Salute e regali', gr('fondi', 'quote')],
-      ['Extra fuori budget', { b: Math.max(0, C.tot.margine[m] - margQuoteProgetti(anno, m)), r: _sum(Object.values(X.extra).map(a => a[m])), n: 1 }, false, 'margine previsto'],
-    ].filter(x => x[1].n && (Math.abs(x[1].b) > 0.5 || Math.abs(x[1].r) > 0.5));
-    h += `<div class="card"><div class="card-title">${MESI_LUNGHI[m].charAt(0).toUpperCase() + MESI_LUNGHI[m].slice(1)}: reale e budget</div><div class="cr-and">`;
-    righe.forEach(([lab, v, ent, nota]) => {
-      const pct = v.b > 0.5 ? Math.max(0, Math.min(100, v.r / v.b * 100)) : (v.r > 0.5 ? 100 : 0);
-      const oltre = !ent && v.r > v.b + 0.5;
-      h += `<div class="cr-and-riga"><div class="cr-and-top"><span>${lab}</span><span><strong>${_eur0(v.r)}</strong> <small>di ${_eur0(v.b)}${nota ? ' ' + nota : ''}</small></span></div>
-        <div class="cr-bar"><i style="width:${pct}%;background:${oltre ? 'var(--danger)' : ent ? 'var(--accent)' : 'var(--text-muted)'};"></i></div></div>`;
-    });
-    h += `</div><div class="fisc-hint">Per imposte e spese certe il budget è il pagamento previsto nel mese, per salute e regali la quota. <a href="#" onclick="crApriBudget('consuntivo');return false;" style="color:var(--accent);">Consuntivo per voce</a></div></div>`;
-  }
+  return `<div class="cr-wrap"><div class="cr-a">${A}</div><div class="cr-b">${B}</div></div>` + crPatrimonio(liquidita, vincolato, RS, fondiNeg);
+}
+
+// 5. Il tuo patrimonio + 6. Posso permettermelo?
+function crPatrimonio(liquidita, vincolato, RS, fondiNeg) {
+  const libero = liquidita - vincolato, ok = libero >= -0.5;
+  let h = `<div class="cr-wrap cr-sotto"><section class="card cr-patr"><h2 class="card-title">Il tuo patrimonio</h2>
+    <div class="cr-patr-riga"><span>Liquidità sui conti</span><span>${_eur0(liquidita)}</span></div>
+    <div class="cr-patr-riga"><span>Già destinato a scadenze e fondi</span><span>− ${_eur0(vincolato)}</span></div>
+    <div class="cr-patr-sep"></div>
+    <div class="cr-patr-tot"><span>Disponibile davvero</span><span>${_eur0(libero)}</span></div>
+    <div class="cr-check ${ok ? 'ok' : 'ko'}">${ok
+      ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span>La liquidità copre tutti i fondi</span>'
+      : `<span>La liquidità non copre i fondi: mancano ${_eur0(-libero)}</span>`}</div>`;
+  if(fondiNeg && fondiNeg.length) h += `<div class="riga-sotto" style="line-height:1.5;">Fondi sotto zero (pagato più di quanto messo da parte finora): ${fondiNeg.map(r => `${_esc(r.voce.nome)} ${_eur0(r.saldo)}`).join(' · ')}. Si riassorbono con le quote dei prossimi mesi.</div>`;
+  if(RS) h += `<div class="cr-patr-riga piccola"><span>di cui risparmio libero</span><span>${_eur0(RS.libero)}</span></div>`;
+  h += `</section>`;
+  let sim = '';
+  if(crUi.sim) { sim = simHtml().replace(/^<div class="card"><div class="card-title">Posso permettermelo\?<\/div>/, '').replace(/<\/div>\s*$/, ''); }
+  h += `<section class="card cr-sim"><button class="cr-sim-testa" onclick="crToggleSim()"><span>Posso permettermelo?</span><span class="link">${crUi.sim ? 'Chiudi' : 'Apri'}</span></button>${crUi.sim ? `<div class="cr-sim-corpo">${sim}</div>` : ''}</section></div>`;
   return h;
 }
+
+// ─── Dettaglio «Come si arriva a questa cifra» ───────────────────
+function margApri() {
+  const el = document.getElementById('modal-margine'), box = document.getElementById('marg-dett'); if(!el || !box) return;
+  const M = margCalcola(), c = M && M.corrente; if(!c) return;
+  const r = (lab, nota, v, cls) => `<div class="md-riga${cls ? ' ' + cls : ''}"><span><span class="md-lab">${lab}</span>${nota ? `<small>${nota}</small>` : ''}</span><span class="md-v">${v}</span></div>`;
+  const sg = (v, segno) => `${segno} ${_eur0(Math.abs(v))}`;
+  const mp = c.m > 0 ? MESI_LUNGHI[c.m - 1] : 'dicembre', mn = MESI_LUNGHI[(c.m + 1) % 12];
+  let conto = r('Entrate incassate', 'solo quelle già arrivate', sg(c.entr, '+'));
+  conto += r('Quote dei fondi', 'spese certe, imposte e Cassa, salute, regali', sg(c.fondi, '−'));
+  conto += r('Spese a budget già fatte', 'ricorrenti e variabili', sg(c.eff, '−'));
+  conto += r('Spese a budget in arrivo', 'previste e non ancora uscite', sg(c.prog, '−'));
+  if(c.progetti > 0.005) conto += r('Quote dei progetti', '', sg(c.progetti, '−'));
+  const margPrima = c.marg + c.extra;
+  conto += r('Margine di ' + MESI_LUNGHI[c.m], '', (margPrima < 0 ? '= − ' : '= ') + _eur0(Math.abs(margPrima)), 'tot');
+  if(Math.abs(c.rin) > 0.005) conto += r(c.rin > 0 ? 'Avanzo di ' + mp : 'Sforamento di ' + mp, 'riportato al mese dopo', sg(c.rin, c.rin > 0 ? '+' : '−'));
+  const dispExtra = c.disp + c.extra;
+  conto += r('Disponibili per gli extra', '', (dispExtra < 0 ? '= − ' : '= ') + _eur0(Math.abs(dispExtra)), 'tot');
+  conto += r('Extra già spesi', 'spese fuori budget', sg(c.extra, '−'));
+  conto += r(c.disp < 0 ? 'Oltre il margine di' : 'Puoi ancora spendere', '', _eur0(Math.abs(c.disp)), 'tot fin' + (c.disp < 0 ? ' neg' : ''));
+  const dc = c.extraCat.find(x => x[0] === 'Da classificare'), tc = c.extraCat.find(x => x[0] === 'Tasse/Contributi');
+  let avvisi = '';
+  if(dc && dc[1] > 0.5) avvisi += `<div class="avviso">${_eur0(dc[1])} di spese da classificare contano già come extra (di solito contanti). Se rientrano in una voce di budget, il margine si ricalcola da solo. <button class="link forte" onclick="margChiudi();apriTransazioniCat('Da classificare')">Classificale</button></div>`;
+  if(tc && tc[1] > 0.5) avvisi += `<div class="avviso">${_eur0(tc[1])} in Tasse/Contributi non sono abbinati a una voce e pesano sugli extra: abbinali alla voce fiscale. <button class="link forte" onclick="margChiudi();apriTransazioniCat('Tasse/Contributi')">Mostra</button></div>`;
+  const pend = c.dettVoci.filter(x => x.pend > 0.5).sort((a, b) => b.pend - a.pend);
+  const usc = `<div class="md-blocco"><div class="md-tit">Ancora da uscire a ${MESI_LUNGHI[c.m]}</div>${pend.length ? pend.map((x, i) => r(_esc(x.voce.nome), x.reale > 0.5 ? `già ${_eur0(x.reale)} di ${_eur0(x.previsto)}` : '', fmt(x.pend), i ? '' : 'primo')).join('') : '<div class="riga-sotto">Tutte le spese a budget del mese sono già uscite.</div>'}</div>`;
+  const ext = `<div class="md-blocco"><div class="md-tit">Extra di ${MESI_LUNGHI[c.m]}</div>${c.extraCat.length ? c.extraCat.map(([k, v], i) => r(k === 'Da classificare' ? `<span style="color:var(--arancio);">${_esc(k)}</span>` : _esc(k), '', (v < 0 ? '− ' : '') + fmt(Math.abs(v)), i ? '' : 'primo')).join('') : '<div class="riga-sotto">Nessuna spesa extra finora.</div>'}</div>`;
+  const tetto = M.tetto == null ? 'tutto l’avanzo passa al mese dopo' : `l’avanzo passa a ${mn} fino al tetto di ${_eur0(M.tetto)}, il resto va nel risparmio`;
+  const nota = `<div class="md-nota">Il margine usa solo le entrate già arrivate: finché una fattura non è incassata il disponibile resta prudente. A fine mese ${tetto}; uno sforamento passa per intero. <button class="link" onclick="margChiudi();crApriBudget('risparmio')">Storico mese per mese</button></div>`;
+  box.innerHTML = `<div class="md-testa"><div><span class="riga-sotto">${c.disp < 0 ? 'Sei oltre il margine di ' + MESI_LUNGHI[c.m] + ' di' : 'Puoi ancora spendere a ' + MESI_LUNGHI[c.m]}</span>
+      <div class="md-val${c.disp < 0 ? ' neg' : ''}">${_eur0(Math.abs(c.disp))}</div><strong>Come si arriva a questa cifra</strong></div>
+      <button class="x-chiudi" aria-label="Chiudi" onclick="margChiudi()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="md-corpo"><div class="md-sx"><div class="md-conto">${conto}</div>${nota}</div><div class="md-dx">${avvisi}${usc}${ext}</div></div>`;
+  el.classList.add('open');
+}
+function margChiudi() { const el = document.getElementById('modal-margine'); if(el) el.classList.remove('open'); }
 
 // ─── Grafico annuale entrate/uscite (sezione Spese) ──────────────
 let andUi = { anno: null };
