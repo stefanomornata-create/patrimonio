@@ -757,8 +757,17 @@ canvas, img, svg { max-width: 100%; }
         <input class="form-input" id="m-iban" placeholder="IT60 X054 28…" />
       </div>
       <div class="form-group">
-        <label class="form-label">Saldo attuale (€)</label>
+        <label class="form-label">Saldo verificato (€)</label>
         <input class="form-input" id="m-saldo" type="number" step="0.01" placeholder="0,00" />
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Alla data (fine giornata)</label>
+        <input class="form-input" id="m-saldo-data" type="date" />
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <div id="m-saldo-info" style="font-size:12px;color:var(--text-muted);line-height:1.5;"></div>
       </div>
     </div>
     <div class="form-group">
@@ -959,6 +968,7 @@ function save() {
     const presenti = new Set((state.transactions || []).map(txChiave));
     state.txEliminate = state.txEliminate.filter(k => !presenti.has(k));
   }
+  try { saldiMigra(); ricalcolaSaldi(); } catch(e) { console.warn(e); }
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
   scheduleDriveSave();
 }
@@ -1080,7 +1090,8 @@ function renderPCT() {
 
 // ─── Render all ──────────────────────────────────────────────────
 function renderAll() {
-  if(migraCategorie()) save();
+  if(migraCategorie() + saldiMigra()) save();
+  ricalcolaSaldi();
   try { if(progCongela()) save(); } catch(e) { console.warn(e); }
   renderMetrics();
   renderCruscotto();
@@ -1168,6 +1179,7 @@ function renderBankList() {
       <div class="bank-saldo">
         <div class="bank-amount">${fmt(a.saldo||0)}</div>
         <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
+        ${a.dataVerifica ? `<div class="bank-pct" title="Saldo verificato ${fmt(a.saldoVerificato || 0)} al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}, più i movimenti successivi">verificato al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}</div>` : ''}
       </div>
       <div class="bank-actions">
       <button class="btn btn-sm" onclick="openModalConto(${i})">Modifica</button>
@@ -3838,7 +3850,6 @@ function saveTxEdit() {
   }
 
   const chiavePrima = txChiave(tx);
-  const giroPrima = txIsGiro(tx), deltaPrima = txDeltaSaldo(tx);
   if(nuovaData) tx.data = new Date(nuovaData + 'T00:00:00Z').toISOString();
   tx.importo = impFinale;
   if(nuovaDesc) tx.descrizione = nuovaDesc;
@@ -3862,16 +3873,7 @@ function saveTxEdit() {
     else { tx.voceManuale = true; tx.voce = voceSel; const v = vocePerId(voceSel); if(v) tx.categoria = v.categoria; }
   }
 
-  // Saldo del conto: si aggiorna solo se la transazione non è un giroconto né prima né dopo
-  // (spostarla da/verso Giroconto non tocca il saldo, coerente con l'import)
-  if(!giroPrima && !txIsGiro(tx)) {
-    const diff = txDeltaSaldo(tx) - deltaPrima;
-    const conto = txContoDi(tx);
-    if(conto && Math.abs(diff) >= 0.005) {
-      contoApplicaDelta(conto, diff);
-      logMsg('🏦 Saldo ' + conto.banca + ' aggiornato: ' + (diff >= 0 ? '+' : '') + fmt(diff) + ' → ' + fmt(conto.saldo), 'ok');
-    }
-  }
+  // Il saldo del conto si ricalcola da solo al salvataggio
 
   // Se cambiano data, importo, tipo o descrizione la vecchia chiave va segnata come eliminata
   if(txChiave(tx) !== chiavePrima) { if(!Array.isArray(state.txEliminate)) state.txEliminate = []; state.txEliminate.push(chiavePrima); }
@@ -3897,21 +3899,57 @@ function saveTxEdit() {
   renderBankList();
 }
 
-// ─── Effetto di una transazione sul saldo del suo conto ──────────
-// Stessa regola dell'import: entrate +, uscite −, giroconti esclusi.
+// ═════════════════════════════════════════════════════════════════
+// SALDI DEI CONTI  (saldo verificato a una data + movimenti successivi)
+// ─────────────────────────────────────────────────────────────────
+// Dati:  conto.saldoVerificato → saldo reale letto dalla banca
+//        conto.dataVerifica    → 'YYYY-MM-DD' a cui si riferisce (fine giornata)
+//        conto.verificaTs      → momento dell'inserimento (ms)
+//        conto.saldo           → saldo calcolato (si ricalcola sempre, non si modifica a mano)
+// Saldo = saldoVerificato + Σ movimenti del conto successivi alla data di verifica,
+// giroconti compresi (entrate +, uscite −). I movimenti dello stesso giorno contano
+// solo se registrati a mano (contanti, PayPal) dopo la verifica: quelli importati
+// dalla banca in quel giorno sono già compresi nel saldo letto.
+// Nessun aggiornamento "a differenze": modifiche, eliminazioni, import di periodi
+// vecchi e sincronizzazioni non possono disallineare il saldo.
+// ═════════════════════════════════════════════════════════════════
 function txIsGiro(t) { return t.categoria === 'Giroconto' || t.tipo === 'Giroconto'; }
-function txContoDi(t) { return state.accounts.find(a => a.banca === t.conto) || null; }
-function txDeltaSaldo(t) {
-  if(txIsGiro(t)) return 0;
-  const imp = +t.importo || 0;
-  return t.tipo === 'entrata' ? imp : -imp;
+function _oggiYMD() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function contoPerNome(nome) {
+  const k = _normConto(nome); if(!k) return null;
+  return state.accounts.find(a => _normConto(a.banca) === k) || null;
 }
-function contoApplicaDelta(conto, delta) {
-  if(!conto || Math.abs(delta) < 0.005) return;
-  let v = (conto.saldo || 0) + delta;
-  if(conto.isPortafoglio || conto.isPaypal) v = Math.max(0, v); // come all'inserimento
-  conto.saldo = Math.round(v * 100) / 100;
+function txContoDi(t) { return contoPerNome(t.conto); }
+function txSegnoSaldo(t) { const imp = +t.importo || 0; return t.tipo === 'entrata' ? imp : t.tipo === 'uscita' ? -imp : 0; }
+// true se il movimento modifica il saldo calcolato del conto (è dopo la verifica)
+function txDopoVerifica(t, a) {
+  if(!a || !a.dataVerifica) return false;
+  const d = String(t.data || '').substring(0, 10);
+  if(d > a.dataVerifica) return true;
+  return d === a.dataVerifica && !!t.manuale && (+t.creato || 0) > (+a.verificaTs || 0);
 }
+// Una tantum per conto: il saldo che c'era diventa il saldo verificato a oggi
+function saldiMigra() {
+  let n = 0;
+  (state.accounts || []).forEach(a => {
+    if(a.dataVerifica) return;
+    a.saldoVerificato = Math.round((+a.saldo || 0) * 100) / 100;
+    a.dataVerifica = _oggiYMD(); a.verificaTs = Date.now(); n++;
+  });
+  return n;
+}
+let _saldiInfo = {};   // banca → { mov, n } movimenti dopo la verifica
+function ricalcolaSaldi() {
+  const acc = state.accounts || []; _saldiInfo = {};
+  acc.forEach(a => { _saldiInfo[a.banca] = { mov: 0, n: 0 }; });
+  (state.transactions || []).forEach(t => {
+    const a = txContoDi(t); if(!a || !txDopoVerifica(t, a)) return;
+    const I = _saldiInfo[a.banca]; I.mov += txSegnoSaldo(t); I.n++;
+  });
+  acc.forEach(a => { a.saldo = Math.round(((+a.saldoVerificato || 0) + _saldiInfo[a.banca].mov) * 100) / 100; });
+}
+// Movimento registrato a mano (contanti, PayPal, salvadanaio)
+function txManuale(o) { return Object.assign({ manuale: true, creato: Date.now(), mod: Date.now() }, o); }
 
 // ─── Eliminazione singola transazione (dal modal ✏️) ─────────────
 function deleteTxSingola() {
@@ -3921,15 +3959,15 @@ function deleteTxSingola() {
   const tx = state.transactions[idx];
   const segno = tx.tipo === 'entrata' ? '+' : '−';
   const conto = txContoDi(tx);
-  const delta = -txDeltaSaldo(tx); // annulla l'effetto della transazione
+  const delta = txDopoVerifica(tx, conto) ? -txSegnoSaldo(tx) : 0; // effetto sul saldo calcolato
   const k = txChiave(tx);
   const gemelle = state.transactions.filter((t, i) => i !== idx && txChiave(t) === k).length;
   let msg = 'Eliminare questa transazione?\n\n' + fmtDate(tx.data) + '  ' + segno + fmt(tx.importo) +
             '\n' + (tx.descrizione || '—') + '\n' + (tx.conto || '');
   if(conto && Math.abs(delta) >= 0.005)
     msg += '\n\nSaldo ' + conto.banca + ': ' + fmt(conto.saldo || 0) + ' → ' + fmt((conto.saldo || 0) + delta);
-  else if(conto && txIsGiro(tx))
-    msg += '\n\nGiroconto: il saldo di ' + conto.banca + ' non viene modificato.';
+  else if(conto)
+    msg += '\n\nIl movimento è precedente al saldo verificato: il saldo di ' + conto.banca + ' non cambia.';
   if(gemelle) msg += '\n\nAttenzione: esiste un\'altra transazione identica (stessa data, importo e descrizione). ' +
                      'Verrà eliminata solo questa, ma una sincronizzazione con Drive potrebbe farla ricomparire.';
   msg += '\n\nL\'operazione non si può annullare.';
@@ -3940,7 +3978,6 @@ function deleteTxSingola() {
 
   // Lapide solo se non restano gemelle, altrimenti l'unione Drive cancellerebbe anche quelle
   if(!gemelle) txSegnaEliminate([tx]);
-  contoApplicaDelta(txContoDi(tx), delta);
   state.transactions.splice(idx2, 1);
   _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
   document.getElementById('modal-edit-tx').classList.remove('open');
@@ -4026,7 +4063,10 @@ function openModalConto(idx) {
     const a = state.accounts[editingContoIdx];
     document.getElementById('m-banca').value = a.banca;
     document.getElementById('m-iban').value = a.iban || '';
-    document.getElementById('m-saldo').value = a.saldo || '';
+    document.getElementById('m-saldo').value = a.saldoVerificato != null ? a.saldoVerificato : (a.saldo || '');
+    document.getElementById('m-saldo-data').value = a.dataVerifica || _oggiYMD();
+    const I = _saldiInfo[a.banca] || { mov: 0, n: 0 };
+    document.getElementById('m-saldo-info').innerHTML = `Saldo calcolato oggi: <strong>${fmt(a.saldo || 0)}</strong><br>${I.n ? `${I.n} moviment${I.n === 1 ? 'o' : 'i'} dopo la verifica: ${I.mov >= 0 ? '+' : ''}${fmt(I.mov)}` : 'nessun movimento dopo la verifica'}`;
     document.getElementById('m-portafoglio').checked = !!a.isPortafoglio;
     document.getElementById('m-salvadanaio').checked = !!a.isSalvadanaio;
     document.getElementById('m-salvadanaio-virtuale').checked = !!a.isSalvadanaioVirtuale;
@@ -4036,6 +4076,8 @@ function openModalConto(idx) {
     document.getElementById('m-banca').value = '';
     document.getElementById('m-iban').value = '';
     document.getElementById('m-saldo').value = '';
+    document.getElementById('m-saldo-data').value = _oggiYMD();
+    document.getElementById('m-saldo-info').textContent = 'Inserisci il saldo letto dalla banca e la data a cui si riferisce: da lì in poi l\'app lo aggiorna con i movimenti.';
     document.getElementById('m-portafoglio').checked = false;
     document.getElementById('m-salvadanaio').checked = false;
     document.getElementById('m-salvadanaio-virtuale').checked = false;
@@ -4051,10 +4093,18 @@ function closeModalConto() {
 function saveConto() {
   const banca = document.getElementById('m-banca').value.trim();
   if(!banca) { alert('Inserisci il nome della banca.'); return; }
+  const sv = Math.round((parseFloat((document.getElementById('m-saldo').value || '0').replace(',', '.')) || 0) * 100) / 100;
+  const dv = document.getElementById('m-saldo-data').value || _oggiYMD();
+  const prec = editingContoIdx >= 0 ? state.accounts[editingContoIdx] : null;
+  // nuova verifica solo se cambiano importo o data: rinominare il conto non la sposta
+  const cambiata = !prec || prec.saldoVerificato !== sv || prec.dataVerifica !== dv;
   const obj = {
     banca,
     iban: document.getElementById('m-iban').value.trim(),
-    saldo: parseFloat((document.getElementById('m-saldo').value || '0').replace(',', '.')) || 0,
+    saldoVerificato: sv,
+    dataVerifica: dv,
+    verificaTs: cambiata ? Date.now() : (prec.verificaTs || Date.now()),
+    saldo: sv,
     colore: selectedColor,
     isPortafoglio: document.getElementById('m-portafoglio').checked,
     isSalvadanaio: document.getElementById('m-salvadanaio').checked,
@@ -4079,7 +4129,7 @@ function deleteContoTransazioni(i) {
   if(!conto) return;
   const count = state.transactions.filter(t => t.conto === conto.banca).length;
   if(count === 0) { alert('Nessuna transazione trovata per ' + conto.banca); return; }
-  if(!confirm('Eliminare ' + count + ' transazioni del conto ' + conto.banca + '?\nIl saldo del conto NON verrà modificato.')) return;
+  if(!confirm('Eliminare ' + count + ' transazioni del conto ' + conto.banca + '?\nIl saldo calcolato non comprenderà più quelle successive al saldo verificato del ' + fmtDate(conto.dataVerifica + 'T00:00:00Z') + ': tornerà corretto quando le reimporti.')) return;
   txSegnaEliminate(state.transactions.filter(t => t.conto === conto.banca));
   state.transactions = state.transactions.filter(t => t.conto !== conto.banca);
   save();
@@ -4204,15 +4254,13 @@ async function processFile(file, tipoHint) {
     state.transactions.push(...txNuove);
     transactions = txNuove; // Aggiorna per il calcolo del salvadanaio e il modal
 
-    // Aggiorna saldo salvadanaio virtuale con gli accrediti risparmi positivi
-    const risparmiPositivi = transactions
-      .filter(t => t.isRisparmiVirtuale === true)
-      .reduce((s,t) => s + t.importo, 0);
-    if(risparmiPositivi > 0) {
+    // Accrediti risparmi Revolut: appartengono al salvadanaio virtuale (giroconto verso di esso)
+    const risparmi = transactions.filter(t => t.isRisparmiVirtuale === true);
+    if(risparmi.length) {
       const sv = getSalvadanaioVirtuale();
       if(sv) {
-        sv.saldo = (sv.saldo || 0) + risparmiPositivi;
-        logMsg(`🐷 Salvadanaio virtuale aggiornato: +${fmt(risparmiPositivi)}`, 'ok');
+        risparmi.forEach(t => { t.conto = sv.banca; t.contoFisso = true; });
+        logMsg(`🐷 ${risparmi.length} accrediti risparmi assegnati al salvadanaio virtuale (+${fmt(_sum(risparmi.map(t => t.importo)))})`, 'ok');
       } else {
         logMsg('⚠ Trovati accrediti risparmi Revolut ma nessun salvadanaio virtuale configurato.', 'warn');
       }
@@ -4972,8 +5020,7 @@ function openModalContanti() {
   sel.innerHTML = cats.map(c => `<option value="${c}">${catEmoji(c)} ${c}</option>`).join('');
 
   // Set today as default date
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('mc-data').value = today;
+  document.getElementById('mc-data').value = _oggiYMD();
   document.getElementById('mc-importo').value = '';
   document.getElementById('mc-desc').value = '';
   document.getElementById('mc-tipo-sel').value = 'uscita';
@@ -5038,84 +5085,38 @@ function salvaSpesaContanti() {
     return;
   }
   const tipoSel = document.getElementById('mc-tipo-sel').value;
-  const data = document.getElementById('mc-data').value || new Date().toISOString().split('T')[0];
+  const data = document.getElementById('mc-data').value || _oggiYMD();
   const desc = document.getElementById('mc-desc').value.trim();
   const cat  = document.getElementById('mc-cat').value;
 
   const p = getPortafoglio();
 
+  const add = o => state.transactions.push(txManuale(Object.assign({ data: new Date(data).toISOString(), importo }, o)));
+  const serve = (conto, nome) => { if(conto) return true; alert(`Aggiungi prima il conto «${nome}» nella sezione Conti.`); return false; };
+
   if(tipoSel === 'entrata_prelievo') {
-    // Prelievo bancomat: accredita il portafoglio, nessuna transazione di spesa
-    if(p) p.saldo = (p.saldo || 0) + importo;
-    save();
-    closeModalContanti();
-    renderAll();
-    return;
-  }
-
-  if(tipoSel === 'salvadanaio') {
-    // Spicci: accredita il salvadanaio, nessuna transazione (sono resto già speso)
-    const s = getSalvadanaio();
-    if(s) s.saldo = (s.saldo || 0) + importo;
-    save();
-    closeModalContanti();
-    renderAll();
-    return;
-  }
-
-  if(tipoSel === 'paypal_out' || tipoSel === 'paypal_in') {
+    // Prelievo bancomat: giroconto banca → portafoglio (il lato banca arriva con l'estratto)
+    if(!serve(p, 'portafoglio contanti')) return;
+    add({ descrizione: desc || 'Prelievo bancomat', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
+  } else if(tipoSel === 'salvadanaio') {
+    // Spicci messi nel salvadanaio
+    const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio')) return;
+    add({ descrizione: desc || 'Spicci nel salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: sd.banca });
+  } else if(tipoSel === 'preleva_salvadanaio') {
+    // Giroconto salvadanaio → portafoglio
+    const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio') || !serve(p, 'portafoglio contanti')) return;
+    add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'uscita', categoria: 'Giroconto', conto: sd.banca });
+    add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
+  } else if(tipoSel === 'paypal_out' || tipoSel === 'paypal_in') {
     const pp = getPaypal();
     const tipo = tipoSel === 'paypal_in' ? 'entrata' : 'uscita';
-    const descrizione = desc || (tipo === 'uscita' ? 'Uscita PayPal' : 'Entrata PayPal');
-    state.transactions.push({
-      data: new Date(data).toISOString(),
-      descrizione,
-      importo,
-      tipo,
-      categoria: tipoSel === 'paypal_in' ? 'Entrate' : cat,
-      conto: 'PayPal'
-    });
-    if(pp) {
-      pp.saldo = tipo === 'uscita'
-        ? Math.max(0, (pp.saldo || 0) - importo)
-        : (pp.saldo || 0) + importo;
-    }
-    save();
-    closeModalContanti();
-    renderAll();
-    return;
-  }
-
-  if(tipoSel === 'preleva_salvadanaio') {
-    // Giroconto salvadanaio → portafoglio
-    const s = getSalvadanaio();
-    const port = getPortafoglio();
-    if(s) s.saldo = Math.max(0, (s.saldo || 0) - importo);
-    if(port) port.saldo = (port.saldo || 0) + importo;
-    save();
-    closeModalContanti();
-    renderAll();
-    return;
-  }
-
-  // Spesa o entrata normale
-  const tipo = tipoSel === 'entrata' ? 'entrata' : 'uscita';
-  const descrizione = desc || (tipo === 'uscita' ? 'Spesa contanti' : 'Entrata contanti');
-
-  state.transactions.push({
-    data: new Date(data).toISOString(),
-    descrizione,
-    importo,
-    tipo,
-    categoria: tipoSel === 'entrata' ? 'Entrate' : cat,
-    conto: (p && p.banca) || 'Portafoglio'
-  });
-
-  // Aggiorna saldo portafoglio
-  if(p) {
-    p.saldo = tipo === 'uscita'
-      ? Math.max(0, (p.saldo || 0) - importo)
-      : (p.saldo || 0) + importo;
+    add({ descrizione: desc || (tipo === 'uscita' ? 'Uscita PayPal' : 'Entrata PayPal'), tipo,
+          categoria: tipoSel === 'paypal_in' ? 'Entrate' : cat, conto: pp ? pp.banca : 'PayPal' });
+  } else {
+    // Spesa o entrata in contanti
+    const tipo = tipoSel === 'entrata' ? 'entrata' : 'uscita';
+    add({ descrizione: desc || (tipo === 'uscita' ? 'Spesa contanti' : 'Entrata contanti'), tipo,
+          categoria: tipoSel === 'entrata' ? 'Entrate' : cat, conto: (p && p.banca) || 'Portafoglio' });
   }
 
   save();
@@ -5158,16 +5159,24 @@ function apriModaleSelezioneContoConTransazioni(transactions, contoNameProv) {
   document.getElementById('modal-selezione-conto').classList.add('open');
 }
 
+// Saldo del conto senza i movimenti appena importati (che hanno ancora il conto provvisorio,
+// e potrebbero già essere conteggiati se il nome del file coincide con quello del conto)
+function _saldoSenza(conto, txs) {
+  let v = conto.saldo || 0;
+  txs.forEach(t => { const a = txContoDi(t); if(a === conto && txDopoVerifica(t, a)) v -= txSegnoSaldo(t); });
+  return Math.round(v * 100) / 100;
+}
 function aggiornaPreviewSaldo(conto, transactions) {
   const preview = document.getElementById('sel-conto-preview');
   if(!conto || !transactions.length) { preview.style.display='none'; return; }
 
-  // Calcola variazione netta (esclusi giroconti)
-  const attive = transactions.filter(t => t.categoria !== 'Giroconto');
-  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
-  const delta = deltaEntrate - deltaUscite;
-  const nuovoSaldo = (conto.saldo||0) + delta;
+  // Variazione del saldo calcolato: solo i movimenti successivi al saldo verificato, giroconti compresi
+  const proprie = transactions.filter(t => !t.contoFisso);
+  const dopo = proprie.filter(t => txDopoVerifica(t, conto));
+  const delta = _sum(dopo.map(txSegnoSaldo));
+  const base = _saldoSenza(conto, proprie);
+  const nuovoSaldo = base + delta;
+  const nPrima = proprie.length - dopo.length;
 
   const segno = delta >= 0 ? '+' : '';
   preview.style.display = 'block';
@@ -5175,7 +5184,7 @@ function aggiornaPreviewSaldo(conto, transactions) {
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
       <div>
         <div style="font-weight:500;margin-bottom:2px;">${conto.banca}</div>
-        <div style="font-size:12px;color:var(--text-faint);">Saldo attuale: ${fmt(conto.saldo||0)}</div>
+        <div style="font-size:12px;color:var(--text-faint);">Saldo attuale: ${fmt(base)}</div>
       </div>
       <div style="text-align:right;">
         <div style="font-size:11px;color:var(--text-faint);">Variazione netta</div>
@@ -5185,7 +5194,8 @@ function aggiornaPreviewSaldo(conto, transactions) {
         <div style="font-size:11px;color:var(--text-faint);">Nuovo saldo</div>
         <div style="font-size:18px;font-family:'DM Serif Display',serif;color:var(--text);">${fmt(nuovoSaldo)}</div>
       </div>
-    </div>`;
+    </div>
+    ${nPrima ? `<div style="font-size:11px;color:var(--text-faint);margin-top:6px;">${nPrima} movimenti precedenti al saldo verificato del ${fmtDate(conto.dataVerifica + 'T00:00:00Z')} non lo modificano.</div>` : ''}`;
 }
 
 function confermaSelezioneContoOk() {
@@ -5194,25 +5204,20 @@ function confermaSelezioneContoOk() {
   const conto = contiPrincipali[parseInt(sel.value)];
   if(!conto) { chiudiModaleSelezioneContoAndRender(); return; }
 
-  // Aggiorna nome conto su tutte le transazioni appena importate
-  const nomeContoIdx = state.accounts.indexOf(conto);
-  _txDaAssegnare.forEach(t => { t.conto = conto.banca; });
-
-  // Calcola variazione netta ed aggiorna saldo (escludi giroconti)
-  const attive = _txDaAssegnare.filter(t => t.categoria !== 'Giroconto');
-  const deltaUscite = attive.filter(t=>t.tipo==='uscita').reduce((s,t)=>s+t.importo,0);
-  const deltaEntrate = attive.filter(t=>t.tipo==='entrata').reduce((s,t)=>s+t.importo,0);
-  const delta = deltaEntrate - deltaUscite;
-  conto.saldo = (conto.saldo||0) + delta;
-
-  const segno = delta >= 0 ? '+' : '';
-  logMsg(`🏦 Saldo ${conto.banca} aggiornato: ${segno}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
+  // Assegna il conto ai movimenti appena importati (non a quelli già destinati a un conto speciale)
+  const prima = _saldoSenza(conto, _txDaAssegnare.filter(t => !t.contoFisso));
+  _txDaAssegnare.forEach(t => { if(!t.contoFisso) t.conto = conto.banca; delete t.contoFisso; });
+  ricalcolaSaldi();
+  const delta = (conto.saldo || 0) - prima;
+  logMsg(`🏦 Saldo ${conto.banca}: ${delta >= 0 ? '+' : ''}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
 
   save();
   chiudiModaleSelezioneContoAndRender();
 }
 
 function confermaSelezioneContoSkip() {
+  _txDaAssegnare.forEach(t => { delete t.contoFisso; });
+  save();
   chiudiModaleSelezioneContoAndRender();
 }
 
@@ -5251,12 +5256,8 @@ function importaContanti(input) {
         aggiunte++;
       });
 
-      // Aggiorna saldo portafoglio
+      // il saldo del portafoglio si ricalcola dai movimenti (quelli dopo il saldo verificato)
       const p = getPortafoglio();
-      if(p) {
-        p.saldo = (p.saldo||0) + totEntrate - totUscite;
-      }
-
       save();
       renderAll();
 
