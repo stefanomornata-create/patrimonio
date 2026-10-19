@@ -600,6 +600,17 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .cr-sim { padding-top: 6px; padding-bottom: 6px; }
 .cr-sim-testa { width: 100%; background: none; border: none; padding: 12px 0; display: flex; justify-content: space-between; align-items: center; font: inherit; font-size: 16px; font-weight: 600; color: var(--text); cursor: pointer; }
 .cr-sim-corpo { padding: 4px 0 14px; }
+@media (min-width: 901px) {
+  #sec-panoramica .card { padding: 18px 20px; }
+  #sec-panoramica .card.cr-sim { padding: 4px 20px; }
+  .cr-todo { padding: 8px 0; }
+  .cr-todo .link { padding: 6px 4px; }
+  .cr-scad { padding: 10px 0; }
+  .cr-hero { padding: 20px 22px; gap: 8px; }
+  .cr-hero-val { font-size: 46px; }
+  .cr-and { gap: 12px; }
+  .cr-patr { gap: 10px; }
+}
 /* Dettaglio margine */
 .modal.modal-margine { width: 760px; max-height: calc(100vh - 60px); overflow-y: auto; }
 .md-testa { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
@@ -626,10 +637,8 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .cr-wrap { display: flex; flex-direction: column; align-items: stretch; }
   .cr-a, .cr-b { display: contents; }
   .cr-wrap > .cr-a > *, .cr-wrap > .cr-b > * { width: 100%; }
-  .cr-a > .cr-hero, .cr-a > .cr-manca { order: 1; }
-  .cr-b > section:first-child { order: 2; }
-  .cr-a > section:not(.cr-hero):not(.cr-manca) { order: 3; }
-  .cr-b > section:nth-child(2), .cr-b > section:only-child:not(:first-child) { order: 4; }
+  .cr-wrap .cr-o1 { order: 1; } .cr-wrap .cr-o2 { order: 2; } .cr-wrap .cr-o3 { order: 3; }
+  .cr-wrap .cr-o4 { order: 4; } .cr-wrap .cr-o5 { order: 5; } .cr-wrap .cr-o6 { order: 6; }
   .cr-hero-val { font-size: 46px; }
   .cr-hero { padding: 20px; }
   .md-corpo { display: flex; flex-direction: column; gap: 16px; }
@@ -2338,7 +2347,7 @@ function crHtml() {
   if(anno == null) {
     return `<div class="cr-wrap"><div class="cr-a"><section class="card cr-manca"><div class="cr-manca-top"><span class="cr-ico">${_ICO_CAL}</span><h2>Crea il tuo budget</h2></div>
       <p>Con il budget l'app calcola quanto puoi spendere ogni mese, le quote dei fondi e le scadenze.</p>
-      <button class="btn btn-primary" onclick="go('budget')">Vai al budget</button></section></div></div>` + crPatrimonio(liquidita, 0, null, []);
+      <button class="btn btn-primary" onclick="go('budget')">Vai al budget</button></section>${crPatrimonio(liquidita, 0, null, []).patr}</div><div class="cr-b">${crPatrimonio(liquidita, 0, null, []).sim}</div></div>`;
   }
   const mancaAnno = !budAnno(Y) && anni.length && Y > anni[anni.length - 1];
   const M = margCalcola(), c = !mancaAnno && M && M.corrente;
@@ -2351,13 +2360,13 @@ function crHtml() {
 
   // 1. Riquadro verde: quanto posso ancora spendere
   if(mancaAnno) {
-    A += `<section class="card cr-manca"><div class="cr-manca-top"><span class="cr-ico">${_ICO_CAL}</span><h2>Manca il budget ${Y}</h2></div>
+    A += `<section class="card cr-manca cr-o1"><div class="cr-manca-top"><span class="cr-ico">${_ICO_CAL}</span><h2>Manca il budget ${Y}</h2></div>
       <p>Senza il budget dell'anno non posso calcolare quanto puoi spendere a ${MESI_LUNGHI[mOggi]} né le quote dei fondi. Si crea in pochi minuti partendo da quello del ${anni[anni.length - 1]}.</p>
       <button class="btn btn-primary" onclick="budCreaApri()">Crea budget ${Y}</button></section>`;
   } else if(c) {
     const giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1, neg = c.disp < 0;
     const dispExtra = c.disp + c.extra, pct = dispExtra > 0.5 ? Math.max(0, Math.min(100, c.extra / dispExtra * 100)) : 100;
-    A += `<section class="cr-hero${neg ? ' neg' : ''}" onclick="margApri()" role="button" tabindex="0">
+    A += `<section class="cr-hero cr-o1${neg ? ' neg' : ''}" onclick="margApri()" role="button" tabindex="0">
       <div class="cr-hero-lab">${neg ? 'Sei oltre il margine di ' + MESI_LUNGHI[c.m] + ' di' : 'Puoi ancora spendere a ' + MESI_LUNGHI[c.m]}</div>
       <div class="cr-hero-val">${_eur0(Math.abs(c.disp))}</div>
       <div class="cr-hero-sub">${neg ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]} e ne riduce il margine.` : `circa ${_eur0(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}`}</div>
@@ -2394,7 +2403,7 @@ function crHtml() {
     righe.push({ nome: 'Extra', r: c.extra, b: dispExtra, col: c.extra > dispExtra + 0.5 ? 'var(--rosso)' : 'var(--accent)', nota: notaExtra, notaCol: 'var(--text-muted)' });
     const sfora = c.disp < -0.5, attenz = !sfora && righe.some(x => x.nome === 'Spese variabili' && x.r > x.b + 0.5);
     const badge = sfora ? ['Stai sforando', 'ko'] : attenz ? ['Qualche voce oltre', 'warn'] : ['In linea', 'ok'];
-    B += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Come sta andando il mese</h2><span class="cr-badge ${badge[1]}"><i></i>${badge[0]}</span></div>
+    B += `<section class="card cr-o2"><div class="cr-tit-riga"><h2 class="card-title">Come sta andando il mese</h2><span class="cr-badge ${badge[1]}"><i></i>${badge[0]}</span></div>
       <div class="cr-and">${righe.map(x => {
         const pct = x.b > 0.5 ? Math.max(0, Math.min(100, x.r / x.b * 100)) : (x.r > 0.5 ? 100 : 0);
         return `<div><div class="cr-and-top"><span>${x.nome}</span><span><strong>${_eur0(x.r)}</strong> <small>di ${_eur0(x.b)}</small></span></div>
@@ -2420,7 +2429,7 @@ function crHtml() {
         <div class="riga-main"><span class="riga-nome">${_esc(s.voce.nome)}${s.nota ? ' · ' + _esc(s.nota) : ''}</span>${st ? `<span class="riga-sotto" style="color:${stCol};">${st}</span>` : ''}</div>
         <span class="riga-imp">${_eur0(pagata ? s.importo : residuo)}</span></div>`;
     };
-    A += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Da pagare a ${MESI_LUNGHI[cor]}</h2><strong class="cr-tot">${_eur0(_sum(daPag.map(s => s.importo - s.pagato)))}</strong></div>`;
+    A += `<section class="card cr-o3"><div class="cr-tit-riga"><h2 class="card-title">Da pagare a ${MESI_LUNGHI[cor]}</h2><strong class="cr-tot">${_eur0(_sum(daPag.map(s => s.importo - s.pagato)))}</strong></div>`;
     A += daPag.length ? daPag.map(s => riga(s, false)).join('') : `<div class="riga-sotto" style="padding:4px 0 8px;">Niente da pagare per ora.</div>`;
     if(crUi.pagate) A += pagate.map(s => riga(s, true)).join('');
     A += `<div class="cr-piede">${pagate.length ? `<button class="link grigio" onclick="crTogglePagate()">${crUi.pagate ? 'Nascondi le pagate' : `Mostra ${pagate.length} già ${pagate.length === 1 ? 'pagata' : 'pagate'}`}</button>` : '<span></span>'}<button class="link" onclick="crApriBudget('fondi')">Tutte le scadenze</button></div></section>`;
@@ -2443,18 +2452,19 @@ function crHtml() {
   progAttivi().forEach(p => { const P = progPiano(p); if(P.stato === 'scaduto') todo.push({ n: '!', t: `Progetto «${_esc(p.nome)}» oltre la scadenza`, s: 'sposta la data o segnalo come realizzato', az: `crApriBudget('risparmio')` }); });
   if(RS.libero < -0.5) todo.push({ n: '!', t: 'Progetti oltre il risparmio', s: `le somme assegnate superano il risparmio di ${_eur0(-RS.libero)}`, az: `crApriBudget('risparmio')` });
   if(todo.length) {
-    B += `<section class="card"><h2 class="card-title">Da sistemare</h2>${todo.map(x => `<div class="riga cr-todo"><span class="cr-num">${x.ico || x.n}</span>
+    B += `<section class="card cr-o4"><h2 class="card-title">Da sistemare</h2>${todo.map(x => `<div class="riga cr-todo"><span class="cr-num">${x.ico || x.n}</span>
       <div class="riga-main"><span class="riga-nome">${x.t}</span>${x.s ? `<span class="riga-sotto">${x.s}</span>` : ''}</div>
       <button class="link" onclick="${x.az}">${x.lab || 'Apri'}</button></div>`).join('')}</section>`;
   }
 
-  return `<div class="cr-wrap"><div class="cr-a">${A}</div><div class="cr-b">${B}</div></div>` + crPatrimonio(liquidita, vincolato, RS, fondiNeg);
+  const P = crPatrimonio(liquidita, vincolato, RS, fondiNeg);
+  return `<div class="cr-wrap"><div class="cr-a">${A}${P.patr}</div><div class="cr-b">${B}${P.sim}</div></div>`;
 }
 
 // 5. Il tuo patrimonio + 6. Posso permettermelo?
 function crPatrimonio(liquidita, vincolato, RS, fondiNeg) {
   const libero = liquidita - vincolato, ok = libero >= -0.5;
-  let h = `<div class="cr-wrap cr-sotto"><section class="card cr-patr"><h2 class="card-title">Il tuo patrimonio</h2>
+  let h = `<section class="card cr-patr cr-o5"><h2 class="card-title">Il tuo patrimonio</h2>
     <div class="cr-patr-riga"><span>Liquidità sui conti</span><span>${_eur0(liquidita)}</span></div>
     <div class="cr-patr-riga"><span>Già destinato a scadenze e fondi</span><span>− ${_eur0(vincolato)}</span></div>
     <div class="cr-patr-sep"></div>
@@ -2467,8 +2477,8 @@ function crPatrimonio(liquidita, vincolato, RS, fondiNeg) {
   h += `</section>`;
   let sim = '';
   if(crUi.sim) { sim = simHtml().replace(/^<div class="card"><div class="card-title">Posso permettermelo\?<\/div>/, '').replace(/<\/div>\s*$/, ''); }
-  h += `<section class="card cr-sim"><button class="cr-sim-testa" onclick="crToggleSim()"><span>Posso permettermelo?</span><span class="link">${crUi.sim ? 'Chiudi' : 'Apri'}</span></button>${crUi.sim ? `<div class="cr-sim-corpo">${sim}</div>` : ''}</section></div>`;
-  return h;
+  const simH = `<section class="card cr-sim cr-o6"><button class="cr-sim-testa" onclick="crToggleSim()"><span>Posso permettermelo?</span><span class="link">${crUi.sim ? 'Chiudi' : 'Apri'}</span></button>${crUi.sim ? `<div class="cr-sim-corpo">${sim}</div>` : ''}</section>`;
+  return { patr: h, sim: simH };
 }
 
 // ─── Dettaglio «Come si arriva a questa cifra» ───────────────────
