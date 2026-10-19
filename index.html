@@ -590,6 +590,7 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .cr-patr .card-title { margin: 0; }
 .cr-patr-riga { display: flex; justify-content: space-between; gap: 10px; font-size: 14px; }
 .cr-patr-riga > span:first-child { color: var(--text-muted); }
+.cr-patr-riga > span:last-child { white-space: nowrap; }
 .cr-patr-riga.piccola { font-size: 13px; color: var(--text-muted); padding-top: 4px; }
 .cr-patr-sep { height: 1px; background: var(--border); }
 .cr-patr-tot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; font-weight: 600; }
@@ -2450,7 +2451,7 @@ function crHtml() {
   });
   if(tna.length) todo.push({ n: tna.length, t: 'Tasse o contributi non abbinati a una voce', s: 'pesano sugli extra: abbinali alla voce fiscale', az: `apriTransazioniCat('Tasse/Contributi')` });
   progAttivi().forEach(p => { const P = progPiano(p); if(P.stato === 'scaduto') todo.push({ n: '!', t: `Progetto «${_esc(p.nome)}» oltre la scadenza`, s: 'sposta la data o segnalo come realizzato', az: `crApriBudget('risparmio')` }); });
-  if(RS.libero < -0.5) todo.push({ n: '!', t: 'Progetti oltre il risparmio', s: `le somme assegnate superano il risparmio di ${_eur0(-RS.libero)}`, az: `crApriBudget('risparmio')` });
+  if(RS.libero < -0.5) todo.push({ n: '!', t: 'Risparmio libero sotto zero', s: `mancano ${_eur0(-RS.libero)} per coprire fondi, progetti e spese del mese`, az: `crApriBudget('risparmio')` });
   if(todo.length) {
     B += `<section class="card cr-o4"><h2 class="card-title">Da sistemare</h2>${todo.map(x => `<div class="riga cr-todo"><span class="cr-num">${x.ico || x.n}</span>
       <div class="riga-main"><span class="riga-nome">${x.t}</span>${x.s ? `<span class="riga-sotto">${x.s}</span>` : ''}</div>
@@ -2659,6 +2660,10 @@ function margQuoteProgetti(anno, m) {
 }
 
 // Risparmio: libero = avanzi accumulati − somme assegnate + saldi dei progetti realizzati
+// Risparmio libero: tutto quello che hai sui conti e non è già impegnato.
+// = liquidità − fondi e progetti − soldi del mese in corso (ancora da spendere + spese a budget in arrivo).
+// Comprende quindi anche la liquidità di prima del budget e i movimenti fuori budget.
+// lordo/assegnato/rientri restano come spiegazione di quanto viene dagli avanzi dei mesi.
 function progRisparmio(M) {
   const lordo = M ? M.risparmio : 0;
   let assegnato = 0, rientri = 0;
@@ -2667,7 +2672,15 @@ function progRisparmio(M) {
     if(p.stato === 'realizzato') rientri += P.fondo - P.dalR;   // saldo finale tornato (o tolto) al netto dell'assegnazione consumata
     else assegnato += P.dalR;
   });
-  return { lordo, assegnato, rientri, libero: lordo - assegnato + rientri };
+  const liq = state.accounts.reduce((t, a) => t + (a.saldo || 0), 0);
+  const anno = crAnnoOggi();
+  let fondi = 0; try { if(anno != null) fondi = _sum(budFondiOggi(anno).righe.map(r => Math.max(0, r.saldo))); } catch(e) {}
+  const vinc = fondi + progVincolato();
+  const c = M && M.corrente;
+  const mese = c ? c.disp + c.prog : 0;   // uno sforamento del mese (disp < 0) lo recupera il margine del mese dopo
+  const libero = liq - vinc - mese;
+  const avanzi = lordo - assegnato + rientri;
+  return { lordo, assegnato, rientri, libero, liq, vinc, mese, meseNome: c ? MESI_LUNGHI[c.m] : '', avanzi, base: libero - avanzi };
 }
 function progVincolato() { return _sum(progAttivi().map(p => Math.max(0, progPiano(p).fondo))); }
 
@@ -2961,15 +2974,22 @@ function budViewFondiTab(anno) {
 function budViewRisparmio() {
   const M = margCalcola(), RS = progRisparmio(M);
   const att = progAttivi(), fatti = progTutti().filter(p => p.stato === 'realizzato');
+  const rigaP = (lab, v, segno) => `<div class="cr-patr-riga piccola"><span>${lab}</span><span>${segno || ''}${_eur0(Math.abs(v))}</span></div>`;
   let sx = `<section class="card bud-sintesi"><h2 class="card-title">Risparmio</h2>
-    <div class="cr-patr-riga"><span>Accumulato</span><span>${_eur0(RS.lordo)}</span></div>
-    ${RS.assegnato > 0.5 ? `<div class="cr-patr-riga"><span>Assegnato ai progetti</span><span>− ${_eur0(RS.assegnato)}</span></div>` : ''}
-    ${Math.abs(RS.rientri) > 0.5 ? `<div class="cr-patr-riga"><span>Saldi dei progetti chiusi</span><span>${RS.rientri >= 0 ? '+ ' : '− '}${_eur0(Math.abs(RS.rientri))}</span></div>` : ''}
+    <div class="cr-patr-riga"><span>Liquidità non impegnata</span><span>${_eur0(RS.liq - RS.vinc)}</span></div>
+    <div class="riga-sotto" style="margin-top:-6px;">sui conti, tolti fondi e progetti</div>
+    ${RS.meseNome ? `<div class="cr-patr-riga"><span>Da spendere a ${RS.meseNome}</span><span>${RS.mese >= 0 ? '− ' : '+ '}${_eur0(Math.abs(RS.mese))}</span></div><div class="riga-sotto" style="margin-top:-6px;">margine del mese e spese a budget in arrivo</div>` : ''}
     <div class="cr-patr-sep"></div>
     <div class="cr-patr-tot"><span>Risparmio libero</span><span${RS.libero < -0.5 ? ' style="color:var(--rosso);"' : ''}>${_eur0(RS.libero)}</span></div>
+    <details class="bud-fatti"><summary class="link">Da dove viene</summary>
+      ${rigaP('Avanzi dei mesi oltre il tetto', RS.lordo)}
+      ${Math.abs(RS.rientri) > 0.5 ? rigaP('Saldi dei progetti chiusi', RS.rientri, RS.rientri >= 0 ? '+ ' : '− ') : ''}
+      ${RS.assegnato > 0.5 ? rigaP('Assegnato ai progetti', RS.assegnato, '− ') : ''}
+      ${rigaP('Liquidità di prima del budget e movimenti fuori budget', RS.base, RS.base >= 0 ? '+ ' : '− ')}
+    </details>
     <div class="bud-tetto"><span class="riga-main"><span class="riga-nome" style="font-weight:400;">Tetto al riporto</span><span class="riga-sotto">L'avanzo del mese passa al mese dopo fino a questa cifra; il resto va nel risparmio${M && M.tetto == null ? '. Vuoto: passa tutto al mese dopo' : ''}.</span></span>
       <input class="form-input" style="width:96px;text-align:right;" inputmode="decimal" placeholder="nessuno" value="${M ? _numIn(M.tetto) : ''}" onchange="margSetTetto(this.value)" aria-label="Tetto al riporto" /></div></section>`;
-  if(RS.libero < -0.5) sx += `<div class="avviso" style="margin-bottom:var(--gap);">Hai assegnato ai progetti più di quanto hai risparmiato: il risparmio libero è negativo di ${_eur0(-RS.libero)}. Riduci le somme «dal risparmio» o affidati di più alle quote mensili.</div>`;
+  if(RS.libero < -0.5) sx += `<div class="avviso" style="margin-bottom:var(--gap);">Il risparmio libero è negativo di ${_eur0(-RS.libero)}: i soldi sui conti non bastano per fondi, progetti e spese del mese. Riduci le somme «dal risparmio» dei progetti o verifica i saldi dei conti.</div>`;
   sx += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Progetti</h2><button class="btn" style="min-height:36px;height:36px;" onclick="budNuovoProgetto()">+ Nuovo</button></div>`;
   if(!att.length) sx += `<div class="riga-sotto">Nessun progetto in corso. Creane uno qui oppure da «Posso permettermelo?» nella Panoramica.</div>`;
   att.forEach(p => {
