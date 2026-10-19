@@ -1181,7 +1181,8 @@ function renderBankList() {
       <div class="bank-saldo">
         <div class="bank-amount">${fmt(a.saldo||0)}</div>
         <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
-        ${a.dataVerifica ? `<div class="bank-pct" title="Saldo verificato ${fmt(a.saldoVerificato || 0)} al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}, più i movimenti successivi">verificato al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}</div>` : ''}
+        ${a.verificaStimata ? `<div class="bank-pct" style="color:var(--warning);" title="Saldo ereditato dalla versione precedente, non letto dalla banca: aprilo con Modifica e inserisci il saldo reale">⚠ da verificare</div>`
+          : a.dataVerifica ? `<div class="bank-pct" title="Saldo verificato ${fmt(a.saldoVerificato || 0)} al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}, più i movimenti successivi">verificato al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}</div>` : ''}
       </div>
       <div class="bank-actions">
       <button class="btn btn-sm" onclick="openModalConto(${i})">Modifica</button>
@@ -2294,6 +2295,8 @@ function crHtml() {
 
   // 5. Da sistemare
   const todo = [];
+  const daVerif = state.accounts.filter(a => a.verificaStimata);
+  if(daVerif.length) todo.push([`🏦 ${daVerif.length === 1 ? 'Il saldo di ' + _esc(daVerif[0].banca) + ' non è verificato' : daVerif.length + ' conti senza saldo verificato (' + daVerif.map(a => _esc(a.banca)).join(', ') + ')'}: inserisci il saldo che vedi nell'app della banca`, `go('conti')`]);
   const dc = state.transactions.filter(t => !t.esclusa && t.categoria === 'Da classificare');
   if(dc.length) todo.push([`📌 ${dc.length} ${dc.length === 1 ? 'movimento' : 'movimenti'} da classificare (${fmt(_sum(dc.map(t => (t.tipo === 'uscita' ? 1 : -1) * (+t.importo || 0))))})`, `apriTransazioniCat('Da classificare')`]);
   const inizio = anno + '-' + String((budAnno(anno).meseInizio || 0) + 1).padStart(2, '0');
@@ -4079,13 +4082,22 @@ function txDopoVerifica(t, a) {
   if(d > a.dataVerifica) return true;
   return d === a.dataVerifica && !!t.manuale && (+t.creato || 0) > (+a.verificaTs || 0);
 }
-// Una tantum per conto: il saldo che c'era diventa il saldo verificato a oggi
+// Una tantum per conto: il saldo che c'era diventa il saldo di partenza a oggi, segnato
+// come «stimato» (non letto dalla banca): va confermato, e un saldo letto da un file
+// lo sostituisce anche se è di una data precedente.
 function saldiMigra() {
   let n = 0;
+  // conti passati dalla prima versione dei saldi verificati (19/10/2026) senza indicazione
+  // della fonte: il loro saldo verificato è quello ereditato, quindi una stima
+  if(!Array.isArray(state.migrazioni)) state.migrazioni = [];
+  if(!state.migrazioni.includes('f5_saldi_stimati')) {
+    (state.accounts || []).forEach(a => { if(a.dataVerifica && !a.verificaFonte) a.verificaStimata = true; });
+    state.migrazioni.push('f5_saldi_stimati'); n++;
+  }
   (state.accounts || []).forEach(a => {
     if(a.dataVerifica) return;
     a.saldoVerificato = Math.round((+a.saldo || 0) * 100) / 100;
-    a.dataVerifica = _oggiYMD(); a.verificaTs = Date.now(); n++;
+    a.dataVerifica = _oggiYMD(); a.verificaTs = Date.now(); a.verificaStimata = true; n++;
   });
   return n;
 }
@@ -4217,7 +4229,7 @@ function openModalConto(idx) {
     document.getElementById('m-saldo').value = a.saldoVerificato != null ? a.saldoVerificato : (a.saldo || '');
     document.getElementById('m-saldo-data').value = a.dataVerifica || _oggiYMD();
     const I = _saldiInfo[a.banca] || { mov: 0, n: 0 };
-    document.getElementById('m-saldo-info').innerHTML = `Saldo calcolato oggi: <strong>${fmt(a.saldo || 0)}</strong><br>${I.n ? `${I.n} moviment${I.n === 1 ? 'o' : 'i'} dopo la verifica: ${I.mov >= 0 ? '+' : ''}${fmt(I.mov)}` : 'nessun movimento dopo la verifica'}`;
+    document.getElementById('m-saldo-info').innerHTML = (a.verificaStimata ? `<span style="color:var(--warning);">⚠ Saldo di partenza non verificato: inserisci quello che vedi nell'app della banca.</span><br>` : '') + `Saldo calcolato oggi: <strong>${fmt(a.saldo || 0)}</strong><br>${I.n ? `${I.n} moviment${I.n === 1 ? 'o' : 'i'} dopo la verifica: ${I.mov >= 0 ? '+' : ''}${fmt(I.mov)}` : 'nessun movimento dopo la verifica'}`;
     document.getElementById('m-portafoglio').checked = !!a.isPortafoglio;
     document.getElementById('m-salvadanaio').checked = !!a.isSalvadanaio;
     document.getElementById('m-salvadanaio-virtuale').checked = !!a.isSalvadanaioVirtuale;
@@ -4255,6 +4267,7 @@ function saveConto() {
     saldoVerificato: sv,
     dataVerifica: dv,
     verificaTs: cambiata ? Date.now() : (prec.verificaTs || Date.now()),
+    verificaFonte: 'manuale',   // salvando la scheda il saldo è confermato da te
     saldo: sv,
     colore: selectedColor,
     isPortafoglio: document.getElementById('m-portafoglio').checked,
@@ -5329,9 +5342,10 @@ let _saldoFileProv = null;   // saldo del conto riportato dal file importato, se
 // Saldo letto dal file della banca: diventa il saldo verificato se è più recente di quello esistente
 function applicaSaldoFile(conto, sf) {
   if(!conto || !sf || !isFinite(sf.saldo) || !sf.data) return false;
-  if(conto.dataVerifica && sf.data < conto.dataVerifica) return false;
+  if(conto.dataVerifica && sf.data < conto.dataVerifica && !conto.verificaStimata) return false;
   conto.saldoVerificato = Math.round(sf.saldo * 100) / 100;
   conto.dataVerifica = sf.data; conto.verificaTs = Date.now();
+  conto.verificaFonte = 'file'; delete conto.verificaStimata;
   logMsg(`✔ Saldo verificato di ${conto.banca} aggiornato dal file: ${fmt(conto.saldoVerificato)} al ${fmtDate(sf.data + 'T00:00:00Z')}`, 'ok');
   return true;
 }
