@@ -828,6 +828,28 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .bud-gruppi, .bud-2col { grid-template-columns: minmax(0,1fr); }
   .bud-testa { max-width: none; }
 }
+/* Aggiungi */
+.modal.modal-ag { width: 480px; max-height: calc(100vh - 40px); overflow-y: auto; display: flex; flex-direction: column; }
+#ag-corpo { display: flex; flex-direction: column; gap: 16px; }
+.ag-testa { display: flex; align-items: center; gap: 10px; }
+.ag-importo { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 0; font-size: 12px; color: var(--text-muted); }
+.ag-importo input { width: 100%; max-width: 260px; border: none; outline: none; background: transparent; text-align: center; font-family: 'DM Serif Display', serif; font-size: 44px !important; line-height: 1.15; color: var(--text); padding: 0; }
+.ag-importo input::placeholder { color: #c4c4c0; }
+.ag-importo input.ag-errore { color: var(--rosso); }
+.ag-blocco { display: flex; flex-direction: column; gap: 8px; }
+.ag-lab { font-size: 12px; color: var(--text-muted); }
+.ag-pills { display: flex; gap: 8px; }
+.ag-pills.ag-wrap { flex-wrap: wrap; }
+.ag-pills .pill { height: 40px; padding: 0 14px; font-size: 14px; }
+.ag-pills .pill .leg-q { width: 9px; height: 9px; }
+.ag-sp { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.14); background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.ag-sp strong { font-size: 14px; }
+.ag-sp.on { background: #eef3ec; border: 1.5px solid var(--accent); }
+.ag-radio { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(0,0,0,0.25); flex-shrink: 0; }
+.ag-sp.on .ag-radio { border: 6px solid var(--accent); }
+.ag-altro { border-top: 1px solid var(--border); }
+.ag-altro summary { list-style: none; height: 44px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; cursor: pointer; }
+.ag-altro summary::-webkit-details-marker { display: none; }
 </style>
 </head>
 <body>
@@ -1119,45 +1141,8 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   </div>
 </div>
 
-<div class="modal-bg" id="modal-contanti">
-  <div class="modal" role="dialog" aria-modal="true" aria-label="Registra spesa contanti">
-    <div class="modal-title">💵 Spesa in contanti</div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Data</label>
-        <input type="date" class="form-input" id="mc-data" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Importo (€)</label>
-        <input type="number" class="form-input" id="mc-importo" placeholder="0,00" step="0.01" min="0" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Descrizione (opzionale)</label>
-      <input type="text" class="form-input" id="mc-desc" placeholder="es. Mercato, Bar, Parrucchiere…" />
-    </div>
-    <div class="form-group" id="mc-cat-group">
-      <label class="form-label">Categoria</label>
-      <select class="form-input" id="mc-cat"></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tipo operazione</label>
-      <select class="form-input" id="mc-tipo-sel" onchange="onTipoChange(this.value)">
-        <option value="uscita">💸 Spesa (uscita)</option>
-        <option value="entrata_prelievo">💵 Prelievo contanti (accredito al portafoglio)</option>
-        <option value="entrata">💰 Entrata (es. rimborso ricevuto)</option>
-        <option value="salvadanaio">🐷 Aggiungi al salvadanaio (spicci)</option>
-        <option value="preleva_salvadanaio">🏦 Preleva dal salvadanaio (es. cambio monete)</option>
-        <option value="paypal_out">🅿 Uscita PayPal</option>
-        <option value="paypal_in">🅿 Entrata PayPal</option>
-      </select>
-    </div>
-    <div id="mc-saldo-info" style="font-size:12px;color:var(--text-muted);background:var(--surface2);border-radius:var(--r-sm);padding:.6rem .8rem;margin-bottom:.5rem;"></div>
-    <div class="btn-row" style="justify-content:flex-end;margin-top:1rem;">
-      <button class="btn" onclick="closeModalContanti()">Annulla</button>
-      <button class="btn btn-primary" onclick="salvaSpesaContanti()">Registra</button>
-    </div>
-  </div>
+<div class="modal-bg" id="modal-contanti" onclick="if(event.target===this)closeModalContanti()">
+  <div class="modal modal-ag" role="dialog" aria-modal="true" aria-label="Aggiungi un movimento"><div class="maniglia"></div><div id="ag-corpo"></div></div>
 </div>
 
 <!-- FINESTRE DEL BUDGET -->
@@ -5509,112 +5494,112 @@ function getPaypal() {
   return state.accounts.find(a => a.isPaypal) || null;
 }
 
+// ─── Finestra «Aggiungi» (pulsante +): spesa, entrata, spostamento ─
+let agUi = null;
+const AG_CAT_BASE = ['Ristorazione', 'Alimentari', 'Trasporti', 'Cura personale', 'Svago/Intrattenimento', 'Regali/Donazioni', 'Salute'];
+const AG_CAT_BREVE = { 'Svago/Intrattenimento': 'Svago', 'Regali/Donazioni': 'Regali', 'Viaggi/Vacanze': 'Viaggi', 'Tasse/Contributi': 'Tasse' };
+const AG_SPOST = [
+  ['Prelievo al bancomat', 'Dal conto in banca al portafoglio', 'Registro solo l\'entrata nel portafoglio: l\'uscita dalla banca arriva con l\'estratto conto.'],
+  ['Spicci nel salvadanaio', 'Monete messe nel salvadanaio', 'Il saldo del salvadanaio sale di questo importo.'],
+  ['Dal salvadanaio al portafoglio', 'Per esempio quando cambi le monete', 'Registro l\'uscita dal salvadanaio e l\'entrata nel portafoglio.']
+];
+function _agCatSpese() {
+  // le categorie usate più spesso per le spese registrate a mano vengono prima
+  const cont = {};
+  state.transactions.forEach(t => { if(t.manuale && t.tipo === 'uscita' && t.categoria) cont[t.categoria] = (cont[t.categoria] || 0) + 1; });
+  const base = AG_CAT_BASE.slice().sort((a, b) => (cont[b] || 0) - (cont[a] || 0));
+  Object.keys(cont).sort((a, b) => cont[b] - cont[a]).forEach(c => { if(!base.includes(c) && base.length < 7 && !['Giroconto', 'Entrate', 'Da classificare'].includes(c)) base.unshift(c); });
+  return base.slice(0, 7);
+}
 function openModalContanti() {
-  // Populate category select
-  const sel = document.getElementById('mc-cat');
-  const cats = ALL_CATS.filter(c => !['Entrate','Giroconto'].includes(c));
-  sel.innerHTML = cats.map(c => `<option value="${c}">${catEmoji(c)} ${c}</option>`).join('');
-
-  // Set today as default date
-  document.getElementById('mc-data').value = _oggiYMD();
-  document.getElementById('mc-importo').value = '';
-  document.getElementById('mc-desc').value = '';
-  document.getElementById('mc-tipo-sel').value = 'uscita';
-  document.getElementById('mc-cat-group').style.display = 'block';
-
-  // Show portafoglio balance
-  const p = getPortafoglio();
-  const info = document.getElementById('mc-saldo-info');
-  if(p) {
-    info.textContent = `Saldo portafoglio attuale: ${fmt(p.saldo)}`;
-  } else {
-    info.innerHTML = '⚠ Nessun portafoglio contanti configurato. <a href="#" onclick="closeModalContanti();go(&quot;conti&quot;)" style="color:var(--accent);">Aggiungilo nella sezione Conti →</a>';
-  }
-
+  agUi = { tipo: 'spesa', conto: 'Contanti', cat: null, altraCat: false, rimborso: false, rimbCat: '', giorno: 'oggi', data: _oggiYMD(), spost: 0, altro: false, voce: '', progetto: '', importo: '', desc: '' };
+  agUi.cat = _agCatSpese()[0];
+  agRender();
   document.getElementById('modal-contanti').classList.add('open');
-  setTimeout(() => document.getElementById('mc-importo').focus(), 100);
+  setTimeout(() => { const i = document.getElementById('ag-importo'); if(i) i.focus(); }, 120);
 }
-
-function closeModalContanti() {
-  document.getElementById('modal-contanti').classList.remove('open');
-}
-
-function onTipoChange(val) {
-  const catGroup = document.getElementById('mc-cat-group');
-  catGroup.style.display = val === 'uscita' ? 'block' : 'none';
-  const info = document.getElementById('mc-saldo-info');
-  if(val === 'salvadanaio') {
-    const s = getSalvadanaio();
-    info.textContent = s
-      ? 'Saldo salvadanaio attuale: ' + fmt(s.saldo)
-      : '⚠ Nessun salvadanaio configurato. Aggiungilo nella sezione Conti.';
-    return;
-  }
-  if(val === 'preleva_salvadanaio') {
-    const s = getSalvadanaio();
-    const p = getPortafoglio();
-    const sStr = s ? fmt(s.saldo) : '—';
-    const pStr = p ? fmt(p.saldo) : '—';
-    info.textContent = 'Salvadanaio: ' + sStr + '  →  Portafoglio: ' + pStr;
-    return;
-  }
-  if(val === 'paypal_out' || val === 'paypal_in') {
-    const pp = getPaypal();
-    info.textContent = pp
-      ? 'Saldo PayPal attuale: ' + fmt(pp.saldo)
-      : '⚠ Nessun conto PayPal configurato. Aggiungilo nella sezione Conti.';
-    return;
-  }
-  const p = getPortafoglio();
-  if(!p) return;
-  if(val === 'uscita') {
-    info.textContent = 'Saldo portafoglio attuale: ' + fmt(p.saldo);
+function closeModalContanti() { document.getElementById('modal-contanti').classList.remove('open'); }
+function agSet(k, v) { agUi[k] = v; agRender(); }
+function agRender() {
+  const box = document.getElementById('ag-corpo'); if(!box || !agUi) return;
+  const u = agUi, spesa = u.tipo === 'spesa', ent = u.tipo === 'entrata', spost = u.tipo === 'spost';
+  const pill = (on, lab, onc, punto) => `<button type="button" class="pill${on ? ' on' : ''}" onclick="${onc}">${punto ? `<span class="leg-q" style="background:${punto};"></span>` : ''}${lab}</button>`;
+  let h = `<div class="ag-testa"><div class="seg" style="flex:1;">${[['spesa', 'Spesa'], ['entrata', 'Entrata'], ['spost', 'Spostamento']].map(([k, l]) => `<button type="button" class="${u.tipo === k ? 'on' : ''}" onclick="agSet('tipo','${k}')">${l}</button>`).join('')}</div>
+    <button class="x-chiudi" style="margin:0 -8px 0 0;" aria-label="Chiudi" onclick="closeModalContanti()">${_X}</button></div>
+    <label class="ag-importo"><span>Importo</span><input id="ag-importo" inputmode="decimal" autocomplete="off" placeholder="0,00" value="${_esc(u.importo)}" oninput="agUi.importo=this.value"${ent ? ' style="color:var(--accent);"' : ''} /></label>`;
+  if(!spost) {
+    h += `<div class="ag-blocco"><span class="ag-lab">${ent ? 'Ricevuta in' : 'Pagata con'}</span><div class="ag-pills">${['Contanti', 'PayPal'].map(c => pill(u.conto === c, c, `agSet('conto','${c}')`)).join('')}</div></div>`;
+    if(spesa) {
+      const cats = _agCatSpese();
+      const altre = ALL_CATS.filter(c => !cats.includes(c) && !['Entrate', 'Giroconto'].includes(c));
+      const inAltre = u.altraCat || !cats.includes(u.cat);
+      h += `<div class="ag-blocco"><span class="ag-lab">Categoria</span><div class="ag-pills ag-wrap">${cats.map(c => pill(!inAltre && u.cat === c, AG_CAT_BREVE[c] || c, `agUi.altraCat=false;agSet('cat','${c.replace(/'/g, "\\'")}')`, CAT_COLORS[c] || '#707070')).join('')}${pill(inAltre, 'Altre…', `agSet('altraCat',true)`, '#c4c4c0')}</div>
+        ${inAltre ? `<select class="form-input" style="margin-top:8px;" onchange="agUi.cat=this.value">${altre.map(c => `<option value="${_esc(c)}"${c === u.cat ? ' selected' : ''}>${_esc(c)}</option>`).join('')}</select>` : ''}</div>`;
+      if(inAltre && !altre.includes(u.cat)) u.cat = altre[0];
+    } else {
+      const catSpese = ALL_CATS.filter(c => !['Entrate', 'Giroconto', 'Da classificare'].includes(c));
+      if(u.rimborso && !u.rimbCat) u.rimbCat = catSpese[0];
+      h += `<div class="ag-blocco"><span class="ag-lab">Categoria</span><div class="ag-pills ag-wrap">${pill(!u.rimborso, 'Entrate', `agSet('rimborso',false)`, CAT_COLORS['Entrate'])}${pill(u.rimborso, 'Rimborso di una spesa…', `agSet('rimborso',true)`, '#c4c4c0')}</div>
+        ${u.rimborso ? `<select class="form-input" style="margin-top:8px;" aria-label="Categoria della spesa rimborsata" onchange="agUi.rimbCat=this.value">${catSpese.map(c => `<option value="${_esc(c)}"${c === u.rimbCat ? ' selected' : ''}>${_esc(c)}</option>`).join('')}</select><small class="riga-sotto">Il rimborso va nella categoria della spesa, così ne riduce il costo.</small>` : ''}</div>`;
+    }
+    h += `<label class="bud-campo"><span>Descrizione (facoltativa)</span><input class="form-input" id="ag-desc" value="${_esc(u.desc)}" placeholder="${ent ? 'es. Rimborso cena da Luca' : 'es. Bar, mercato, parrucchiere'}" oninput="agUi.desc=this.value" /></label>`;
   } else {
-    info.textContent = 'Il saldo del portafoglio aumenterà di questo importo.';
+    h += `<div class="ag-blocco"><span class="ag-lab">Che spostamento è?</span>${AG_SPOST.map(([n, d], k) => `<button type="button" class="ag-sp${u.spost === k ? ' on' : ''}" onclick="agSet('spost',${k})"><span class="riga-main"><strong>${n}</strong><span class="riga-sotto">${d}</span></span><span class="ag-radio"></span></button>`).join('')}
+      <small class="riga-sotto" style="line-height:1.5;">${AG_SPOST[u.spost][2]}</small></div>`;
   }
+  h += `<div class="ag-blocco"><span class="ag-lab">Quando</span><div class="ag-pills">${[['oggi', 'Oggi'], ['ieri', 'Ieri'], ['altro', 'Altro giorno']].map(([k, l]) => pill(u.giorno === k, l, `agSet('giorno','${k}')`)).join('')}</div>
+    ${u.giorno === 'altro' ? `<input type="date" class="form-input" style="margin-top:8px;" value="${u.data}" onchange="agUi.data=this.value" aria-label="Data" />` : ''}</div>`;
+  if(spesa) {
+    const progs = progAttivi();
+    h += `<details class="ag-altro"${u.altro ? ' open' : ''} ontoggle="agUi.altro=this.open"><summary><span>Voce di budget e progetto</span><span class="riga-sotto">${u.altro ? 'Chiudi' : (u.voce || u.progetto ? 'Impostati' : 'Automatica')}</span></summary>
+      <div class="form-row">${_campo('Voce di budget', `<select class="form-input" onchange="agUi.voce=this.value"><option value="">Automatica</option><option value="__none__"${u.voce === '__none__' ? ' selected' : ''}>— nessuna —</option>${_opzioniVoci(u.voce)}</select>`)}
+      ${progs.length ? _campo('Progetto', `<select class="form-input" onchange="agUi.progetto=this.value"><option value="">— nessuno —</option>${progs.map(p => `<option value="${p.id}"${p.id === u.progetto ? ' selected' : ''}>${_esc(p.nome)}</option>`).join('')}</select>`) : ''}</div></details>`;
+  }
+  h += `<button class="btn btn-primary btn-largo" style="height:52px;font-size:16px;" onclick="salvaSpesaContanti()">${spesa ? 'Registra la spesa' : ent ? 'Registra l\'entrata' : 'Registra lo spostamento'}</button>`;
+  const foc = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : null;
+  box.innerHTML = h;
+  if(foc) { const f = document.getElementById(foc); if(f) try { f.focus(); } catch(e) {} }
 }
+function onTipoChange() {}
 
 function salvaSpesaContanti() {
-  const importo = parseFloat(document.getElementById('mc-importo').value) || 0;
-  if(!importo || importo <= 0) {
-    document.getElementById('mc-importo').focus();
-    return;
-  }
-  const tipoSel = document.getElementById('mc-tipo-sel').value;
-  const data = document.getElementById('mc-data').value || _oggiYMD();
-  const desc = document.getElementById('mc-desc').value.trim();
-  const cat  = document.getElementById('mc-cat').value;
-
+  const u = agUi; if(!u) return;
+  const importo = Math.round((_num(u.importo) || 0) * 100) / 100;
+  if(!importo || importo <= 0) { const i = document.getElementById('ag-importo'); if(i) { i.focus(); i.classList.add('ag-errore'); } return; }
+  const data = u.giorno === 'oggi' ? _oggiYMD() : u.giorno === 'ieri' ? (() => { const x = new Date(); x.setDate(x.getDate() - 1); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); })() : (u.data || _oggiYMD());
+  const desc = (u.desc || '').trim();
   const p = getPortafoglio();
+  const nuove = [];
+  const add = o => { const t = txManuale(Object.assign({ data: new Date(data + 'T00:00:00Z').toISOString(), importo }, o)); state.transactions.push(t); nuove.push(t); };
+  const serve = (conto, nome) => { if(conto) return true; alert(`Aggiungi prima il conto «${nome}» in Conti e saldi.`); return false; };
 
-  const add = o => state.transactions.push(txManuale(Object.assign({ data: new Date(data).toISOString(), importo }, o)));
-  const serve = (conto, nome) => { if(conto) return true; alert(`Aggiungi prima il conto «${nome}» nella sezione Conti.`); return false; };
-
-  if(tipoSel === 'entrata_prelievo') {
-    // Prelievo bancomat: giroconto banca → portafoglio (il lato banca arriva con l'estratto)
-    if(!serve(p, 'portafoglio contanti')) return;
-    add({ descrizione: desc || 'Prelievo bancomat', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
-  } else if(tipoSel === 'salvadanaio') {
-    // Spicci messi nel salvadanaio
-    const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio')) return;
-    add({ descrizione: desc || 'Spicci nel salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: sd.banca });
-  } else if(tipoSel === 'preleva_salvadanaio') {
-    // Giroconto salvadanaio → portafoglio
-    const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio') || !serve(p, 'portafoglio contanti')) return;
-    add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'uscita', categoria: 'Giroconto', conto: sd.banca });
-    add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
-  } else if(tipoSel === 'paypal_out' || tipoSel === 'paypal_in') {
-    const pp = getPaypal();
-    const tipo = tipoSel === 'paypal_in' ? 'entrata' : 'uscita';
-    add({ descrizione: desc || (tipo === 'uscita' ? 'Uscita PayPal' : 'Entrata PayPal'), tipo,
-          categoria: tipoSel === 'paypal_in' ? 'Entrate' : cat, conto: pp ? pp.banca : 'PayPal' });
+  if(u.tipo === 'spost') {
+    if(u.spost === 0) {
+      // Prelievo bancomat: giroconto banca → portafoglio (il lato banca arriva con l'estratto)
+      if(!serve(p, 'portafoglio contanti')) return;
+      add({ descrizione: desc || 'Prelievo bancomat', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
+    } else if(u.spost === 1) {
+      const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio')) return;
+      add({ descrizione: desc || 'Spicci nel salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: sd.banca });
+    } else {
+      const sd = getSalvadanaio(); if(!serve(sd, 'salvadanaio') || !serve(p, 'portafoglio contanti')) return;
+      add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'uscita', categoria: 'Giroconto', conto: sd.banca });
+      add({ descrizione: desc || 'Prelievo dal salvadanaio', tipo: 'entrata', categoria: 'Giroconto', conto: p.banca });
+    }
   } else {
-    // Spesa o entrata in contanti
-    const tipo = tipoSel === 'entrata' ? 'entrata' : 'uscita';
-    add({ descrizione: desc || (tipo === 'uscita' ? 'Spesa contanti' : 'Entrata contanti'), tipo,
-          categoria: tipoSel === 'entrata' ? 'Entrate' : cat, conto: (p && p.banca) || 'Portafoglio' });
+    const tipo = u.tipo === 'entrata' ? 'entrata' : 'uscita';
+    const categoria = tipo === 'uscita' ? (u.cat || 'Da classificare') : (u.rimborso ? (u.rimbCat || 'Da classificare') : 'Entrate');
+    let conto;
+    if(u.conto === 'PayPal') { const pp = getPaypal(); conto = pp ? pp.banca : 'PayPal'; }
+    else conto = (p && p.banca) || 'Portafoglio';
+    const descDef = u.conto === 'PayPal' ? (tipo === 'uscita' ? 'Uscita PayPal' : 'Entrata PayPal') : (tipo === 'uscita' ? 'Spesa contanti' : 'Entrata contanti');
+    add({ descrizione: desc || descDef, tipo, categoria, conto });
+    const t = nuove[0];
+    if(tipo === 'uscita' && u.voce === '__none__') t.voceManuale = true;
+    else if(tipo === 'uscita' && u.voce && vocePerId(u.voce)) { t.voceManuale = true; t.voce = u.voce; }
+    else assegnaVoceAuto(t);
+    if(tipo === 'uscita' && u.progetto && progPerId(u.progetto)) t.progetto = u.progetto;
   }
-
   save();
   closeModalContanti();
   renderAll();
