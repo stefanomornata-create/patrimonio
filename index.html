@@ -969,6 +969,7 @@ function save() {
     state.txEliminate = state.txEliminate.filter(k => !presenti.has(k));
   }
   try { saldiMigra(); ricalcolaSaldi(); } catch(e) { console.warn(e); }
+  try { contiAssegnaId(); sincroRegistra(); } catch(e) { console.warn(e); }
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
   scheduleDriveSave();
 }
@@ -983,6 +984,7 @@ function load() {
       if(!state.contiCifre.includes(c)) state.contiCifre.push(c);
     });
   } catch(e) {}
+  sincroFotografa();
 }
 
 // ─── Navigation ──────────────────────────────────────────────────
@@ -1090,7 +1092,7 @@ function renderPCT() {
 
 // ─── Render all ──────────────────────────────────────────────────
 function renderAll() {
-  if(migraCategorie() + saldiMigra()) save();
+  if(migraCategorie() + saldiMigra() + contiAssegnaId()) save();
   ricalcolaSaldi();
   try { if(progCongela()) save(); } catch(e) { console.warn(e); }
   renderMetrics();
@@ -1765,12 +1767,35 @@ function budCalcCerta(cfg, S) {
 
 // Calcolo di una voce per un anno: prev = entrata/spesa prevista del mese,
 // quote = accantonamento del mese (spese certe e fondi), pag = pagamenti previsti
+// Saldo di un fondo a fine anno: fondo iniziale + quote − pagamenti reali.
+// È il fondo iniziale automatico dell'anno dopo (si aggiorna se arrivano altri pagamenti).
+function budFondoFineAnno(anno, voceId) {
+  const C = budCalcAnno(anno); if(!C) return null;
+  const r = C.voci.find(x => x.voce.id === voceId); if(!r) return null;
+  const R = (budRealeVoci(anno).voci[voceId]) || _z12();
+  let pag = 0, q = 0;
+  for(let m = C.S; m < 12; m++) { q += r.quote[m]; pag += Math.max(0, R[m]); }
+  return _r2(r.F0 + q - pag);
+}
+// Fondo iniziale effettivo: valore inserito, oppure (se vuoto) riporto automatico dall'anno prima
+function budFondoIniziale(anno, voceId, cfg) {
+  const man = _num(cfg.fondoIniziale);
+  if(man != null) return { val: man, auto: false };
+  const prec = budAnno(anno - 1) ? budFondoFineAnno(anno - 1, voceId) : null;
+  return { val: prec != null ? prec : 0, auto: true, daAnno: prec != null ? anno - 1 : null };
+}
 function budCalcVoce(anno, voceId) {
   const A = budAnno(anno); if(!A) return null;
-  const cfg = A.righe[voceId], v = vocePerId(voceId);
-  if(!cfg || !v || cfg.escludi) return null;
+  const cfg0 = A.righe[voceId], v = vocePerId(voceId);
+  if(!cfg0 || !v || cfg0.escludi) return null;
   const S = A.meseInizio || 0;
-  const r = { voce: v, cfg, prev: _z12(), quote: _z12(), pag: _z12(), saldi: null, F0: 0, info: null };
+  // per fondi e spese certe il fondo iniziale può essere automatico (riporto dall'anno prima)
+  let cfg = cfg0, fondoIni = null;
+  if(['certe','fiscale','fondi'].includes(v.gruppo)) {
+    fondoIni = budFondoIniziale(anno, voceId, cfg0);
+    cfg = Object.assign({}, cfg0, { fondoIniziale: fondoIni.val });
+  }
+  const r = { voce: v, cfg, prev: _z12(), quote: _z12(), pag: _z12(), saldi: null, F0: 0, info: null, fondoIni };
   const g = v.gruppo;
   if(g === 'entrate') {
     for(let m = S; m < 12; m++) r.prev[m] = cfg.modo === 'mensile' ? (_num((cfg.mensili || [])[m]) || 0) : (_num(cfg.valore) || 0);
@@ -1896,9 +1921,10 @@ function budImporta(input) {
 function budCreaAnno() {
   const anni = budAnni(); if(!anni.length) return;
   const ult = anni[anni.length - 1], nuovo = ult + 1;
-  if(!confirm(`Creare il budget ${nuovo} copiando la struttura del ${ult}? I fondi iniziali partono da zero: controllali nella scheda Spese certe.`)) return;
+  if(!confirm(`Creare il budget ${nuovo} copiando la struttura del ${ult}? I fondi al 1° gennaio si calcolano da soli dal saldo dei fondi a fine ${ult}.`)) return;
   const src = JSON.parse(JSON.stringify(budAnno(ult)));
-  Object.values(src.righe).forEach(c => { if('fondoIniziale' in c) c.fondoIniziale = 0; if(c.mensili && c.metodo) c.mensili = Array(12).fill(null); });
+  // fondo iniziale vuoto = riporto automatico dal saldo del fondo a fine anno precedente
+  Object.values(src.righe).forEach(c => { if('fondoIniziale' in c) c.fondoIniziale = null; if(c.mensili && c.metodo) c.mensili = Array(12).fill(null); });
   Object.values(src.righe).forEach(c => { if(c.da != null) { c.da = 0; c.a = 11; } });
   src.meseInizio = 0; src.saldoIniziale = null;
   state.budget.anni[nuovo] = src; budUi.anno = nuovo; budTocca(); renderBudget();
@@ -1929,11 +1955,11 @@ function budRgRimuovi(i) { const c = budAnno(budAnnoCorrente()).righe.regali; c.
 function budRigaDefault(v) {
   switch(v.gruppo) {
     case 'entrate': return { modo: 'costante', valore: 0, mensili: Array(12).fill(null) };
-    case 'certe': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [{ mese: 11, importo: 0 }] };
-    case 'fiscale': return { modo: 'scadenza', fondoIniziale: 0, scadenze: [] };
+    case 'certe': return { modo: 'scadenza', fondoIniziale: null, scadenze: [{ mese: 11, importo: 0 }] };
+    case 'fiscale': return { modo: 'scadenza', fondoIniziale: null, scadenze: [] };
     case 'ricorrenti': return { importo: 0, da: 0, a: 11 };
     case 'stime': return { metodo: 'media12', profilo: 'costante', margine: 0, valoreManuale: null, mensili: Array(12).fill(null) };
-    case 'fondi': return v.id === 'regali' ? { fondoIniziale: 0, righe: [] } : { quota: 0, tetto: null, fondoIniziale: 0 };
+    case 'fondi': return v.id === 'regali' ? { fondoIniziale: null, righe: [] } : { quota: 0, tetto: null, fondoIniziale: null };
   }
   return {};
 }
@@ -1964,7 +1990,14 @@ function budNuovaVoce(gruppo) {
 function _selMese(val, onch, conVuoto) {
   return `<select class="bud-in" onchange="${onch}">${conVuoto ? `<option value=""${val==null||val===''?' selected':''}>—</option>` : ''}${MESI_BREVI.map((n,i) => `<option value="${i}"${+val===i && val!==null && val!==''?' selected':''}>${n}</option>`).join('')}</select>`;
 }
-function _inNum(val, onch, w) { return `<input class="bud-in" style="width:${w||90}px;text-align:right;" inputmode="decimal" value="${_numIn(val)}" onchange="${onch}" />`; }
+function _inNum(val, onch, w, ph) { return `<input class="bud-in" style="width:${w||90}px;text-align:right;" inputmode="decimal" value="${_numIn(val)}"${ph ? ` placeholder="${_esc(ph)}"` : ''} onchange="${onch}" />`; }
+// Campo «fondo al 1° gennaio»: vuoto = automatico, con il valore calcolato come segnaposto
+function _inFondo(voceId, c, r) {
+  const fi = r && r.fondoIni;
+  const ph = fi && fi.auto ? (fi.daAnno ? 'auto ' + fmtNum(fi.val, 0) : '0') : '';
+  return _inNum(c.fondoIniziale, `budSet('${voceId}','fondoIniziale',this.value)`, 90, ph) +
+    (fi && fi.auto && fi.daAnno ? ` <small style="color:var(--text-faint);" title="Saldo del fondo a fine ${fi.daAnno}: fondo iniziale + quote − pagamenti reali. Scrivi un importo per sostituirlo.">riporto dal ${fi.daAnno}</small>` : '');
+}
 function _eur0(n) { return fmtNum(n, 0); }
 function _badgeStato(s) {
   const map = { pagata: ['✅ pagata','var(--accent)'], scaduta: ['⚠️ scaduta','var(--danger)'], mese: ['⏳ questo mese','var(--warning)'], arrivo: ['in arrivo','var(--text-faint)'] };
@@ -2749,7 +2782,7 @@ function budEditorVoce(anno, v, S) {
   } else if(v.gruppo === 'fiscale' && !c.manuale && r && r.fisc) {
     const det = r.fisc.dettaglio;
     h += `<div class="bud-voce-fisc">${det.length ? det.map(i => `<div>${i.d} ${MESI_LUNGHI[i.m]}${i.m < S ? ' <small>(prima del budget)</small>' : ''} · ${_esc(i.label)} · <strong>${fmt(i.amount)}</strong>${i.est ? ' <small style="color:var(--warning);">stima</small>' : ''}</div>`).join('') : '<div>Nessun versamento nel ' + anno + '.</div>'}</div>`;
-    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(c.fondoIniziale, `budSet('${id}','fondoIniziale',this.value)`)} € · quota mensile ${fmt(_sum(r.quote.slice(S)) / (12 - S))}${r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
+    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo(id, c, r)} € · quota mensile ${fmt(_sum(r.quote.slice(S)) / (12 - S))}${r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
     h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" onchange="budSet('${id}','manuale',this.checked)"> usa importi manuali al posto del calcolo</label>`;
   } else if(v.gruppo === 'certe' || v.gruppo === 'fiscale') {
     if(v.gruppo === 'fiscale') h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" checked onchange="budSet('${id}','manuale',this.checked)"> importi manuali (togli la spunta per calcolarli dai ricavi)</label>`;
@@ -2757,7 +2790,7 @@ function budEditorVoce(anno, v, S) {
       h += `<div class="bud-riga">${_selMese(sc.mese, `budSet('${id}','scMese',this.value,${i})`)} ${_inNum(sc.importo, `budSet('${id}','scImporto',this.value,${i})`)} € <a href="#" onclick="budScRimuovi('${id}',${i});return false;" style="color:var(--text-faint);">✕</a>${+sc.mese < S ? ' <small style="color:var(--text-faint);">(prima dell\'inizio del budget)</small>' : ''}</div>`;
     });
     h += `<div class="bud-riga"><a href="#" onclick="budScAggiungi('${id}');return false;" style="color:var(--accent);font-size:12px;">+ scadenza</a></div>`;
-    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(c.fondoIniziale, `budSet('${id}','fondoIniziale',this.value)`)} € · quota mensile ${r ? fmt(_sum(r.quote.slice(S)) / (12 - S)) : '—'}${r && r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
+    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo(id, c, r)} € · quota mensile ${r ? fmt(_sum(r.quote.slice(S)) / (12 - S)) : '—'}${r && r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
   } else if(v.gruppo === 'ricorrenti') {
     h += `${_inNum(c.importo, `budSet('${id}','importo',this.value)`)} € al mese da ${_selMese(c.da == null ? 0 : c.da, `budSet('${id}','da',this.value)`)} a ${_selMese(c.a == null ? 11 : c.a, `budSet('${id}','a',this.value)`)}`;
   } else if(v.gruppo === 'stime') {
@@ -2781,7 +2814,7 @@ function budViewFondi(anno) {
   h += `<div class="card"><div class="card-title">💊 Fondo salute</div>`;
   if(sal) {
     const r = budCalcVoce(anno, 'fondo_salute');
-    h += `<div class="bud-riga">Quota ${_inNum(sal.quota, `budSet('fondo_salute','quota',this.value)`)} € al mese · tetto ${_inNum(sal.tetto, `budSet('fondo_salute','tetto',this.value)`)} € · fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(sal.fondoIniziale, `budSet('fondo_salute','fondoIniziale',this.value)`)} €</div>
+    h += `<div class="bud-riga">Quota ${_inNum(sal.quota, `budSet('fondo_salute','quota',this.value)`)} € al mese · tetto ${_inNum(sal.tetto, `budSet('fondo_salute','tetto',this.value)`)} € · fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo('fondo_salute', sal, r)} €</div>
       <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Accantona la quota ogni mese finché il fondo raggiunge il tetto; le spese in Salute lo riducono. Saldo previsto a dicembre senza spese: ${fmt(r.saldi[11])}.</p>`;
   } else h += `<a href="#" onclick="budAttivaVoce('fondo_salute');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
   h += `</div><div class="card"><div class="card-title">🎁 Fondo regali</div>`;
@@ -2793,7 +2826,7 @@ function budViewFondi(anno) {
     });
     h += `<tr class="tot"><td>Totale annuo</td><td></td><td class="num">${fmt(tot)}</td><td></td></tr></tbody></table></div>
       <div class="bud-riga" style="margin-top:8px;"><a href="#" onclick="budRgAggiungi();return false;" style="color:var(--accent);font-size:12px;">+ regalo</a></div>
-      <div class="bud-riga" style="font-size:12px;">Quota ${fmt(tot/12)} al mese · fondo al 1° ${MESI_LUNGHI[S]} ${_inNum(reg.fondoIniziale, `budSet('regali','fondoIniziale',this.value)`)} €</div>
+      <div class="bud-riga" style="font-size:12px;">Quota ${fmt(tot/12)} al mese · fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo('regali', reg, budCalcVoce(anno, 'regali'))} €</div>
       <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Indica il mese dei regali con una data fissa (compleanni): comparirà tra le scadenze. Quelli senza mese restano coperti dal fondo durante l'anno.</p>`;
   } else h += `<a href="#" onclick="budAttivaVoce('regali');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
   h += `</div>`;
@@ -3485,11 +3518,99 @@ function txSegnaEliminate(txs) {
   txs.forEach(t => set.add(txChiave(t)));
   state.txEliminate = [...set];
 }
+// ─── Sincronizzazione per sezione ────────────────────────────────
+// Ogni conto (per id) e ogni parte del budget (voci, storico, fiscale, margine,
+// ciascun anno, ciascun progetto) ha il momento dell'ultima modifica in
+// state.sincro = { mod: {chiave: ms}, del: {chiave: ms} }. I momenti si registrano
+// in save() confrontando con l'ultima fotografia; nell'unione con Drive vince,
+// pezzo per pezzo, la modifica più recente (anche le eliminazioni).
+function contiAssegnaId(st) {
+  st = st || state; let n = 0;
+  const usati = new Set((st.accounts || []).map(a => a.id).filter(Boolean));
+  (st.accounts || []).forEach(a => {
+    if(a.id) return;
+    const base = 'c_' + (_normConto(a.banca) || 'conto'); let id = base, i = 2;
+    while(usati.has(id)) id = base + '_' + (i++);
+    a.id = id; usati.add(id); n++;
+  });
+  return n;
+}
+function sincroSezioni(st) {
+  const out = {};
+  (st.accounts || []).forEach(a => { if(!a.id) return; const c = Object.assign({}, a); delete c.saldo; out['conto:' + a.id] = JSON.stringify(c); });
+  const b = st.budget;
+  if(b && typeof b === 'object') Object.keys(b).forEach(k => {
+    if(k === 'aggiornato' || k.charAt(0) === '_') return;
+    if(k === 'anni') Object.keys(b.anni || {}).forEach(y => { out['bud:anno:' + y] = JSON.stringify(b.anni[y]); });
+    else if(k === 'progetti' && Array.isArray(b.progetti)) b.progetti.forEach(p => { out['bud:prog:' + p.id] = JSON.stringify(p); });
+    else out['bud:' + k] = JSON.stringify(b[k]);
+  });
+  return out;
+}
+let _sincroFoto = null;
+function sincroFotografa() { try { _sincroFoto = sincroSezioni(state); } catch(e) { _sincroFoto = null; } }
+function sincroRegistra() {
+  const cur = sincroSezioni(state);
+  if(!_sincroFoto) { _sincroFoto = cur; return; }
+  if(!state.sincro || typeof state.sincro !== 'object') state.sincro = {};
+  const S = state.sincro; S.mod = S.mod || {}; S.del = S.del || {};
+  const ora = Date.now();
+  Object.keys(cur).forEach(k => { if(_sincroFoto[k] !== cur[k]) { S.mod[k] = ora; delete S.del[k]; } });
+  Object.keys(_sincroFoto).forEach(k => { if(!(k in cur)) S.del[k] = ora; });
+  _sincroFoto = cur;
+}
+// Unisce conti e budget sezione per sezione
+function _unisciSezioni(loc, rem, piuRecente) {
+  const SL = loc.sincro || {}, SR = rem.sincro || {};
+  const mL = SL.mod || {}, dL = SL.del || {}, mR = SR.mod || {}, dR = SR.del || {};
+  const ZL = sincroSezioni(loc), ZR = sincroSezioni(rem);
+  const budR = ((rem.budget && rem.budget.aggiornato) || '') > ((loc.budget && loc.budget.aggiornato) || '');
+  const chiavi = new Set([...Object.keys(ZL), ...Object.keys(ZR), ...Object.keys(dL), ...Object.keys(dR)]);
+  const out = {};
+  chiavi.forEach(k => {
+    const tL = Math.max(mL[k] || 0, dL[k] || 0), tR = Math.max(mR[k] || 0, dR[k] || 0);
+    const inL = k in ZL, inR = k in ZR;
+    let v;
+    if(inL && inR) {
+      // entrambi la conoscono: vince la modifica più recente; senza date, la regola di prima
+      const vinceR = tR !== tL ? tR > tL : (k.startsWith('bud:') ? budR : piuRecente === rem);
+      v = vinceR ? ZR[k] : ZL[k];
+    } else if(inL) { if(!((dR[k] || 0) > (mL[k] || 0))) v = ZL[k]; }   // tolta solo se eliminata dopo l'ultima modifica
+    else if(inR) { if(!((dL[k] || 0) > (mR[k] || 0))) v = ZR[k]; }
+    if(v !== undefined) out[k] = v;
+  });
+  // conti: ordine locale, poi quelli arrivati da Drive
+  const ordine = [...(loc.accounts || []), ...(rem.accounts || [])].map(a => a.id).filter((id, i, a) => id && a.indexOf(id) === i);
+  const accounts = ordine.filter(id => out['conto:' + id]).map(id => JSON.parse(out['conto:' + id]));
+  // budget
+  let budget;
+  if(loc.budget || rem.budget) {
+    budget = { anni: {} };
+    const ordP = [...((loc.budget && loc.budget.progetti) || []), ...((rem.budget && rem.budget.progetti) || [])].map(p => p.id).filter((id, i, a) => a.indexOf(id) === i);
+    const haProg = Array.isArray(loc.budget && loc.budget.progetti) || Array.isArray(rem.budget && rem.budget.progetti);
+    Object.keys(out).forEach(k => {
+      if(!k.startsWith('bud:')) return;
+      const r = k.substring(4), v = JSON.parse(out[k]);
+      if(r.startsWith('anno:')) budget.anni[r.substring(5)] = v;
+      else if(!r.startsWith('prog:')) budget[r] = v;
+    });
+    if(haProg) budget.progetti = ordP.filter(id => out['bud:prog:' + id]).map(id => JSON.parse(out['bud:prog:' + id]));
+    const agg = [loc.budget && loc.budget.aggiornato, rem.budget && rem.budget.aggiornato].filter(Boolean).sort();
+    if(agg.length) budget.aggiornato = agg[agg.length - 1];
+  }
+  const sincro = { mod: {}, del: {} };
+  [[mL, sincro.mod], [mR, sincro.mod], [dL, sincro.del], [dR, sincro.del]].forEach(([src, dst]) => {
+    Object.keys(src).forEach(k => { dst[k] = Math.max(dst[k] || 0, src[k]); });
+  });
+  return { accounts, budget, sincro };
+}
+
 function unisciStati(loc, rem) {
-  // porta l'archivio remoto alla stessa versione (conversioni, nomi conti)
+  // porta l'archivio remoto alla stessa versione (conversioni, nomi conti, id dei conti)
   const salva = state; state = rem;
-  try { migraCategorie(); } catch(e) { console.warn(e); }
+  try { migraCategorie(); contiAssegnaId(rem); } catch(e) { console.warn(e); }
   state = salva;
+  contiAssegnaId(loc);
   const piuRecente = (rem.modificato || '') > (loc.modificato || '') ? rem : loc;
   const tomb = new Set([...(loc.txEliminate || []), ...(rem.txEliminate || [])]);
   const gruppi = (lista) => { const g = new Map(); (lista || []).forEach(t => { const k = txChiave(t); if(!g.has(k)) g.set(k, []); g.get(k).push(t); }); return g; };
@@ -3509,9 +3630,11 @@ function unisciStati(loc, rem) {
   tx.sort((p, q) => String(p.data).localeCompare(String(q.data)));
   const files = [], fk = new Set();
   [...(loc.files || []), ...(rem.files || [])].forEach(f => { const k = (f.nome || '') + '|' + (f.data || ''); if(!fk.has(k)) { fk.add(k); files.push(f); } });
-  const bl = loc.budget, br = rem.budget;
-  const budget = !bl ? br : !br ? bl : ((br.aggiornato || '') > (bl.aggiornato || '') ? br : bl);
+  const sez = _unisciSezioni(loc, rem, piuRecente);
+  const budget = sez.budget;
   const out = Object.assign({}, piuRecente, {
+    accounts: sez.accounts,
+    sincro: sez.sincro,
     transactions: tx,
     files,
     contiCifre: [...new Set([...(loc.contiCifre || []), ...(rem.contiCifre || [])])],
@@ -4130,6 +4253,7 @@ function saveConto() {
   };
   if(editingContoIdx >= 0) {
     const vecchioNome = state.accounts[editingContoIdx].banca;
+    if(prec && prec.id) obj.id = prec.id;   // l'id resta anche se il conto viene rinominato
     state.accounts[editingContoIdx] = obj;
     // Rinomina: aggiorna anche il conto sulle transazioni
     if(vecchioNome && vecchioNome !== banca)
@@ -4265,16 +4389,26 @@ async function processFile(file, tipoHint) {
     const perChiave = {};
     const _k = t => `${String(t.data || '').substring(0,10)}|${(+t.importo||0).toFixed(2)}|${t.tipo}`;
     state.transactions.forEach(t => { (perChiave[_k(t)] = perChiave[_k(t)] || []).push({ d: t.descrizione, usato: false }); });
+    // Movimenti eliminati (o modificati: la versione originale è tra le lapidi) non rientrano.
+    // La lapide comprende il conto, che qui è ancora provvisorio: si confronta senza.
+    const lapidi = {};
+    (state.txEliminate || []).forEach(k => { const b = k.substring(0, k.lastIndexOf('|')); lapidi[b] = (lapidi[b] || 0) + 1; });
+    const _kl = t => [String(t.data || '').substring(0, 10), (+t.importo || 0).toFixed(2), t.tipo, _normDesc(t.descrizione)].join('|');
     const txNuove = [];
     const txDuplicate = [];
+    let nEliminate = 0;
     transactions.forEach(t => {
       const lista = perChiave[_k(t)] || [];
       const gia = lista.find(x => !x.usato && (_normDesc(x.d) === _normDesc(t.descrizione) || _descSimili(x.d, t.descrizione)));
       if(gia) { gia.usato = true; txDuplicate.push(t); }
+      else if(lapidi[_kl(t)] > 0) { lapidi[_kl(t)]--; nEliminate++; }
       else txNuove.push(t);
     });
     if(txDuplicate.length > 0) {
       logMsg(`⚠ ${txDuplicate.length} transazioni duplicate saltate (già presenti).`, 'warn');
+    }
+    if(nEliminate > 0) {
+      logMsg(`⚠ ${nEliminate} transazioni saltate perché le avevi eliminate o modificate.`, 'warn');
     }
     state.transactions.push(...txNuove);
     transactions = txNuove; // Aggiorna per il calcolo del salvadanaio e il modal
@@ -5355,6 +5489,7 @@ function importData(input) {
       const data = JSON.parse(e.target.result);
       if(!confirm('Sovrascrivere tutti i dati attuali con il backup?')) return;
       state = data;
+      sincroFotografa();
       _driveNoMerge = true; // il prossimo salvataggio su Drive sostituisce, non unisce
       save();
       renderAll();
@@ -5369,6 +5504,7 @@ function importData(input) {
 function clearAll() {
   if(!confirm('Eliminare TUTTI i dati? Questa operazione non può essere annullata.')) return;
   state = {accounts:[], transactions:[], files:[]};
+  sincroFotografa();
   _driveNoMerge = true;
   save();
   renderAll();
@@ -5488,6 +5624,7 @@ async function gdriveUnisci() {
   const prima = JSON.stringify(state);
   state = unisciStati(state, rem);
   if(!state.contiCifre) state.contiCifre = [];
+  sincroFotografa();   // ciò che arriva dall'unione non è una modifica di questo dispositivo
   if(JSON.stringify(state) === prima) return false;
   try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
   return true;
@@ -5555,6 +5692,7 @@ async function gdriveSostituisci() {
     state = data;
     if(!state.contiCifre) state.contiCifre = [];
     ['1143','5878','2321','3753'].forEach(c => { if(!state.contiCifre.includes(c)) state.contiCifre.push(c); });
+    sincroFotografa();
     try { localStorage.setItem('pm_state', JSON.stringify(state)); } catch(e) {}
     renderAll();
     gdriveLog('✓ Dati sostituiti con quelli di Google Drive', 'ok');
