@@ -528,6 +528,8 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .card-title { margin-bottom: 10px; }
   .modal { padding: 12px 18px calc(28px + env(safe-area-inset-bottom, 0px)); border-radius: 18px 18px 0 0; }
   .maniglia { display: block; }
+  .page-head { margin-bottom: var(--gap) !important; flex-wrap: nowrap; }
+  .page-head > .btn { width: auto; flex-shrink: 0; }
   .bottom-nav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; height: calc(72px + env(safe-area-inset-bottom, 0px)); padding: 0 4px env(safe-area-inset-bottom, 0px); background: #fff; border-top: 1px solid var(--border); align-items: center; }
   .bn-item { flex: 1; min-width: 0; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px 2px; color: var(--text-muted); font-family: inherit; font-size: 11px; cursor: pointer; touch-action: manipulation; }
   .bn-item svg { width: 22px; height: 22px; }
@@ -634,6 +636,25 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .md-sx { display: contents; }
   .md-conto { order: 1; width: 100%; } .md-dx { order: 2; width: 100%; } .md-nota { order: 3; width: 100%; }
 }
+/* Conti */
+.conti-wrap { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 0 var(--gap); align-items: start; }
+.conti-tot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.conti-tot span { font-size: 14px; color: var(--text-muted); }
+.conti-tot strong { font-family: 'DM Serif Display', serif; font-weight: 400; font-size: 26px; }
+.conti-tot + .riga { border-top: none; }
+.bank-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+.conti-anello { position: relative; height: 220px; }
+.conti-leg { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.leg-riga { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.leg-q { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.leg-n { flex: 1; min-width: 0; color: #4a4a47; }
+.leg-p { color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.conto-info { background: #f7f5f0; border-radius: 12px; padding: 10px 12px; font-size: 13px; line-height: 1.5; color: #3a3a37; margin: -4px 0 16px; }
+.btn-largo { width: 100%; height: 48px; font-size: 15px; }
+.conto-elimina { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 8px; }
+.link.rosso { color: var(--rosso); font-size: 14px; padding: 8px 0; }
+#modal-conto .modal { width: 460px; max-height: calc(100vh - 40px); overflow-y: auto; }
+@media (max-width: 900px) { .conti-wrap { display: flex; flex-direction: column; align-items: stretch; } }
 </style>
 </head>
 <body>
@@ -686,18 +707,17 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 
 <!-- CONTI -->
 <div class="section" id="sec-conti">
-  <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
-    <div><h1 class="page-title">Conti e saldi</h1><p class="page-sub">Gestisci i tuoi conti e monitora i saldi</p></div>
-    <button class="btn btn-primary" onclick="openModalConto()">+ Aggiungi conto</button>
+  <div class="page-head">
+    <div><h1 class="page-title">Conti e saldi</h1><p class="page-sub" id="conti-sub">—</p></div>
+    <button class="btn btn-primary" onclick="openModalConto()">+ Conto</button>
   </div>
-  <div class="card">
-    <div class="card-title">I tuoi conti</div>
-    <div id="bank-list-container"></div>
-  </div>
-  <div class="card">
-    <div class="card-title">Distribuzione per conto</div>
-    <div style="position:relative;height:250px;"><canvas id="chart-pie-conti" role="img" aria-label="Distribuzione saldi per conto"></canvas></div>
-    <div id="legend-conti" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:#6b6b67;"></div>
+  <div class="conti-wrap">
+    <section class="card"><div id="bank-list-container"></div></section>
+    <section class="card">
+      <h2 class="card-title">Come è distribuita la liquidità</h2>
+      <div class="conti-anello"><canvas id="chart-pie-conti" role="img" aria-label="Distribuzione dei saldi per conto"></canvas></div>
+      <div id="legend-conti" class="conti-leg"></div>
+    </section>
   </div>
 </div>
 
@@ -894,55 +914,49 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 </div>
 
 <!-- MODAL CONTO -->
-<div class="modal-bg" id="modal-conto">
-  <div class="modal">
-    <div class="modal-title" id="modal-conto-title">Aggiungi conto</div>
+<div class="modal-bg" id="modal-conto" onclick="if(event.target===this)closeModalConto()">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Conto">
+    <div class="maniglia"></div>
+    <div class="md-testa"><div class="modal-title" id="modal-conto-title" style="margin:0;">Nuovo conto</div>
+      <button class="x-chiudi" aria-label="Chiudi" onclick="closeModalConto()"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div id="m-avviso" class="avviso" style="display:none;margin-bottom:14px;">Saldo di partenza non verificato: inserisci quello che vedi nell'app della banca.</div>
     <div class="form-group">
-      <label class="form-label">Nome banca *</label>
-      <input class="form-input" id="m-banca" placeholder="es. Intesa Sanpaolo, UniCredit…" />
+      <label class="form-label" for="m-banca">Nome</label>
+      <input class="form-input" id="m-banca" placeholder="es. Trade Republic" />
+    </div>
+    <div class="form-group">
+      <label class="form-label" for="m-iban">IBAN (facoltativo)</label>
+      <input class="form-input" id="m-iban" placeholder="IT60 X054 28…" />
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">IBAN (opzionale)</label>
-        <input class="form-input" id="m-iban" placeholder="IT60 X054 28…" />
+        <label class="form-label" for="m-saldo">Saldo verificato (€)</label>
+        <input class="form-input" id="m-saldo" type="number" step="0.01" inputmode="decimal" placeholder="0,00" />
       </div>
       <div class="form-group">
-        <label class="form-label">Saldo verificato (€)</label>
-        <input class="form-input" id="m-saldo" type="number" step="0.01" placeholder="0,00" />
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Alla data (fine giornata)</label>
+        <label class="form-label" for="m-saldo-data">Alla data</label>
         <input class="form-input" id="m-saldo-data" type="date" />
       </div>
-      <div class="form-group" style="display:flex;align-items:flex-end;">
-        <div id="m-saldo-info" style="font-size:12px;color:var(--text-muted);line-height:1.5;"></div>
-      </div>
+    </div>
+    <div id="m-saldo-info" class="conto-info"></div>
+    <div class="form-group">
+      <label class="form-label" for="m-tipo">Tipo di conto</label>
+      <select class="form-input" id="m-tipo">
+        <option value="banca">Conto bancario</option>
+        <option value="portafoglio">Portafoglio contanti</option>
+        <option value="salvadanaio">Salvadanaio fisico</option>
+        <option value="virtuale">Salvadanaio virtuale Revolut</option>
+        <option value="paypal">PayPal</option>
+      </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Colore identificativo</label>
+      <label class="form-label">Colore</label>
       <div class="color-row" id="color-swatches"></div>
     </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
-      <input type="checkbox" id="m-portafoglio" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked) document.getElementById('m-salvadanaio').checked=false;" />
-      <label for="m-portafoglio" style="font-size:13px;color:var(--text-muted);cursor:pointer;">💵 Questo è il mio portafoglio contanti</label>
-    </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
-      <input type="checkbox" id="m-salvadanaio" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked){document.getElementById('m-portafoglio').checked=false;document.getElementById('m-salvadanaio-virtuale').checked=false;}" />
-      <label for="m-salvadanaio" style="font-size:13px;color:var(--text-muted);cursor:pointer;">🐷 Questo è il mio salvadanaio fisico</label>
-    </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
-      <input type="checkbox" id="m-salvadanaio-virtuale" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked){document.getElementById('m-portafoglio').checked=false;document.getElementById('m-salvadanaio').checked=false;document.getElementById('m-paypal').checked=false;}" />
-      <label for="m-salvadanaio-virtuale" style="font-size:13px;color:var(--text-muted);cursor:pointer;">💰 Questo è il mio salvadanaio virtuale Revolut</label>
-    </div>
-    <div class="form-group" style="display:flex;align-items:center;gap:10px;margin-top:.25rem;">
-      <input type="checkbox" id="m-paypal" style="width:16px;height:16px;cursor:pointer;" onchange="if(this.checked){document.getElementById('m-portafoglio').checked=false;document.getElementById('m-salvadanaio').checked=false;document.getElementById('m-salvadanaio-virtuale').checked=false;}" />
-      <label for="m-paypal" style="font-size:13px;color:var(--text-muted);cursor:pointer;">🅿 Questo è il mio conto PayPal</label>
-    </div>
-    <div class="btn-row" style="justify-content:flex-end;margin-top:1.25rem;">
-      <button class="btn" onclick="closeModalConto()">Annulla</button>
-      <button class="btn btn-primary" onclick="saveConto()">Salva</button>
+    <button class="btn btn-primary btn-largo" onclick="saveConto()">Salva</button>
+    <div id="m-elimina" class="conto-elimina">
+      <button class="link rosso" id="m-elimina-mov" onclick="deleteContoTransazioni(editingContoIdx)">Elimina i movimenti del conto</button>
+      <button class="link rosso" onclick="deleteConto(editingContoIdx)">Elimina il conto</button>
     </div>
   </div>
 </div>
@@ -1326,29 +1340,17 @@ function renderBankList() {
   const el = document.getElementById('bank-list-container');
   if(!el) return;
   const total = state.accounts.reduce((s,a)=>s+(a.saldo||0),0);
+  _setTxt('conti-sub', state.accounts.length === 1 ? '1 conto' : state.accounts.length + ' conti');
   if(!state.accounts.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">🏦</div><div class="empty-title">Nessun conto aggiunto</div><div class="empty-sub">Clicca "Aggiungi conto" per iniziare</div></div>';
+    el.innerHTML = '<div class="empty"><div class="empty-title">Nessun conto</div><div class="empty-sub">Tocca «+ Conto» per aggiungere il primo.</div></div>';
     return;
   }
-  el.innerHTML = state.accounts.map((a,i) => `
-    <div class="bank-row">
-      <div class="bank-dot" style="background:${a.colore}"></div>
-      <div class="bank-main">
-        <div class="bank-name">${_esc(a.banca)} ${a.isPortafoglio ? '<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;margin-left:4px;">💵 Contanti</span>' : ''}${a.isSalvadanaio ? '<span style="font-size:11px;background:#fff8e1;color:#b7950b;padding:1px 8px;border-radius:10px;margin-left:4px;">🐷 Salvadanaio</span>' : ''}${a.isSalvadanaioVirtuale ? '<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;margin-left:4px;">💰 Virtuale</span>' : ''}${a.isPaypal ? '<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;margin-left:4px;">🅿 PayPal</span>' : ''}</div>
-        ${a.iban ? `<div class="bank-iban">${_esc(a.iban)}</div>` : ''}
-      </div>
-      <div class="bank-saldo">
-        <div class="bank-amount">${fmt(a.saldo||0)}</div>
-        <div class="bank-pct">${total ? ((a.saldo/total*100).toFixed(1))+'%' : '—'}</div>
-        ${a.verificaStimata ? `<div class="bank-pct" style="color:var(--warning);" title="Saldo ereditato dalla versione precedente, non letto dalla banca: aprilo con Modifica e inserisci il saldo reale">⚠ da verificare</div>`
-          : a.dataVerifica ? `<div class="bank-pct" title="Saldo verificato ${fmt(a.saldoVerificato || 0)} al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}, più i movimenti successivi">verificato al ${fmtDate(a.dataVerifica + 'T00:00:00Z')}</div>` : ''}
-      </div>
-      <div class="bank-actions">
-      <button class="btn btn-sm" onclick="openModalConto(${i})">Modifica</button>
-      <button class="btn btn-sm" onclick="deleteContoTransazioni(${i})" style="margin-left:4px;color:var(--warning);border-color:var(--warning);" title="Elimina tutte le transazioni di questo conto">🗑</button>
-      <button class="btn-danger" onclick="deleteConto(${i})">✕</button>
-      </div>
-    </div>`).join('');
+  el.innerHTML = `<div class="conti-tot"><span>Liquidità totale</span><strong>${fmt(total)}</strong></div>` + state.accounts.map((a,i) => `
+    <button class="riga riga-tap" onclick="openModalConto(${i})">
+      <span class="bank-dot" style="background:${a.colore}"></span>
+      <span class="riga-main"><span class="riga-nome">${_esc(a.banca)}</span>${a.verificaStimata ? '<span class="riga-sotto" style="color:var(--arancio);">⚠ da verificare</span>' : ''}</span>
+      <span class="riga-imp">${fmt(a.saldo||0)}</span>${_CHEV}
+    </button>`).join('');
 }
 
 // ─── Category list ───────────────────────────────────────────────
@@ -4456,7 +4458,8 @@ function selectColor(c) {
 function openModalConto(idx) {
   editingContoIdx = (idx !== undefined) ? idx : -1;
   const modal = document.getElementById('modal-conto');
-  document.getElementById('modal-conto-title').textContent = editingContoIdx >= 0 ? 'Modifica conto' : 'Aggiungi conto';
+  document.getElementById('modal-conto-title').textContent = editingContoIdx >= 0 ? state.accounts[editingContoIdx].banca : 'Nuovo conto';
+  document.getElementById('m-elimina').style.display = editingContoIdx >= 0 ? '' : 'none';
   if(editingContoIdx >= 0) {
     const a = state.accounts[editingContoIdx];
     document.getElementById('m-banca').value = a.banca;
@@ -4464,22 +4467,21 @@ function openModalConto(idx) {
     document.getElementById('m-saldo').value = a.saldoVerificato != null ? a.saldoVerificato : (a.saldo || '');
     document.getElementById('m-saldo-data').value = a.dataVerifica || _oggiYMD();
     const I = _saldiInfo[a.banca] || { mov: 0, n: 0 };
-    document.getElementById('m-saldo-info').innerHTML = (a.verificaStimata ? `<span style="color:var(--warning);">⚠ Saldo di partenza non verificato: inserisci quello che vedi nell'app della banca.</span><br>` : '') + `Saldo calcolato oggi: <strong>${fmt(a.saldo || 0)}</strong><br>${I.n ? `${I.n} moviment${I.n === 1 ? 'o' : 'i'} dopo la verifica: ${I.mov >= 0 ? '+' : ''}${fmt(I.mov)}` : 'nessun movimento dopo la verifica'}`;
-    document.getElementById('m-portafoglio').checked = !!a.isPortafoglio;
-    document.getElementById('m-salvadanaio').checked = !!a.isSalvadanaio;
-    document.getElementById('m-salvadanaio-virtuale').checked = !!a.isSalvadanaioVirtuale;
-    document.getElementById('m-paypal').checked = !!a.isPaypal;
+    document.getElementById('m-avviso').style.display = a.verificaStimata ? '' : 'none';
+    const fonte = a.verificaStimata ? 'Saldo ereditato dalla versione precedente, da verificare.' : a.verificaFonte === 'file' ? `Verificato il ${fmtDate(a.dataVerifica + 'T00:00:00Z')} dal file della banca.` : `Verificato il ${fmtDate(a.dataVerifica + 'T00:00:00Z')}.`;
+    document.getElementById('m-saldo-info').innerHTML = `${fonte} ${I.n ? `Dopo: ${I.n} moviment${I.n === 1 ? 'o' : 'i'}, ${I.mov >= 0 ? '+ ' : '− '}${fmt(Math.abs(I.mov))}.` : 'Nessun movimento dopo.'} Saldo calcolato oggi <strong>${fmt(a.saldo || 0)}</strong>.`;
+    document.getElementById('m-tipo').value = a.isPortafoglio ? 'portafoglio' : a.isSalvadanaio ? 'salvadanaio' : a.isSalvadanaioVirtuale ? 'virtuale' : a.isPaypal ? 'paypal' : 'banca';
+    const nMov = state.transactions.filter(t => t.conto === a.banca).length;
+    const bm = document.getElementById('m-elimina-mov'); bm.textContent = `Elimina i ${nMov} movimenti del conto`; bm.style.display = nMov ? '' : 'none';
     selectedColor = a.colore || PALETTE[0];
   } else {
     document.getElementById('m-banca').value = '';
     document.getElementById('m-iban').value = '';
     document.getElementById('m-saldo').value = '';
     document.getElementById('m-saldo-data').value = _oggiYMD();
+    document.getElementById('m-avviso').style.display = 'none';
     document.getElementById('m-saldo-info').textContent = 'Inserisci il saldo letto dalla banca e la data a cui si riferisce: da lì in poi l\'app lo aggiorna con i movimenti.';
-    document.getElementById('m-portafoglio').checked = false;
-    document.getElementById('m-salvadanaio').checked = false;
-    document.getElementById('m-salvadanaio-virtuale').checked = false;
-    document.getElementById('m-paypal').checked = false;
+    document.getElementById('m-tipo').value = 'banca';
     selectedColor = PALETTE[state.accounts.length % PALETTE.length];
   }
   buildSwatches();
@@ -4505,10 +4507,10 @@ function saveConto() {
     verificaFonte: 'manuale',   // salvando la scheda il saldo è confermato da te
     saldo: sv,
     colore: selectedColor,
-    isPortafoglio: document.getElementById('m-portafoglio').checked,
-    isSalvadanaio: document.getElementById('m-salvadanaio').checked,
-    isSalvadanaioVirtuale: document.getElementById('m-salvadanaio-virtuale').checked,
-    isPaypal: document.getElementById('m-paypal').checked
+    isPortafoglio: document.getElementById('m-tipo').value === 'portafoglio',
+    isSalvadanaio: document.getElementById('m-tipo').value === 'salvadanaio',
+    isSalvadanaioVirtuale: document.getElementById('m-tipo').value === 'virtuale',
+    isPaypal: document.getElementById('m-tipo').value === 'paypal'
   };
   if(editingContoIdx >= 0) {
     const vecchioNome = state.accounts[editingContoIdx].banca;
@@ -4533,13 +4535,16 @@ function deleteContoTransazioni(i) {
   txSegnaEliminate(state.transactions.filter(t => t.conto === conto.banca));
   state.transactions = state.transactions.filter(t => t.conto !== conto.banca);
   save();
+  closeModalConto();
   renderAll();
   logMsg('🗑 ' + count + ' transazioni di ' + conto.banca + ' eliminate.', 'ok');
 }
 
 function deleteConto(i) {
-  if(!confirm('Eliminare questo conto?')) return;
+  if(i < 0 || !state.accounts[i]) return;
+  if(!confirm('Eliminare il conto ' + state.accounts[i].banca + '? I suoi movimenti restano.')) return;
   state.accounts.splice(i,1);
+  closeModalConto();
   save();
   renderAll();
 }
@@ -5413,11 +5418,12 @@ function renderCharts() {
   const accs = state.accounts;
   if(accs.length) {
     const leg = document.getElementById('legend-conti');
-    if(leg) leg.innerHTML = accs.map(a=>`<span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;border-radius:2px;background:${a.colore};"></span>${a.banca}</span>`).join('');
+    const totC = accs.reduce((t, a) => t + Math.max(0, a.saldo || 0), 0);
+    if(leg) leg.innerHTML = accs.map(a=>`<div class="leg-riga"><span class="leg-q" style="background:${a.colore};"></span><span class="leg-n">${_esc(a.banca)}</span><span class="leg-p">${totC ? fmtNum(Math.max(0, a.saldo || 0) / totC * 100, 1) + '%' : '—'}</span></div>`).join('');
     mkChart('chart-pie-conti', {
       type:'doughnut',
-      data:{labels:accs.map(a=>a.banca), datasets:[{data:accs.map(a=>a.saldo||0), backgroundColor:accs.map(a=>a.colore), borderWidth:2, borderColor:'#fff', hoverOffset:6}]},
-      options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}
+      data:{labels:accs.map(a=>a.banca), datasets:[{data:accs.map(a=>Math.max(0, a.saldo||0)), backgroundColor:accs.map(a=>a.colore), borderWidth:2, borderColor:'#fff', hoverOffset:6}]},
+      options:{responsive:true, maintainAspectRatio:false, cutout:'62%', plugins:{legend:{display:false}, tooltip:{callbacks:{label:ctx=>' '+fmt(ctx.parsed)}}}}
     });
   }
 
