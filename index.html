@@ -545,6 +545,7 @@ canvas, img, svg { max-width: 100%; }
 
 <!-- MAIN -->
 <main class="main">
+<div id="drive-banner" class="setup-banner" style="display:none;"></div>
 
 <!-- PANORAMICA -->
 <div class="section active" id="sec-panoramica">
@@ -1018,10 +1019,8 @@ function save() {
 function load() {
   try {
     const s = localStorage.getItem('pm_state');
-    if(s) {
-      state = JSON.parse(s);
-      if(!state.contiCifre) state.contiCifre = [];
-    }
+    if(s) state = JSON.parse(s);
+    if(!Array.isArray(state.contiCifre)) state.contiCifre = [];
     // Cifre IBAN propri sempre presenti (Mornata Stefano)
     const defaultCifre = ['1143','5878','2321','3753'];
     defaultCifre.forEach(c => {
@@ -1202,7 +1201,7 @@ function renderMetrics() {
   // Stats impostazioni
   _setTxt('stat-conti', state.accounts.length);
   _setTxt('stat-tx', state.transactions.length + (escluse.length ? ` (${escluse.length} escluse)` : ''));
-  _setTxt('stat-files') == state.files.length;
+  _setTxt('stat-files', state.files.length);
 }
 
 // ─── Bank list ───────────────────────────────────────────────────
@@ -1218,8 +1217,8 @@ function renderBankList() {
     <div class="bank-row">
       <div class="bank-dot" style="background:${a.colore}"></div>
       <div class="bank-main">
-        <div class="bank-name">${a.banca} ${a.isPortafoglio ? '<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;margin-left:4px;">💵 Contanti</span>' : ''}${a.isSalvadanaio ? '<span style="font-size:11px;background:#fff8e1;color:#b7950b;padding:1px 8px;border-radius:10px;margin-left:4px;">🐷 Salvadanaio</span>' : ''}${a.isSalvadanaioVirtuale ? '<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;margin-left:4px;">💰 Virtuale</span>' : ''}${a.isPaypal ? '<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;margin-left:4px;">🅿 PayPal</span>' : ''}</div>
-        ${a.iban ? `<div class="bank-iban">${a.iban}</div>` : ''}
+        <div class="bank-name">${_esc(a.banca)} ${a.isPortafoglio ? '<span style="font-size:11px;background:var(--accent-light);color:var(--accent);padding:1px 8px;border-radius:10px;margin-left:4px;">💵 Contanti</span>' : ''}${a.isSalvadanaio ? '<span style="font-size:11px;background:#fff8e1;color:#b7950b;padding:1px 8px;border-radius:10px;margin-left:4px;">🐷 Salvadanaio</span>' : ''}${a.isSalvadanaioVirtuale ? '<span style="font-size:11px;background:#e8f5e9;color:#2e7d32;padding:1px 8px;border-radius:10px;margin-left:4px;">💰 Virtuale</span>' : ''}${a.isPaypal ? '<span style="font-size:11px;background:#e3f2fd;color:#1565c0;padding:1px 8px;border-radius:10px;margin-left:4px;">🅿 PayPal</span>' : ''}</div>
+        ${a.iban ? `<div class="bank-iban">${_esc(a.iban)}</div>` : ''}
       </div>
       <div class="bank-saldo">
         <div class="bank-amount">${fmt(a.saldo||0)}</div>
@@ -1286,8 +1285,8 @@ function renderCatList() {
       return `
       <div class="cat-det-row" style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px;">
         <div class="cdr-date" style="color:var(--text-muted);white-space:nowrap;min-width:78px;font-size:12px;">${fmtDate(t.data)}</div>
-        <div class="cdr-desc" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${(t.descrizione||'').replace(/"/g,'&quot;')}">${rimb ? '<span style="color:var(--accent);font-size:11px;">↩ rimborso</span> ' : ''}${t.descrizione||'—'}</div>
-        <div class="cdr-conto" style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${t.conto||'—'}</div>
+        <div class="cdr-desc" style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;" title="${_esc(t.descrizione||'')}">${rimb ? '<span style="color:var(--accent);font-size:11px;">↩ rimborso</span> ' : ''}${_esc(t.descrizione||'—')}</div>
+        <div class="cdr-conto" style="color:var(--text-faint);font-size:11px;white-space:nowrap;">${_esc(t.conto||'—')}</div>
         <div class="cdr-amt" style="text-align:right;white-space:nowrap;font-weight:500;${rimb?'color:var(--accent);':''}">${rimb?'+':''}${fmt(t.importo)}</div>
         <span class="cdr-edit" onclick="event.stopPropagation();editTx(${t._idx})" title="Modifica transazione" style="cursor:pointer;font-size:13px;opacity:.55;">✏️</span>
       </div>`;
@@ -1570,6 +1569,19 @@ const MIGRAZIONI_UNA_TANTUM = [
            ['Tasse/Contributi','Casa'].includes(tx.categoria) && !tx.voceManuale) {
           tx.categoria = 'Da classificare'; delete tx.voce; n++;
         }
+      });
+      return n;
+  }},
+  { id: 'f2_date_locali', run() {
+      // Movimenti salvati con un orario (Revolut, alcune date Excel): si riportano
+      // al giorno di calendario locale a mezzanotte UTC, come tutti gli altri
+      let n = 0;
+      state.transactions.forEach(tx => {
+        const s = String(tx.data || '');
+        if(!s || /T00:00:00(\.000)?Z$/.test(s)) return;
+        const dt = new Date(s); if(isNaN(dt)) return;
+        const nuova = _isoGiorno(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
+        if(nuova !== s) { tx.data = nuova; n++; }
       });
       return n;
   }},
@@ -3570,7 +3582,7 @@ function renderTransazioni() {
   const fco = document.getElementById('filter-conto');
   if(fco) {
     const cur = fco.value;
-    fco.innerHTML = '<option value="">Tutti i conti</option>' + conti.map(c=>`<option value="${c}" ${c===cur?'selected':''}>${c}</option>`).join('');
+    fco.innerHTML = '<option value="">Tutti i conti</option>' + conti.map(c=>`<option value="${_esc(c)}" ${c===cur?'selected':''}>${_esc(c)}</option>`).join('');
   }
 
   renderDaClassificare();
@@ -3631,10 +3643,10 @@ function renderTransazioni() {
     return `<tr style="${rowStyle}">
       <td class="tx-c-tog" style="text-align:center;">${toggleIcon}</td>
       <td class="tx-c-date" style="color:var(--text-muted);white-space:nowrap;">${fmtDate(t.data)}</td>
-      <td class="tx-c-desc" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.descrizione||''}">${t.descrizione||'—'}${(() => {
+      <td class="tx-c-desc" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${_esc(t.descrizione||'')}">${_esc(t.descrizione||'—')}${(() => {
         const lab = voceEtichetta(t), fatt = isDaFattura(t);
         if(!lab && !fatt) return '';
-        return `<div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;">${lab ? '🎯 ' + lab : ''}${fatt ? (lab?' · ':'') + '🧾 da fattura' : ''}</div>`;
+        return `<div style="font-size:11px;color:var(--text-faint);overflow:hidden;text-overflow:ellipsis;">${lab ? '🎯 ' + _esc(lab) : ''}${fatt ? (lab?' · ':'') + '🧾 da fattura' : ''}</div>`;
       })()}</td>
       <td class="tx-c-cat">
         <div style="position:relative;display:inline-flex;align-items:center;gap:5px;max-width:100%;">
@@ -3649,7 +3661,7 @@ function renderTransazioni() {
         </div>
         <span style="font-size:10px;color:var(--text-faint);margin-left:3px;" title="Clicca sulla categoria per modificarla">✎</span>
       </td>
-      <td class="tx-c-conto" style="color:var(--text-muted);font-size:12px;">${t.conto||'—'}</td>
+      <td class="tx-c-conto" style="color:var(--text-muted);font-size:12px;">${_esc(t.conto||'—')}</td>
       <td style="text-align:right;" class="tx-c-amt ${t.tipo==='entrata'?'amount-pos':'amount-neg'}">${t.tipo==='entrata'?'+':'−'}${fmt(t.importo)}</td>
       <td class="tx-c-edit" style="text-align:center;padding:0 4px;">
         <span title="Modifica transazione" onclick="editTx(${t._idx})" style="cursor:pointer;font-size:14px;opacity:.55;transition:opacity .15s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.55">✏️</span>
@@ -3715,12 +3727,26 @@ function changeCat(idx, newCat) {
 }
 
 // ─── Modifica singola transazione ─────────────────────────────────
-let _editTxIdx = -1;
+let _editTxIdx = -1, _editTxRef = null, _editTxKey = null;
+// Ritrova il movimento aperto nel modal anche se nel frattempo la sincronizzazione
+// con Drive ha riordinato o sostituito i movimenti (l'indice non è affidabile)
+function _etxTrova() {
+  const L = state.transactions || [];
+  if(_editTxRef) { const i = L.indexOf(_editTxRef); if(i >= 0) return i; }
+  if(_editTxKey) { const i = L.findIndex(t => txChiave(t) === _editTxKey); if(i >= 0) return i; }
+  return -1;
+}
+function _etxPerso() {
+  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
+  document.getElementById('modal-edit-tx').classList.remove('open');
+  alert('Nel frattempo il movimento è stato aggiornato dalla sincronizzazione con Drive. Riaprilo e ripeti la modifica.');
+  renderAll();
+}
 
 function editTx(idx) {
   const tx = state.transactions[idx];
   if(!tx) return;
-  _editTxIdx = idx;
+  _editTxIdx = idx; _editTxRef = tx; _editTxKey = txChiave(tx);
 
   // Popola campi
   document.getElementById('etx-data').value = (tx.data || '').substring(0,10);
@@ -3772,7 +3798,7 @@ function _opzioniVoci(sel) {
     `</optgroup>`).join('');
 }
 function etxPopolaVoci(sel) {
-  const tx = state.transactions[_editTxIdx];
+  const tx = state.transactions[_etxTrova()] || {};
   const cat = document.getElementById('etx-cat').value;
   const auto = voceAutomatica({...tx, categoria: cat, descrizione: document.getElementById('etx-desc').value || tx.descrizione});
   document.getElementById('etx-voce').innerHTML =
@@ -3841,7 +3867,9 @@ function etxAggiornaTotRip() {
 }
 
 function saveTxEdit() {
-  if(_editTxIdx < 0 || !state.transactions[_editTxIdx]) return;
+  if(!_editTxRef && _editTxIdx < 0) return;
+  _editTxIdx = _etxTrova();
+  if(_editTxIdx < 0) { _etxPerso(); return; }
   const tx = state.transactions[_editTxIdx];
 
   const nuovaData = document.getElementById('etx-data').value;
@@ -3912,7 +3940,7 @@ function saveTxEdit() {
   if(tx.tipo !== 'entrata') delete tx.daFattura;
   else if(_etxFattToccato) tx.daFattura = document.getElementById('etx-fattura').checked;
 
-  _editTxIdx = -1;
+  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
   document.getElementById('modal-edit-tx').classList.remove('open');
   save();
   renderTransazioni();
@@ -3942,9 +3970,10 @@ function contoApplicaDelta(conto, delta) {
 
 // ─── Eliminazione singola transazione (dal modal ✏️) ─────────────
 function deleteTxSingola() {
-  const idx = _editTxIdx;
+  if(!_editTxRef && _editTxIdx < 0) return;
+  const idx = _etxTrova();
+  if(idx < 0) { _etxPerso(); return; }
   const tx = state.transactions[idx];
-  if(idx < 0 || !tx) return;
   const segno = tx.tipo === 'entrata' ? '+' : '−';
   const conto = txContoDi(tx);
   const delta = -txDeltaSaldo(tx); // annulla l'effetto della transazione
@@ -3960,12 +3989,15 @@ function deleteTxSingola() {
                      'Verrà eliminata solo questa, ma una sincronizzazione con Drive potrebbe farla ricomparire.';
   msg += '\n\nL\'operazione non si può annullare.';
   if(!confirm(msg)) return;
+  // ritrova l'indice: durante il confirm una sincronizzazione può aver riordinato i movimenti
+  const idx2 = state.transactions.indexOf(tx);
+  if(idx2 < 0) { _etxPerso(); return; }
 
   // Lapide solo se non restano gemelle, altrimenti l'unione Drive cancellerebbe anche quelle
   if(!gemelle) txSegnaEliminate([tx]);
-  contoApplicaDelta(conto, delta);
-  state.transactions.splice(idx, 1);
-  _editTxIdx = -1;
+  contoApplicaDelta(txContoDi(tx), delta);
+  state.transactions.splice(idx2, 1);
+  _editTxIdx = -1; _editTxRef = null; _editTxKey = null;
   document.getElementById('modal-edit-tx').classList.remove('open');
   save();
   renderAll();
@@ -3983,7 +4015,7 @@ function renderFilesList() {
   el.innerHTML = state.files.map((f,i) => `
     <div class="file-item">
       <span style="font-size:18px;">${f.tipo==='pdf'?'📄':'📊'}</span>
-      <span class="file-name" style="flex:1;font-weight:500;min-width:0;overflow-wrap:anywhere;">${f.nome}</span>
+      <span class="file-name" style="flex:1;font-weight:500;min-width:0;overflow-wrap:anywhere;">${_esc(f.nome)}</span>
       <span class="file-badge ${f.tipo==='pdf'?'badge-pdf':f.tipo==='csv'?'badge-csv':'badge-excel'}">${f.tipo.toUpperCase()}</span>
       <span style="font-size:11px;color:var(--text-faint);">${fmtDate(f.data)}</span>
       <span class="file-badge ${f.ok?'badge-ok':'badge-err'}">${f.ok?'✓ OK':'✗ Errore'}</span>
@@ -4252,22 +4284,22 @@ async function processFile(file, tipoHint) {
     const contoName = guessContoName(file.name);
     transactions.forEach(t => { if(!t.conto) t.conto = contoName; });
 
-    // Controllo anti-duplicati: stessa data + importo e descrizione uguale
+    // Controllo anti-duplicati: stessa data, importo e tipo, descrizione uguale
     // o una prefisso dell'altra (es. BBVA: export CSV ed Excel scrivono
-    // la stessa operazione con descrizioni di lunghezza diversa)
+    // la stessa operazione con descrizioni di lunghezza diversa).
+    // Il confronto è a conteggio: ogni movimento già presente "assorbe" un solo
+    // movimento del file, così due spese identiche nello stesso giorno (due caffè)
+    // vengono importate entrambe e un reimport dello stesso file non duplica nulla.
     const perChiave = {};
-    const _k = t => `${t.data?.substring(0,10)}|${(+t.importo||0).toFixed(2)}`;
-    state.transactions.forEach(t => { (perChiave[_k(t)] = perChiave[_k(t)] || []).push(t.descrizione); });
+    const _k = t => `${String(t.data || '').substring(0,10)}|${(+t.importo||0).toFixed(2)}|${t.tipo}`;
+    state.transactions.forEach(t => { (perChiave[_k(t)] = perChiave[_k(t)] || []).push({ d: t.descrizione, usato: false }); });
     const txNuove = [];
     const txDuplicate = [];
     transactions.forEach(t => {
       const lista = perChiave[_k(t)] || [];
-      if(lista.some(d => _normDesc(d) === _normDesc(t.descrizione) || _descSimili(d, t.descrizione))) {
-        txDuplicate.push(t);
-      } else {
-        txNuove.push(t);
-        (perChiave[_k(t)] = lista).push(t.descrizione); // evita duplicati anche nello stesso import
-      }
+      const gia = lista.find(x => !x.usato && (_normDesc(x.d) === _normDesc(t.descrizione) || _descSimili(x.d, t.descrizione)));
+      if(gia) { gia.usato = true; txDuplicate.push(t); }
+      else txNuove.push(t);
     });
     if(txDuplicate.length > 0) {
       logMsg(`⚠ ${txDuplicate.length} transazioni duplicate saltate (già presenti).`, 'warn');
@@ -4782,12 +4814,21 @@ function parseNum(s, formatoAnglosassone) {
   }
   return parseFloat(s)||0;
 }
+// Data del movimento come giorno di calendario, salvata a mezzanotte UTC.
+// L'eventuale orario (Revolut) viene ignorato: interpretato come ora locale
+// e convertito in UTC, un pagamento delle 00:30 finiva nel giorno (e mese) prima.
+function _isoGiorno(y, m, d) { return new Date(Date.UTC(+y, +m - 1, +d)).toISOString(); }
 function parseDate(s) {
-  if(!s) return new Date().toISOString();
-  const cleaned = s.replace(/(\d{2})[\/\-](\d{2})[\/\-](\d{4})/, '$3-$2-$1')
-                    .replace(/(\d{4})[\/\-](\d{2})[\/\-](\d{2})/, '$1-$2-$3');
-  const d = new Date(cleaned);
-  return isNaN(d) ? new Date().toISOString() : d.toISOString();
+  const t = String(s == null ? '' : s).trim();
+  const oggi = new Date();
+  if(!t) return _isoGiorno(oggi.getFullYear(), oggi.getMonth() + 1, oggi.getDate());
+  let m = t.match(/(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})/), y, mo, d;
+  if(m) { y = m[1]; mo = m[2]; d = m[3]; }
+  else if((m = t.match(/(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})/))) { d = m[1]; mo = m[2]; y = m[3]; }
+  if(y && +mo >= 1 && +mo <= 12 && +d >= 1 && +d <= 31) return _isoGiorno(y, mo, d);
+  const dt = new Date(t);   // altri formati (es. date Excel convertite)
+  if(isNaN(dt)) return _isoGiorno(oggi.getFullYear(), oggi.getMonth() + 1, oggi.getDate());
+  return _isoGiorno(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
 }
 
 // Categorizzazione — 11 categorie personalizzate
@@ -4981,6 +5022,11 @@ function guessCat(desc, tipoOp, prodotto) {
 }
 
 // ─── AI Analysis (for PDFs) ───────────────────────────────────────
+// Modello Claude per import PDF e categorizzazione (claude-sonnet-4 è stato ritirato il 15/6/2026).
+// L'intestazione «direct-browser-access» è obbligatoria per chiamare l'API dal browser.
+const AI_MODELLO = 'claude-sonnet-5-5';
+const AI_HEADERS = key => ({ 'Content-Type': 'application/json', 'x-api-key': key,
+  'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' });
 async function analyzeWithAI(text, filename) {
   const key = localStorage.getItem('pm_api_key');
   if(!key) {
@@ -5007,24 +5053,32 @@ Rispondi SOLO con il JSON array, senza markdown, senza backtick, senza spiegazio
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
+    headers: AI_HEADERS(key),
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
+      model: AI_MODELLO,
+      max_tokens: 8000,
       messages: [{ role: 'user', content: prompt }]
     })
   });
 
   if(!response.ok) {
-    const err = await response.json();
+    const err = await response.json().catch(() => ({}));
     throw new Error('API error: ' + (err.error?.message || response.status));
   }
 
   const data = await response.json();
-  const raw = data.content[0].text.trim();
-  const cleaned = raw.replace(/^```json?\s*/,'').replace(/```\s*$/,'');
+  const raw = ((data.content || []).find(b => b.type === 'text') || {}).text || '';
+  const cleaned = raw.trim().replace(/^```json?\s*/,'').replace(/```\s*$/,'');
   const parsed = JSON.parse(cleaned);
-  return Array.isArray(parsed) ? parsed : [];
+  if(!Array.isArray(parsed)) return [];
+  // normalizza i campi restituiti: importo positivo, tipo e categoria validi, data senza orario
+  return parsed.filter(t => t && t.data && +t.importo).map(t => ({
+    data: parseDate(String(t.data).substring(0, 10)),
+    descrizione: String(t.descrizione || '').substring(0, 100),
+    importo: Math.abs(+t.importo),
+    tipo: t.tipo === 'entrata' ? 'entrata' : 'uscita',
+    categoria: ALL_CATS.includes(t.categoria) ? t.categoria : 'Da classificare'
+  }));
 }
 
 // ─── AI Categorization ────────────────────────────────────────────
@@ -5045,13 +5099,14 @@ Rispondi SOLO con il JSON, senza testo aggiuntivo.`;
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] })
+      headers: AI_HEADERS(key),
+      body: JSON.stringify({ model: AI_MODELLO, max_tokens: 4000, messages: [{ role: 'user', content: prompt }] })
     });
+    if(!response.ok) throw new Error('HTTP ' + response.status);
     const data = await response.json();
-    const raw = data.content[0].text.trim().replace(/^```json?\s*/,'').replace(/```\s*$/,'');
+    const raw = (((data.content || []).find(b => b.type === 'text') || {}).text || '').trim().replace(/^```json?\s*/,'').replace(/```\s*$/,'');
     const result = JSON.parse(raw);
-    result.forEach(r => { if(toCateg[r.i]) toCateg[r.i].categoria = r.categoria; });
+    result.forEach(r => { if(toCateg[r.i] && ALL_CATS.includes(r.categoria)) toCateg[r.i].categoria = r.categoria; });
     logMsg(`✓ Categorizzazione AI completata per ${result.length} transazioni.`, 'ok');
   } catch(e) {
     logMsg('⚠ Categorizzazione AI non riuscita, uso categorizzazione base.', 'warn');
@@ -5489,39 +5544,72 @@ const GDRIVE_SCOPES    = 'https://www.googleapis.com/auth/drive.appdata';
 const GDRIVE_BASE_URL  = 'https://stefanomornata-create.github.io/patrimonio';
 
 let gdriveToken = null;
+let gdriveExp = 0;          // scadenza del token (ms)
 let gdriveFileId = null;
+let _gdriveTimerScad = null;
+// localStorage: gdrive_sess = {t, exp} sessione valida · gdrive_auto = '1' Drive in uso
+// su questo dispositivo · gdrive_pending = '1' modifiche non ancora salvate su Drive
 
 function gdriveIsConnected() {
-  return !!gdriveToken;
+  return !!gdriveToken && Date.now() < gdriveExp - 30000;
+}
+function _gdriveImpostaSessione(token, expMs) {
+  gdriveToken = token; gdriveExp = expMs;
+  try { localStorage.setItem('gdrive_sess', JSON.stringify({ t: token, exp: expMs })); localStorage.setItem('gdrive_auto', '1'); localStorage.removeItem('gdrive_token'); } catch(e) {}
+  clearTimeout(_gdriveTimerScad);
+  _gdriveTimerScad = setTimeout(() => gdriveScollega('scaduta'), Math.max(0, expMs - Date.now() - 30000));
+}
+// Sessione scaduta o rifiutata: il dispositivo resta "in uso con Drive" e compare l'avviso per ricollegarsi
+function gdriveScollega(motivo) {
+  gdriveToken = null; gdriveExp = 0;
+  clearTimeout(_gdriveTimerScad);
+  try { localStorage.removeItem('gdrive_sess'); } catch(e) {}
+  if(motivo === 'scaduta') gdriveLog('⚠ Sessione Google scaduta: ricollega Drive', 'warn');
+  renderGdriveStatus();
+}
+function _gdriveRipristina() {
+  try {
+    // dispositivi già collegati con la versione precedente: Drive risulta in uso
+    if(localStorage.getItem('gdrive_token')) { localStorage.setItem('gdrive_auto', '1'); localStorage.removeItem('gdrive_token'); }
+    const s = JSON.parse(localStorage.getItem('gdrive_sess') || 'null');
+    if(s && s.t && s.exp > Date.now() + 60000) { _gdriveImpostaSessione(s.t, s.exp); return true; }
+    localStorage.removeItem('gdrive_sess');
+  } catch(e) {}
+  return false;
 }
 
-function gdriveSignIn() {
+function gdriveSignIn(silenzioso) {
+  if(typeof google === 'undefined' || !google.accounts || !google.accounts.oauth2) {
+    alert('Il servizio di accesso Google non è ancora caricato: riprova tra qualche secondo.'); return;
+  }
   const client = google.accounts.oauth2.initTokenClient({
     client_id: GDRIVE_CLIENT_ID,
     scope: GDRIVE_SCOPES,
     callback: async (resp) => {
       if(resp.error) {
         gdriveLog('✗ Errore di autenticazione: ' + resp.error, 'err');
+        renderGdriveStatus();
         return;
       }
-      gdriveToken = resp.access_token;
-      localStorage.setItem('gdrive_token', gdriveToken);
+      _gdriveImpostaSessione(resp.access_token, Date.now() + (+resp.expires_in || 3600) * 1000);
       gdriveLog('✓ Connesso a Google Drive', 'ok');
       renderGdriveStatus();
-      await gdriveFindOrCreateFile();
+      try { await gdriveFindOrCreateFile(); } catch(e) { if(e.message !== 'auth') gdriveLog('✗ Errore: ' + e.message, 'err'); return; }
       await gdriveSincronizza();
     }
   });
-  client.requestAccessToken();
+  // al ricollegamento Google di solito non richiede di nuovo il consenso
+  client.requestAccessToken(silenzioso ? { prompt: '' } : {});
 }
 
 function gdriveSignOut() {
-  if(gdriveToken) {
-    google.accounts.oauth2.revoke(gdriveToken);
+  if(gdriveToken && typeof google !== 'undefined') {
+    try { google.accounts.oauth2.revoke(gdriveToken); } catch(e) {}
   }
-  gdriveToken = null;
+  gdriveToken = null; gdriveExp = 0;
   gdriveFileId = null;
-  localStorage.removeItem('gdrive_token');
+  clearTimeout(_gdriveTimerScad);
+  ['gdrive_sess','gdrive_auto','gdrive_pending','gdrive_token'].forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
   gdriveLog('Disconnesso da Google Drive', 'info');
   renderGdriveStatus();
 }
@@ -5532,6 +5620,9 @@ async function gdriveFindOrCreateFile() {
     'https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=name%3D%22' + GDRIVE_FILENAME + '%22&fields=files(id,name,modifiedTime)',
     { headers: { Authorization: 'Bearer ' + gdriveToken } }
   );
+  // senza questo controllo un errore di rete farebbe creare un secondo file su Drive
+  if(searchResp.status === 401 || searchResp.status === 403) { gdriveScollega('scaduta'); throw new Error('auth'); }
+  if(!searchResp.ok) throw new Error('ricerca file su Drive non riuscita (HTTP ' + searchResp.status + ')');
   const searchData = await searchResp.json();
 
   if(searchData.files && searchData.files.length > 0) {
@@ -5547,7 +5638,7 @@ let _driveNoMerge = false, _driveBusy = false;
 async function gdriveScarica() {
   const resp = await fetch('https://www.googleapis.com/drive/v3/files/' + gdriveFileId + '?alt=media',
     { headers: { Authorization: 'Bearer ' + gdriveToken } });
-  if(resp.status === 401 || resp.status === 403) { gdriveLog('⚠ Sessione Google scaduta: riconnetti Drive', 'warn'); throw new Error('auth'); }
+  if(resp.status === 401 || resp.status === 403) { gdriveScollega('scaduta'); throw new Error('auth'); }
   if(!resp.ok) throw new Error('HTTP ' + resp.status);
   return await resp.json();
 }
@@ -5564,10 +5655,12 @@ async function gdriveUnisci() {
   return true;
 }
 async function gdriveSave() {
-  if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
+  if(!gdriveIsConnected()) { if(gdriveToken) gdriveScollega('scaduta'); else gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
   if(_driveBusy) { scheduleDriveSave(); return; }
   _driveBusy = true;
   try {
+    // Prima di crearne uno nuovo verifica che il file non esista già su Drive
+    if(!gdriveFileId) await gdriveFindOrCreateFile();
     // Prima di scrivere unisce quanto salvato su Drive da altri dispositivi
     if(gdriveFileId && !_driveNoMerge) {
       if(await gdriveUnisci()) { renderAll(); gdriveLog('🔄 Uniti i dati arrivati da un altro dispositivo', 'info'); }
@@ -5592,8 +5685,10 @@ async function gdriveSave() {
       const now = new Date().toLocaleTimeString('it-IT');
       gdriveLog('✓ Salvato su Google Drive (' + now + ')', 'ok');
       const ls = document.getElementById('gdrive-last-sync'); if(ls) ls.textContent = 'Ultimo salvataggio: ' + now;
+      try { localStorage.removeItem('gdrive_pending'); } catch(e) {}
+      renderGdriveStatus();
     } else if(resp.status === 401 || resp.status === 403) {
-      gdriveLog('⚠ Sessione Google scaduta: riconnetti Drive', 'warn');
+      gdriveScollega('scaduta');
     } else {
       gdriveLog('✗ Errore salvataggio: ' + resp.status, 'err');
     }
@@ -5603,9 +5698,9 @@ async function gdriveSave() {
 }
 // Sincronizza ora: unisce Drive e locale, poi salva il risultato su Drive
 async function gdriveSincronizza() {
-  if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
-  if(!gdriveFileId) { await gdriveFindOrCreateFile(); }
+  if(!gdriveIsConnected()) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
   try {
+    if(!gdriveFileId) await gdriveFindOrCreateFile();
     const cambiato = gdriveFileId ? await gdriveUnisci() : false;
     renderAll();
     gdriveLog(cambiato ? '🔄 Dati uniti con Google Drive' : '✓ Già allineato con Google Drive', 'ok');
@@ -5614,9 +5709,9 @@ async function gdriveSincronizza() {
 }
 // Sostituisci: scarta i dati locali e usa quelli di Drive
 async function gdriveSostituisci() {
-  if(!gdriveToken) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
-  if(!gdriveFileId) { await gdriveFindOrCreateFile(); if(!gdriveFileId) { gdriveLog('⚠ Nessun file su Drive', 'warn'); return; } }
+  if(!gdriveIsConnected()) { gdriveLog('⚠ Non connesso a Google Drive', 'warn'); return; }
   try {
+    if(!gdriveFileId) { await gdriveFindOrCreateFile(); if(!gdriveFileId) { gdriveLog('⚠ Nessun file su Drive', 'warn'); return; } }
     const data = await gdriveScarica();
     if(!confirm('Sostituire i dati di questo dispositivo con quelli di Google Drive? Le modifiche locali non salvate andranno perse.')) return;
     state = data;
@@ -5636,6 +5731,17 @@ function gdriveLog(msg, type) {
 }
 
 function renderGdriveStatus() {
+  // Avviso in testa a ogni sezione quando Drive è in uso su questo dispositivo ma non collegato
+  const ban = document.getElementById('drive-banner');
+  if(ban) {
+    let auto = false, pend = false;
+    try { auto = localStorage.getItem('gdrive_auto') === '1'; pend = localStorage.getItem('gdrive_pending') === '1'; } catch(e) {}
+    if(auto && !gdriveIsConnected()) {
+      ban.style.display = 'flex';
+      ban.innerHTML = `☁️ <div style="flex:1;">Google Drive non è collegato su questo dispositivo${pend ? ': <strong>ci sono modifiche non ancora salvate su Drive</strong>' : ''}. Ricollegalo per sincronizzare i dati con gli altri dispositivi.</div>
+        <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;white-space:nowrap;" onclick="gdriveSignIn(true)">Ricollega</button>`;
+    } else ban.style.display = 'none';
+  }
   const btn = document.getElementById('gdrive-btn');
   const status = document.getElementById('gdrive-status');
   if(!btn || !status) return;
@@ -5655,7 +5761,12 @@ function renderGdriveStatus() {
 // Auto-save to Drive — called explicitly, not by overriding save()
 let _driveTimer = null;
 function scheduleDriveSave() {
-  if(!gdriveIsConnected()) return;
+  if(!gdriveIsConnected()) {
+    // Drive in uso ma scollegato: le modifiche restano da salvare e compare l'avviso
+    try { if(localStorage.getItem('gdrive_auto') === '1') { localStorage.setItem('gdrive_pending', '1'); renderGdriveStatus(); } } catch(e) {}
+    return;
+  }
+  try { localStorage.setItem('gdrive_pending', '1'); } catch(e) {}
   clearTimeout(_driveTimer);
   _driveTimer = setTimeout(() => {
     try { gdriveSave(); } catch(e) { console.warn('Drive save error:', e); }
@@ -5675,6 +5786,9 @@ function scheduleDriveSave() {
 
 load();
 renderAll();
+// Sessione Drive ancora valida (dura circa un'ora): si riprende e si sincronizza subito
+if(_gdriveRipristina()) gdriveSincronizza().catch(e => console.warn(e));
+renderGdriveStatus();
 </script>
 </body>
 </html>
