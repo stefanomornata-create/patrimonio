@@ -699,14 +699,6 @@ canvas, img, svg { max-width: 100%; }
     <div id="gdrive-log" style="font-size:12px;margin-top:.75rem;min-height:18px;"></div>
   </div>
 
-  <div class="card" style="border: 1.5px solid var(--accent); background: var(--accent-light);">
-    <div class="card-title" style="color:var(--accent);">Aggiornamento app</div>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">Quando ricevi una nuova versione dell'app da Claude, clicca qui prima di sostituire il file. Il backup viene scaricato automaticamente — poi importalo nella nuova versione con "Importa backup".</p>
-    <button class="btn btn-primary" onclick="aggiornaApp()" style="font-size:15px;padding:11px 24px;">
-      🔄 Prepara aggiornamento (scarica backup)
-    </button>
-    <div id="aggiorna-status" style="font-size:12px;color:var(--accent);margin-top:.75rem;display:none;"></div>
-  </div>
   <div class="card">
     <div class="card-title">Riconoscimento giroconti</div>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem;">
@@ -5281,26 +5273,6 @@ function importaContanti(input) {
 }
 
 // ─── Export / Import ─────────────────────────────────────────────
-function aggiornaApp() {
-  if(!state.transactions.length && !state.accounts.length) {
-    alert('Nessun dato da salvare — puoi sostituire il file direttamente.');
-    return;
-  }
-  // Scarica il backup
-  exportData();
-  // Mostra istruzioni
-  const el = document.getElementById('aggiorna-status');
-  if(el) {
-    el.style.display = 'block';
-    el.innerHTML = `
-      ✅ Backup scaricato correttamente!<br>
-      <span style="color:var(--text-muted);">
-      Ora puoi sostituire il file HTML con la nuova versione.<br>
-      Poi vai su <strong>Impostazioni → Importa backup</strong> per ripristinare i tuoi dati.
-      </span>`;
-  }
-}
-
 function exportData() {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
   const a = document.createElement('a');
