@@ -764,6 +764,70 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .upload-zone-title { margin: 8px 0 0; font-family: 'DM Sans', sans-serif; font-size: 16px; font-weight: 600; }
 .upload-btn-trigger { margin-top: 10px; display: inline-flex; align-items: center; color: #fff; background: var(--accent); border-color: var(--accent); padding: 0 20px; font-size: 14px; }
 @media (max-width: 900px) { .imp-wrap { grid-template-columns: minmax(0,1fr); } }
+/* Budget */
+.bud-sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 12px; }
+.bud-come-link { padding: 4px 0; text-decoration: underline; text-underline-offset: 3px; }
+.bud-testa { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; max-width: 560px; }
+.bud-crea { border-color: var(--accent); color: var(--accent); font-weight: 600; min-height: 38px; height: 38px; }
+.bud-seg { max-width: 560px; margin-bottom: var(--gap); }
+.bud-piano { display: grid; grid-template-columns: 320px minmax(0,1fr); gap: var(--gap); align-items: start; }
+.bud-col-sx { position: sticky; top: 20px; }
+.bud-gruppi { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 var(--gap); align-items: start; }
+.bud-2col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 0 var(--gap); align-items: start; }
+.bud-sintesi { display: flex; flex-direction: column; gap: 10px; }
+.bud-sintesi .card-title { margin: 0; }
+.bud-grande { font-family: 'DM Serif Display', serif; font-size: 30px; line-height: 1.1; }
+.bud-periodo { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; padding: 0 4px; }
+.bud-gruppo .link { margin-top: 2px; }
+.bud-voce-riga.off { opacity: 0.5; }
+.bud-voce-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.bud-voce-num { font-size: 13px; white-space: nowrap; }
+.bud-voce-num strong { font-size: 14px; }
+.bud-check { width: 100%; display: flex; gap: 12px; padding: 11px 0; border: none; border-top: 1px solid rgba(0,0,0,0.06); background: none; font: inherit; font-size: 14px; line-height: 1.5; text-align: left; color: inherit; cursor: pointer; }
+.bud-box { width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; border: 2px solid rgba(0,0,0,0.25); background: #fff; }
+.bud-check.fatto .bud-box { background: var(--blu); border-color: var(--blu); }
+.bud-check.fatto > span:last-child { color: #8c8c87; text-decoration: line-through; }
+.bud-controlli { border-color: #c9d8e6; background: #f3f7fb; gap: 0; }
+.bud-mese { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); padding: 12px 0 2px; }
+.bud-mese + .riga { border-top: none; }
+.bud-giorno { width: 26px; text-align: center; font-weight: 600; flex-shrink: 0; }
+.bud-data-v { width: 52px; flex-shrink: 0; font-size: 12px; color: var(--text-muted); }
+.bud-tetto { display: flex; align-items: center; gap: 12px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.06); }
+.bud-fatti summary { list-style: none; cursor: pointer; margin-top: 4px; }
+.bud-fatti summary::-webkit-details-marker { display: none; }
+.bud-altri { margin-top: 12px; }
+.bud-altri summary { list-style: none; cursor: pointer; }
+.bud-altri summary::-webkit-details-marker { display: none; }
+.bud-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.bud-tab { height: 34px; padding: 0 12px; border-radius: 999px; border: 1px solid rgba(0,0,0,0.12); background: #fff; font: inherit; font-size: 13px; cursor: pointer; }
+.bud-tab.on { background: #eef3ec; border: 1.5px solid var(--accent); color: var(--text); font-weight: 600; }
+.bud-in { height: 38px; padding: 0 10px; border-radius: 10px; font-size: 14px; }
+.bud-tab-imposte .card-title { font-family: 'DM Sans', sans-serif; }
+.modal.modal-bud { width: 520px; max-height: calc(100vh - 40px); overflow-y: auto; }
+.bud-campo { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-muted); margin-bottom: 12px; min-width: 0; }
+.bud-campo small { font-size: 11px; color: var(--text-faint); }
+.bud-sotto-tit { font-size: 12px; color: var(--text-muted); margin: 4px 0 6px; }
+.bud-sc-riga { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr) 40px; gap: 8px; align-items: center; margin-bottom: 8px; }
+.bud-rg-riga { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(0,1fr) minmax(0,0.8fr) 40px; gap: 6px; align-items: center; margin-bottom: 8px; }
+.bud-mesi-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 0 8px; }
+.bud-come p { font-size: 14px; line-height: 1.6; margin-bottom: 12px; color: #2a2a27; }
+.bud-crea-blocco { display: flex; flex-direction: column; gap: 8px; font-size: 14px; line-height: 1.5; margin-bottom: 14px; }
+.bud-crea-blocco.grigio { background: #f7f5f0; border-radius: 14px; padding: 14px; }
+.bud-crea-blocco small { font-size: 12px; color: var(--text-muted); }
+.bud-crea-riga { display: flex; gap: 10px; }
+.bud-crea-riga strong, .bud-check strong { font-weight: 600; }
+.bud-ok { width: 20px; height: 20px; border-radius: 50%; background: var(--accent); flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+.bud-n { width: 20px; flex-shrink: 0; text-align: center; font-weight: 600; color: var(--blu); }
+.bud-come-mini { border-top: 1px solid var(--border); }
+.bud-come-mini summary { list-style: none; height: 44px; display: flex; align-items: center; justify-content: space-between; font-size: 14px; font-weight: 600; cursor: pointer; }
+.bud-come-mini summary::-webkit-details-marker { display: none; }
+.bud-come-mini[open] summary svg { transform: rotate(180deg); }
+.bud-come-mini p { font-size: 13px; line-height: 1.6; color: #3a3a37; margin-bottom: 10px; }
+@media (max-width: 1100px) { .bud-piano { grid-template-columns: minmax(0,1fr); } .bud-col-sx { position: static; } }
+@media (max-width: 900px) {
+  .bud-gruppi, .bud-2col { grid-template-columns: minmax(0,1fr); }
+  .bud-testa { max-width: none; }
+}
 </style>
 </head>
 <body>
@@ -863,10 +927,9 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 
 <!-- BUDGET -->
 <div class="section" id="sec-budget">
-  <div class="page-head" style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
-    <div><h1 class="page-title">Budget</h1><p class="page-sub" style="margin-bottom:0;">Piano, fondi e confronto con il reale</p></div>
-    <div id="bud-head-actions" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;"></div>
-  </div>
+  <h1 class="page-title">Budget</h1>
+  <p class="page-sub bud-sub">Il piano dell'anno e come sta andando <button class="link bud-come-link" onclick="budApri('come')">Come funziona</button></p>
+  <div class="bud-testa" id="bud-head-actions"></div>
   <div id="bud-content"></div>
 </div>
 
@@ -1095,6 +1158,11 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
       <button class="btn btn-primary" onclick="salvaSpesaContanti()">Registra</button>
     </div>
   </div>
+</div>
+
+<!-- FINESTRE DEL BUDGET -->
+<div class="modal-bg" id="modal-bud" onclick="if(event.target===this)budChiudi()">
+  <div class="modal modal-bud" role="dialog" aria-modal="true" aria-label="Budget"><div class="maniglia"></div><div id="bud-sheet"></div></div>
 </div>
 
 <!-- DETTAGLIO MARGINE -->
@@ -1743,12 +1811,8 @@ const MIGRAZIONI_UNA_TANTUM = [
 // ═════════════════════════════════════════════════════════════════
 const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
-const BUD_TABS = [
-  ['margine','Margine'], ['progetti','Progetti'], ['riepilogo','Riepilogo'], ['consuntivo','Consuntivo'], ['scadenze','Scadenze e fondi'], ['imposte','Imposte e Cassa'],
-  ['entrate','Entrate'], ['certe','Spese certe'], ['ricorrenti','Ricorrenti'],
-  ['stime','Variabili'], ['fondi','Salute e regali']
-];
-let budUi = { tab: 'margine', anno: null, periodo: 'prog' };
+const BUD_TABS = [['piano','Piano'], ['fondi','Fondi'], ['imposte','Imposte'], ['risparmio','Risparmio']];
+let budUi = { tab: 'piano', anno: null, periodo: 'prog' };
 
 function _z12() { return [0,0,0,0,0,0,0,0,0,0,0,0]; }
 function _r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
@@ -2041,39 +2105,17 @@ function budFondiOggi(anno) {
   return { righe, tot: _sum(righe.map(x => x.saldo)) };
 }
 
-// ─── Import del budget (file JSON preparato da Claude) ───────────
-function budImporta(input) {
-  const file = input.files && input.files[0]; if(!file) return;
-  const rd = new FileReader();
-  rd.onload = e => {
-    try {
-      const d = JSON.parse(e.target.result);
-      if(d.tipo !== 'patrimonio-budget' || !d.budget) { alert('Il file non contiene un budget di Patrimonio Monitor.'); return; }
-      if(budAnni().length && !confirm('Il budget già presente verrà sostituito con quello del file. Continuare?')) return;
-      vociInit();
-      const b = state.budget;
-      (d.budget.vociExtra || []).forEach(v => { if(!vocePerId(v.id)) b.voci.push(v); });
-      b.anni = d.budget.anni || {};
-      b.storico = d.budget.storico || {};
-      if(d.budget.fiscale) b.fiscale = d.budget.fiscale;
-      budUi.anno = null;
-      budTocca(); renderAll();
-      alert('Budget importato: anni ' + budAnni().join(', ') + '.');
-    } catch(err) { alert('File non valido: ' + err.message); }
-    input.value = '';
-  };
-  rd.readAsText(file);
-}
 function budCreaAnno() {
   const anni = budAnni(); if(!anni.length) return;
   const ult = anni[anni.length - 1], nuovo = ult + 1;
-  if(!confirm(`Creare il budget ${nuovo} copiando la struttura del ${ult}? I fondi al 1° gennaio si calcolano da soli dal saldo dei fondi a fine ${ult}.`)) return;
   const src = JSON.parse(JSON.stringify(budAnno(ult)));
   // fondo iniziale vuoto = riporto automatico dal saldo del fondo a fine anno precedente
   Object.values(src.righe).forEach(c => { if('fondoIniziale' in c) c.fondoIniziale = null; if(c.mensili && c.metodo) c.mensili = Array(12).fill(null); });
   Object.values(src.righe).forEach(c => { if(c.da != null) { c.da = 0; c.a = 11; } });
   src.meseInizio = 0; src.saldoIniziale = null;
-  state.budget.anni[nuovo] = src; budUi.anno = nuovo; budTocca(); renderBudget();
+  src.controlli = BUD_CONTROLLI.map(() => false);   // elenco da spuntare dopo la creazione
+  state.budget.anni[nuovo] = src; budUi.anno = nuovo; budUi.tab = 'piano'; budSheet = null;
+  budTocca(); renderAll(); go('budget');
 }
 
 // ─── Modifiche dai campi ──────────────────────────────────────────
@@ -2255,82 +2297,6 @@ function margSetTetto(raw) {
   m.tetto = v == null ? null : Math.max(0, v);
   budTocca(); renderBudget();
 }
-
-function budViewMargine() {
-  const M = margCalcola();
-  if(!M) return '';
-  const c = M.corrente, d = new Date();
-  let h = '';
-  if(c) {
-    const giorni = new Date(c.anno, c.m + 1, 0).getDate() - d.getDate() + 1;
-    const neg = c.disp < 0;
-    const mesePrec = c.m > 0 ? MESI_LUNGHI[c.m - 1] : 'dicembre';
-    h += `<div class="card marg-hero${neg ? ' neg' : ''}">
-      <div class="marg-lab">${neg ? 'Sei oltre il margine di' : 'Puoi ancora spendere in extra'} a ${MESI_LUNGHI[c.m]}</div>
-      <div class="marg-val">${fmt(Math.abs(c.disp))}</div>
-      <div class="marg-sub">${neg
-        ? `Lo sforamento passa per intero a ${MESI_LUNGHI[(c.m + 1) % 12]} e ne riduce il margine.`
-        : `Circa ${fmt(c.disp / Math.max(1, giorni))} al giorno per ${giorni === 1 ? "l'ultimo giorno" : `i ${giorni} giorni che restano`}.`}
-        ${Math.abs(c.rin) > 0.5 ? ` Comprende ${c.rin > 0 ? 'l’avanzo' : 'lo sforamento'} di ${mesePrec}: ${c.rin > 0 ? '+' : '−'}${fmt(Math.abs(c.rin))}.` : ''}</div>
-    </div>`;
-    // Come si arriva alla cifra
-    const riga = (lab, v, segno, nota) => `<tr><td>${lab}${nota ? ` <small style="color:var(--text-faint);">${nota}</small>` : ''}</td><td class="num">${segno}${fmt(Math.abs(v))}</td></tr>`;
-    h += `<div class="card"><div class="card-title">Come si arriva a questa cifra</div><div class="bud-scroll"><table class="bud-table marg-conto"><tbody>`;
-    h += riga('Entrate incassate', c.entr, '+ ', 'solo quelle già arrivate');
-    h += riga('Quote dei fondi', c.fondi, '− ', 'spese certe, imposte e Cassa, salute, regali');
-    h += riga('Spese a budget effettuate', c.eff, '− ', 'ricorrenti e variabili');
-    h += riga('Spese a budget programmate', c.prog, '− ', 'previste e non ancora uscite');
-    if(c.progetti > 0.005) h += riga('Quote progetti', c.progetti, '− ');
-    h += riga('Extra effettuati', c.extra, '− ', 'spese fuori budget');
-    h += `<tr class="sub"><td>= Margine del mese</td><td class="num">${c.marg < 0 ? '−' : ''}${fmt(Math.abs(c.marg))}</td></tr>`;
-    if(Math.abs(c.rin) > 0.005) h += riga(c.rin > 0 ? 'Avanzo riportato' : 'Sforamento riportato', c.rin, c.rin > 0 ? '+ ' : '− ', `da ${mesePrec}`);
-    h += `<tr class="tot"><td>Disponibile per gli extra</td><td class="num" style="color:${c.disp < 0 ? 'var(--danger)' : 'var(--accent)'};">${c.disp < 0 ? '−' : ''}${fmt(Math.abs(c.disp))}</td></tr>`;
-    h += `</tbody></table></div></div>`;
-    // Avvisi su movimenti che pesano sugli extra ma forse non dovrebbero
-    const dc = c.extraCat.find(x => x[0] === 'Da classificare');
-    const tc = c.extraCat.find(x => x[0] === 'Tasse/Contributi');
-    if(dc && dc[1] > 0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">📌 ${fmt(dc[1])} di spese da classificare contano già come extra (di solito sono contanti). Classificale: se rientrano in una voce di budget il margine si ricalcola da solo. <a href="#" onclick="apriTransazioniCat('Da classificare');return false;" style="color:var(--accent);">Mostra</a></div>`;
-    if(tc && tc[1] > 0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">🏛 ${fmt(tc[1])} in Tasse/Contributi non sono abbinati a una voce e pesano sugli extra. Se sono imposte o Cassa, abbinali alla voce fiscale: escono dal fondo e non dal margine. <a href="#" onclick="apriTransazioniCat('Tasse/Contributi');return false;" style="color:var(--accent);">Mostra</a></div>`;
-    // Dettagli: programmate ed extra
-    const pend = c.dettVoci.filter(x => x.pend > 0.5).sort((a, b) => b.pend - a.pend);
-    h += `<div class="marg-due">`;
-    h += `<div class="card"><div class="card-title">Ancora da uscire a ${MESI_LUNGHI[c.m]}</div>`;
-    h += pend.length ? `<table class="bud-table"><tbody>${pend.map(x => `<tr><td>${_esc(x.voce.nome)}${x.reale > 0.5 ? ` <small style="color:var(--text-faint);">già ${_eur0(x.reale)} di ${_eur0(x.previsto)}</small>` : ''}</td><td class="num">${fmt(x.pend)}</td></tr>`).join('')}</tbody></table>`
-      : `<div style="font-size:13px;color:var(--text-faint);">Tutte le spese a budget del mese sono già uscite.</div>`;
-    h += `</div><div class="card"><div class="card-title">Extra del mese</div>`;
-    h += c.extraCat.length ? `<table class="bud-table"><tbody>${c.extraCat.map(([cat, v]) => `<tr><td>${catEmoji(cat)} ${_esc(cat)}</td><td class="num">${v < 0 ? '−' : ''}${fmt(Math.abs(v))}</td></tr>`).join('')}</tbody></table>`
-      : `<div style="font-size:13px;color:var(--text-faint);">Nessuna spesa extra finora.</div>`;
-    h += `</div></div>`;
-    // Spese a budget oltre il previsto: riducono il margine
-    const sfori = c.dettVoci.filter(x => x.reale - x.previsto > 20).sort((a, b) => (b.reale - b.previsto) - (a.reale - a.previsto));
-    if(sfori.length) h += `<div class="fisc-nota" style="margin:0 0 1rem;">Oltre il previsto, e quindi a carico del margine: ${sfori.map(x => `${_esc(x.voce.nome)} +${_eur0(x.reale - x.previsto)} €`).join(', ')}.</div>`;
-  } else {
-    h += `<div class="card"><div class="empty"><div class="empty-title">Nessun mese in corso nel budget</div><div class="empty-sub">Il margine in tempo reale si calcola per il mese corrente: crea il budget dell'anno per vederlo.</div></div></div>`;
-  }
-  // Riporto, tetto e risparmio
-  h += `<div class="metric-grid">
-    <div class="metric"><div class="metric-label">Risparmio accumulato</div><div class="metric-value">${fmt(M.risparmio)}</div><div class="metric-sub">avanzi oltre il tetto dei mesi chiusi</div></div>
-    ${(() => { const RS = progRisparmio(M); return progTutti().length ? `<div class="metric"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">al netto delle somme assegnate ai progetti</div></div>` : ''; })()}
-    <div class="metric"><div class="metric-label">Tetto al riporto</div><div class="metric-value" style="font-size:18px;"><input class="bud-in" style="width:110px;text-align:right;font-size:16px;" inputmode="decimal" placeholder="nessuno" value="${_numIn(M.tetto)}" onchange="margSetTetto(this.value)" /> €</div><div class="metric-sub">${M.tetto == null ? 'senza tetto tutto l’avanzo passa al mese dopo' : 'l’avanzo oltre il tetto va nel risparmio'}</div></div>
-  </div>`;
-  // Tabella mese per mese
-  const vis = M.mesi;
-  h += `<div class="card"><div class="card-title">Mese per mese</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th>Margine</th><th>+ Riporto</th><th>= Disponibile</th><th>Speso extra</th><th>Al mese dopo</th><th>A risparmio</th><th>Risparmio</th></tr></thead><tbody>`;
-  const nz = (v, forza) => (Math.abs(v) < 0.5 && !forza) ? '—' : _eur0(v);
-  const col = v => v < -0.5 ? 'var(--danger)' : 'inherit';
-  vis.forEach(r => {
-    const lab = `${MESI_BREVI[r.m]} ${r.anno}`;
-    if(r.stato === 'futuro') {
-      h += `<tr class="sub"><td>${lab} <small>previsto</small></td><td class="num">${_eur0(r.marg)}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
-    } else {
-      const corso = r.stato === 'corso';
-      h += `<tr${corso ? ' class="marg-oggi"' : ''}><td>${lab}${corso ? ' <small>in corso</small>' : ''}</td><td class="num" style="color:${col(r.marg)};">${_eur0(r.marg)}</td><td class="num" style="color:${col(r.rin)};">${nz(r.rin)}</td><td class="num" style="color:${col(r.disp)};"><strong>${_eur0(r.disp)}</strong></td><td class="num">${nz(r.extra)}</td><td class="num" style="color:${col(r.rout || 0)};">${corso ? '' : nz(r.rout)}</td><td class="num">${corso ? '' : nz(r.aRisp)}</td><td class="num">${corso ? '' : _eur0(r.risp)}</td></tr>`;
-    }
-  });
-  h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.5;">Il margine usa le entrate effettivamente incassate: finché stipendio o fatture non arrivano, il disponibile resta prudente. «Disponibile» è già al netto degli extra spesi. A fine mese l’avanzo passa al mese dopo fino al tetto e il resto va nel risparmio; uno sforamento passa per intero. Per i mesi futuri è indicato il margine previsto dal budget, prima degli extra. Gli investimenti non abbinati a una voce non contano come extra.</p></div>`;
-  return h;
-}
-
 
 // ═════════════════════════════════════════════════════════════════
 // CRUSCOTTO  (fase 4 — la Panoramica come cruscotto decisionale)
@@ -2759,44 +2725,6 @@ function _badgeProg(s) {
   const map = { accumulo: ['in accumulo', 'var(--text-muted)'], pronto: ['✅ pronto', 'var(--accent)'], scaduto: ['⚠️ scadenza passata', 'var(--danger)'], realizzato: ['realizzato', 'var(--text-faint)'] };
   const [t, c] = map[s] || map.accumulo; return `<span style="color:${c};white-space:nowrap;font-size:13px;">${t}</span>`;
 }
-function budViewProgetti() {
-  const M = margCalcola(), RS = progRisparmio(M);
-  const att = progAttivi(), fatti = progTutti().filter(p => p.stato === 'realizzato');
-  let h = `<div class="metric-grid">
-    <div class="metric accent"><div class="metric-label">Risparmio libero</div><div class="metric-value">${fmt(RS.libero)}</div><div class="metric-sub">accumulato ${fmt(RS.lordo)}${RS.assegnato > 0.5 ? ` − assegnato ai progetti ${fmt(RS.assegnato)}` : ''}${Math.abs(RS.rientri) > 0.5 ? ` ${RS.rientri >= 0 ? '+' : '−'} saldi dei progetti chiusi ${fmt(Math.abs(RS.rientri))}` : ''}</div></div>
-    <div class="metric"><div class="metric-label">Quote progetti di ${MESI_LUNGHI[new Date().getMonth()]}</div><div class="metric-value">${fmt(_sum(att.map(p => progPiano(p).quotaMese)))}</div><div class="metric-sub">tolte dal margine del mese</div></div>
-    <div class="metric"><div class="metric-label">Nei fondi dei progetti</div><div class="metric-value">${fmt(progVincolato())}</div><div class="metric-sub">conteggiati nel vincolato</div></div>
-  </div>`;
-  if(RS.libero < -0.5) h += `<div class="fisc-nota" style="margin:0 0 1rem;">⚠️ Hai assegnato ai progetti più di quanto hai risparmiato: il risparmio libero è negativo di ${fmt(-RS.libero)}. Riduci le somme «dal risparmio» o affidati di più alle quote mensili.</div>`;
-  h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">Progetti in corso</div><button class="btn btn-primary" style="font-size:13px;" onclick="progNuovo();renderBudget();">+ Nuovo progetto</button></div>`;
-  if(!att.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessun progetto in corso. Creane uno qui oppure dal simulatore «Posso permettermelo?» nella Panoramica.</div>`;
-  att.forEach(p => {
-    const P = progPiano(p), pct = P.obiettivo > 0 ? Math.min(100, P.coperto / P.obiettivo * 100) : 0;
-    const id = p.id;
-    h += `<div class="bud-voce prog-card">
-      <div class="bud-voce-head"><input class="bud-in" style="font-size:14px;font-weight:600;min-width:180px;" value="${_esc(p.nome)}" onchange="progSet('${id}','nome',this.value)" /> ${_badgeProg(P.stato)}</div>
-      <div class="prog-bar"><i style="width:${pct}%;"></i></div>
-      <div class="prog-sintesi">Coperti <strong>${fmt(P.coperto)}</strong> su ${fmt(P.obiettivo)}${P.mancante > 0.5 ? ` · mancano ${fmt(P.mancante)}` : ''}${P.speso > 0.5 ? ` · già spesi ${fmt(P.speso)}` : ''} · nel fondo ${fmt(P.fondo)}</div>
-      <div class="prog-sintesi">${P.stato === 'scaduto' ? `La scadenza è passata: sposta la data o segna il progetto come realizzato.` : P.quotaMese > 0.005 ? `Quota di ${MESI_LUNGHI[new Date().getMonth()]}: <strong>${fmt(P.quotaMese)}</strong> · ${P.mesiRestanti} ${P.mesiRestanti === 1 ? 'mese' : 'mesi'} alla scadenza` : P.stato === 'pronto' ? 'Obiettivo coperto: nessuna quota da accantonare.' : 'Nessuna quota questo mese.'}</div>
-      <div class="fisc-campi">
-        <label class="fisc-campo">Obiettivo (€)${_inNum(p.obiettivo, `progSet('${id}','obiettivo',this.value)`, 120)}</label>
-        <label class="fisc-campo">Entro il mese<input type="month" class="bud-in" value="${_esc(p.scadenza || '')}" onchange="progSet('${id}','scadenza',this.value)" /></label>
-        <label class="fisc-campo">Dal risparmio (€)${_inNum(p.dalRisparmio, `progSet('${id}','dalRisparmio',this.value)`, 120)}<small>assegnati subito, riducono il risparmio libero</small></label>
-        <label class="fisc-campo">Quota mensile<select class="bud-in" onchange="progSet('${id}','quotaModo',this.value)"><option value="auto"${p.quotaModo !== 'manuale' ? ' selected' : ''}>calcolata</option><option value="manuale"${p.quotaModo === 'manuale' ? ' selected' : ''}>fissa</option></select>${p.quotaModo === 'manuale' ? _inNum(p.quotaManuale, `progSet('${id}','quotaManuale',this.value)`, 120) : ''}<small>riduce il margine di ogni mese</small></label>
-        <label class="fisc-campo">Accantona da<input type="month" class="bud-in" value="${_esc(p.inizio || '')}" onchange="progSet('${id}','inizio',this.value)" /></label>
-      </div>
-      <div class="prog-azioni"><button class="btn" style="font-size:12px;" onclick="progRealizza('${id}')">✓ Segna come realizzato</button><button class="btn" style="font-size:12px;color:var(--danger);" onclick="progElimina('${id}')">Elimina</button></div>
-    </div>`;
-  });
-  h += `<p class="fisc-hint">Per abbinare una spesa a un progetto apri il movimento con ✏️ e scegli il progetto: esce dal fondo del progetto e non pesa sugli extra del mese. Le quote dei mesi già chiusi restano quelle applicate; se cambi importo o scadenza la quota si ricalcola sui mesi che restano.</p></div>`;
-  if(fatti.length) {
-    h += `<div class="card"><div class="card-title">Realizzati</div><table class="bud-table"><thead><tr><th>Progetto</th><th>Speso</th><th>Saldo al risparmio</th><th></th></tr></thead><tbody>`;
-    fatti.forEach(p => { const P = progPiano(p); h += `<tr><td>${_esc(p.nome)} <small style="color:var(--text-faint);">${_kOk(p.realizzatoIl) ? _kNome(p.realizzatoIl) : ''}</small></td><td class="num">${fmt(P.speso)}</td><td class="num" style="color:${P.fondo < -0.5 ? 'var(--danger)' : 'inherit'};">${P.fondo >= 0 ? '+' : '−'}${fmt(Math.abs(P.fondo))}</td><td class="num"><a href="#" onclick="progRiapri('${p.id}');return false;" style="color:var(--accent);font-size:12px;">Riapri</a></td></tr>`; });
-    h += `</tbody></table></div>`;
-  }
-  return h;
-}
-
 // ─── Simulatore «Posso permettermelo?» (Panoramica) ──────────────
 let simUi = { imp: '', k: null };
 function simHtml() {
@@ -2857,6 +2785,26 @@ function simCreaProgetto() {
 }
 
 
+// ─── Budget (nuova grafica: Piano · Fondi · Imposte · Risparmio) ─
+const BUD_TAB_ALIAS = { margine: 'piano', riepilogo: 'piano', consuntivo: 'piano', entrate: 'piano', certe: 'piano', ricorrenti: 'piano', stime: 'piano', scadenze: 'fondi', progetti: 'risparmio' };
+const BUD_GRUPPI_PIANO = [['entrate', 'Entrate'], ['fiscale', 'Imposte e Cassa'], ['certe', 'Spese certe'], ['ricorrenti', 'Ricorrenti'], ['stime', 'Variabili'], ['fondi', 'Salute e regali']];
+const BUD_CONTROLLI = [
+  ['Entrate:', 'aggiorna l\'importo di Recognita e delle altre entrate, se cambiano.'],
+  ['Ricorrenti:', 'aumenti (mutuo, Fastweb, Iliad…), voci finite da togliere, voci nuove.'],
+  ['Spese certe:', 'importi e mesi delle scadenze, per esempio assicurazioni rinnovate e bollo.'],
+  ['Imposte e Cassa:', 'appena chiuso l\'anno, controlla nella scheda Imposte i ricavi dell\'anno prima e i dati della dichiarazione.'],
+  ['Regali:', 'persone e importi.']
+];
+let budSheet = null;   // finestra aperta: { tipo: 'voce'|'fondo'|'progetto'|'aggiungi'|'crea'|'come', id }
+const _X = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+const _CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="5 12 10 17 19 7"></polyline></svg>';
+
+function budVai(tab) { budUi.tab = tab; budSheet = null; renderBudget(); try { window.scrollTo(0, 0); } catch(e) {} }
+function budAnnoSposta(d) {
+  const anni = budAnni(), i = anni.indexOf(budAnnoCorrente());
+  const j = Math.max(0, Math.min(anni.length - 1, i + d)); budUi.anno = anni[j]; renderBudget();
+}
+
 function renderBudget() {
   const el = document.getElementById('bud-content'); if(!el) return;
   try { if(fiscMigra()) budTocca(); } catch(e) { console.warn(e); }
@@ -2864,195 +2812,350 @@ function renderBudget() {
   const anni = budAnni();
   if(!anni.length) {
     if(hdr) hdr.innerHTML = '';
-    el.innerHTML = `<div class="card"><div class="empty"><div class="empty-icon">📒</div><div class="empty-title">Nessun budget ancora</div>
-      <div class="empty-sub">Importa il file del budget preparato da Claude per iniziare.</div>
-      <label class="btn btn-primary" style="cursor:pointer;margin-top:1rem;display:inline-block;">⬆ Importa budget<input type="file" accept=".json" style="display:none;" onchange="budImporta(this)"></label></div></div>`;
+    const y = new Date().getFullYear();
+    el.innerHTML = `<section class="card"><div class="empty"><div class="empty-title">Nessun budget ancora</div>
+      <div class="empty-sub">Il budget dell'anno permette di calcolare quanto puoi spendere ogni mese, le quote dei fondi e le scadenze.</div>
+      <button class="btn btn-primary" style="margin-top:16px;" onclick="budPrimoAnno(${y})">Crea il budget ${y}</button></div></section>`;
     return;
   }
-  const anno = budAnnoCorrente();
-  if(hdr) hdr.innerHTML = `<select class="form-input" style="width:auto;font-size:13px;" onchange="budUi.anno=+this.value;renderBudget()">${anni.map(a => `<option value="${a}"${a===anno?' selected':''}>Budget ${a}</option>`).join('')}</select>
-    <button class="btn" style="font-size:13px;" onclick="budCreaAnno()">+ Anno ${anni[anni.length-1]+1}</button>
-    <label class="btn" style="font-size:13px;cursor:pointer;">⬆ Importa<input type="file" accept=".json" style="display:none;" onchange="budImporta(this)"></label>`;
-  const tabs = `<div class="bud-tabs">${BUD_TABS.map(([k,l]) => `<button class="bud-tab${budUi.tab===k?' on':''}" onclick="budUi.tab='${k}';renderBudget()">${l}</button>`).join('')}</div>`;
+  const anno = budAnnoCorrente(), ultimo = anni[anni.length - 1], i = anni.indexOf(anno);
+  if(hdr) hdr.innerHTML = `<div class="anno-nav"><button class="btn" onclick="budAnnoSposta(-1)" aria-label="Anno precedente"${i <= 0 ? ' disabled' : ''}>‹</button><strong>${anno}</strong><button class="btn" onclick="budAnnoSposta(1)" aria-label="Anno successivo"${i >= anni.length - 1 ? ' disabled' : ''}>›</button></div>
+    <button class="btn bud-crea" onclick="budCreaFinestra()">+ Crea budget ${ultimo + 1}</button>`;
+  budUi.tab = BUD_TAB_ALIAS[budUi.tab] || budUi.tab;
+  if(!['piano', 'fondi', 'imposte', 'risparmio'].includes(budUi.tab)) budUi.tab = 'piano';
+  const tabs = `<div class="seg bud-seg" role="tablist">${[['piano', 'Piano'], ['fondi', 'Fondi'], ['imposte', 'Imposte'], ['risparmio', 'Risparmio']].map(([k, l]) => `<button role="tab" class="${budUi.tab === k ? 'on' : ''}" onclick="budVai('${k}')">${l}</button>`).join('')}</div>`;
   let body = '';
   try {
     switch(budUi.tab) {
-      case 'margine': body = budViewMargine(); break;
-      case 'progetti': body = budViewProgetti(); break;
-      case 'riepilogo': body = budViewRiepilogo(anno); break;
-      case 'consuntivo': body = budViewConsuntivo(anno); break;
-      case 'scadenze': body = budViewScadenze(anno); break;
-      case 'fondi': body = budViewFondi(anno); break;
+      case 'fondi': body = budViewFondiTab(anno); break;
       case 'imposte': body = budViewImposte(anno); break;
-      default: body = budViewGruppo(anno, budUi.tab);
+      case 'risparmio': body = budViewRisparmio(); break;
+      default: body = budViewPiano(anno);
     }
   } catch(err) { console.error(err); body = `<div class="card" style="color:var(--danger);">Errore nel calcolo del budget: ${_esc(err.message)}</div>`; }
-  el.innerHTML = tabs + body;
+  el.innerHTML = tabs + `<div class="bud-corpo bud-tab-${budUi.tab}">${body}</div>`;
+  budSheetRender();
 }
 
-function budViewRiepilogo(anno) {
-  const C = budCalcAnno(anno), S = C.S, t = C.tot, mesi = [];
-  for(let m = S; m < 12; m++) mesi.push(m);
-  const tt = k => _sum(mesi.map(m => t[k][m]));
-  const periodo = S > 0 ? `${MESI_LUNGHI[S]}–dicembre ${anno}` : `anno ${anno}`;
-  let h = `<div class="metric-grid">
-    <div class="metric accent"><div class="metric-label">Margine previsto per extra e risparmio</div><div class="metric-value">${fmt(tt('margine'))}</div><div class="metric-sub">${periodo} · media ${fmt(tt('margine')/mesi.length)} al mese</div></div>
-    <div class="metric"><div class="metric-label">Entrate previste</div><div class="metric-value">${fmt(tt('entrate'))}</div></div>
-    <div class="metric"><div class="metric-label">Accantonamenti</div><div class="metric-value">${fmt(tt('accant'))}</div><div class="metric-sub">spese certe, imposte, fondi</div></div>
-    <div class="metric"><div class="metric-label">Ricorrenti + variabili</div><div class="metric-value">${fmt(tt('ricorrenti') + tt('stime'))}</div></div>
-  </div>`;
-  h += `<div class="card"><div class="card-title">Piano mese per mese</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th></th>${mesi.map(m => `<th>${MESI_BREVI[m]}</th>`).join('')}<th>Totale</th></tr></thead><tbody>`;
-  const riga = (lab, k, cls) => `<tr class="${cls||''}"><td>${lab}</td>${mesi.map(m => `<td class="num">${_eur0(t[k][m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt(k))}</strong></td></tr>`;
-  h += riga('Entrate', 'entrate') + riga('− Accantonamenti', 'accant') + riga('− Ricorrenti', 'ricorrenti') + riga('− Variabili', 'stime');
-  h += `<tr class="tot"><td>= Margine</td>${mesi.map(m => `<td class="num" style="color:${t.margine[m]<0?'var(--danger)':'var(--accent)'};">${_eur0(t.margine[m])}</td>`).join('')}<td class="num"><strong>${_eur0(tt('margine'))}</strong></td></tr>`;
-  h += `<tr class="sub"><td>Pagamenti dai fondi</td>${mesi.map(m => `<td class="num">${t.pag[m] > 0.5 ? _eur0(t.pag[m]) : '—'}</td>`).join('')}<td class="num">${_eur0(tt('pag'))}</td></tr>`;
-  h += `</tbody></table></div><p style="font-size:12px;color:var(--text-faint);margin-top:10px;">Gli accantonamenti mettono da parte ogni mese la quota delle spese certe, delle imposte e dei fondi: i pagamenti poi escono dai fondi e non pesano sul mese in cui cadono. Il margine è ciò che resta per gli extra e il risparmio.</p></div>`;
-  const scoperti = C.voci.filter(r => r.info && r.info.scoperto);
-  if(scoperti.length) h += `<div class="card" style="border-color:var(--danger);"><div class="card-title" style="color:var(--danger);">⚠️ Fondi insufficienti</div>${scoperti.map(r => `<div style="font-size:13px;margin-bottom:4px;">${_esc(r.voce.nome)}: fondo iniziale consigliato ${fmt(r.info.fondoConsigliato)}</div>`).join('')}</div>`;
-  return h;
-}
-
-function budViewConsuntivo(anno) {
-  const C = budCalcAnno(anno), S = C.S, o = budOggi(anno), R = budRealeVoci(anno);
-  if(o.corrente < S) return `<div class="card"><div class="empty"><div class="empty-title">Il budget ${anno} non è ancora iniziato</div><div class="empty-sub">Il consuntivo parte da ${MESI_LUNGHI[S]} ${anno}.</div></div></div>`;
+// ── Piano ──
+function _budPeriodo(anno, S) {
+  const o = budOggi(anno);
+  if(o.corrente < S) return null;
   const ultimo = Math.min(11, o.corrente);
-  const opz = [['prog', `Progressivo ${MESI_BREVI[S]}–${MESI_BREVI[ultimo]}${o.corrente<=11?' (mese in corso incluso)':''}`]];
-  for(let m = S; m <= ultimo; m++) opz.push([String(m), MESI_LUNGHI[m] + (m === o.corrente ? ' (in corso)' : '')]);
-  if(!opz.some(x => x[0] === budUi.periodo)) budUi.periodo = 'prog';
-  const mesi = budUi.periodo === 'prog' ? Array.from({length: ultimo - S + 1}, (_, i) => S + i) : [+budUi.periodo];
-  const sm = a => _sum(mesi.map(m => (a || _z12())[m]));
-  const gruppi = [['entrate','Entrate',true],['fiscale','Imposte e contributi'],['certe','Spese certe'],['ricorrenti','Spese ricorrenti'],['stime','Spese variabili'],['fondi','Salute e regali']];
-  let h = `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;">
-    <div class="card-title" style="margin:0;">Budget e reale per voce</div>
-    <select class="form-input" style="width:auto;font-size:13px;" onchange="budUi.periodo=this.value;renderBudget()">${opz.map(([k,l]) => `<option value="${k}"${budUi.periodo===k?' selected':''}>${l}</option>`).join('')}</select></div>
-    <div class="bud-scroll"><table class="bud-table"><thead><tr><th>Voce</th><th>Budget</th><th>Reale</th><th>Scostamento</th></tr></thead><tbody>`;
-  let totB = { e: 0, u: 0 }, totR = { e: 0, u: 0 };
-  gruppi.forEach(([g, lab, isEnt]) => {
-    const rs = C.voci.filter(r => r.voce.gruppo === g); if(!rs.length) return;
-    h += `<tr class="grp"><td colspan="4">${lab}</td></tr>`;
+  if(budUi.periodo !== 'prog' && !(+budUi.periodo >= S && +budUi.periodo <= ultimo)) budUi.periodo = 'prog';
+  const mesi = budUi.periodo === 'prog' ? Array.from({ length: ultimo - S + 1 }, (_, k) => S + k) : [+budUi.periodo];
+  const opz = [['prog', `${_maiu(MESI_LUNGHI[S])} – ${MESI_LUNGHI[ultimo]}`]];
+  for(let m = ultimo; m >= S; m--) opz.push([String(m), _maiu(MESI_LUNGHI[m])]);
+  return { mesi, opz, etichetta: budUi.periodo === 'prog' ? `${MESI_BREVI[S].toLowerCase()} – ${MESI_BREVI[ultimo].toLowerCase()}` : MESI_LUNGHI[+budUi.periodo] };
+}
+function budPianoTesto(r, c, v, anno) {
+  const S = budAnno(anno).meseInizio || 0, mesi = 12 - S;
+  const g = v.gruppo;
+  const pagati = r ? r.pag.map((x, m) => [x, m]).filter(([x, m]) => m >= S && x > 0.005) : [];
+  if(g === 'entrate') return c.modo === 'mensile' ? 'mese per mese' : `${fmtNum(_num(c.valore) || 0, (_num(c.valore) || 0) % 1 ? 2 : 0)} al mese`;
+  if(g === 'fiscale' || g === 'certe') {
+    if(!pagati.length) return 'nessuna scadenza nell\'anno';
+    if(pagati.length === 1) return `${MESI_LUNGHI[pagati[0][1]]} · ${_eur0(pagati[0][0])}`;
+    return `${pagati.length} scadenze · ${_eur0(_sum(pagati.map(x => x[0])))} l'anno`;
+  }
+  if(g === 'ricorrenti') { const imp = _num(c.importo) || 0; const da = c.da == null ? 0 : c.da, a = c.a == null ? 11 : c.a;
+    return `${fmtNum(imp, imp % 1 ? 2 : 0)} al mese${da > S || a < 11 ? ` da ${MESI_BREVI[da].toLowerCase()} a ${MESI_BREVI[a].toLowerCase()}` : ''}`; }
+  if(g === 'stime') { const media = r ? _sum(r.prev.slice(S)) / mesi : 0; return `circa ${_eur0(media)} al mese${c.profilo === 'stagionale' ? ', stagionale' : ''}`; }
+  if(v.id === 'fondo_salute') return `${_eur0(_num(c.quota) || 0)} al mese${_num(c.tetto) ? ' · tetto ' + _eur0(_num(c.tetto)) : ''}`;
+  if(v.id === 'regali') { const n = (c.righe || []).length, tot = _sum((c.righe || []).map(x => _num(x.importo) || 0)); return `${n} ${n === 1 ? 'regalo' : 'regali'} · ${_eur0(tot)} l'anno`; }
+  return '';
+}
+function budViewPiano(anno) {
+  const A = budAnno(anno), C = budCalcAnno(anno), S = C.S, t = C.tot;
+  const tt = k => _sum(t[k].slice(S));
+  const nMesi = 12 - S;
+  let sx = `<section class="card bud-sintesi"><h2 class="card-title">Il piano del ${anno}</h2>
+    <div class="cr-patr-riga"><span>Entrate previste</span><span>${_eur0(tt('entrate'))}</span></div>
+    <div class="cr-patr-riga"><span>Messo da parte nei fondi</span><span>− ${_eur0(tt('accant'))}</span></div>
+    <div class="cr-patr-riga"><span>Spese ricorrenti</span><span>− ${_eur0(tt('ricorrenti'))}</span></div>
+    <div class="cr-patr-riga"><span>Spese variabili</span><span>− ${_eur0(tt('stime'))}</span></div>
+    <div class="cr-patr-sep"></div>
+    <div class="cr-patr-tot"><span>Margine per extra e risparmio</span><span${tt('margine') < 0 ? ' style="color:var(--rosso);"' : ''}>${_eur0(tt('margine'))}</span></div>
+    <div class="riga-sotto" style="font-size:13px;">circa ${_eur0(tt('margine') / nMesi)} al mese${S > 0 ? ` (da ${MESI_LUNGHI[S]})` : ''}</div></section>`;
+  const scoperti = C.voci.filter(r => r.info && r.info.scoperto);
+  if(scoperti.length) sx += `<div class="avviso" style="margin-bottom:var(--gap);">${scoperti.length === 1 ? 'Un fondo non basta' : scoperti.length + ' fondi non bastano'} a coprire le scadenze dell'anno: ${scoperti.map(r => `${_esc(r.voce.nome)} (fondo iniziale consigliato ${_eur0(r.info.fondoConsigliato)})`).join(', ')}.</div>`;
+  // Elenco da spuntare dopo la creazione del budget
+  if(Array.isArray(A.controlli) && A.controlli.some(x => !x)) {
+    const resto = A.controlli.filter(x => !x).length;
+    sx += `<section class="card bud-controlli"><div class="cr-tit-riga"><h2 class="card-title">Da controllare nel ${anno}</h2><span class="riga-sotto">ne ${resto === 1 ? 'manca 1' : 'mancano ' + resto}</span></div>
+      ${BUD_CONTROLLI.map(([tit, d], k) => `<button class="bud-check${A.controlli[k] ? ' fatto' : ''}" onclick="budSpunta(${k})"><span class="bud-box">${_CHECK}</span><span><strong>${tit}</strong> ${d}</span></button>`).join('')}
+      <div class="riga-sotto" style="padding-top:6px;">Quando li hai spuntati tutti, questo riquadro sparisce.</div></section>`;
+  }
+  const P = _budPeriodo(anno, S);
+  const R = budRealeVoci(anno);
+  const sm = (a, mesi) => _sum(mesi.map(m => (a || _z12())[m]));
+  let dx = '';
+  if(P) dx += `<div class="bud-periodo"><span class="riga-sotto" style="font-size:13px;">Speso finora rispetto al previsto</span>${_pillSelect('bud-periodo', P.opz.find(o => o[0] === budUi.periodo)[1], P.opz, budUi.periodo, "budUi.periodo=this.value;renderBudget()")}</div>`;
+  const vociAtt = vociTutte();
+  const gruppi = BUD_GRUPPI_PIANO.map(([g, lab]) => {
+    const rs = C.voci.filter(r => r.voce.gruppo === g);
+    const inattive = vociAtt.filter(v => v.gruppo === g && !A.righe[v.id]);
+    let h = `<section class="card bud-gruppo"><div class="cr-tit-riga"><h2 class="card-title">${lab}</h2>${P ? `<span class="riga-sotto">${P.etichetta}</span>` : ''}</div>`;
+    if(!rs.length) h += `<div class="riga-sotto" style="padding:4px 0 6px;">Nessuna voce nel ${anno}.</div>`;
     rs.forEach(r => {
-      // per fondi e spese certe il confronto è sui pagamenti; per i fondi senza date il budget è la quota
-      const b = g === 'fondi' ? sm(r.quote) : sm(r.prev), re = sm(R.voci[r.voce.id]);
-      const d = isEnt ? re - b : b - re; // positivo = favorevole
-      if(isEnt) { totB.e += b; totR.e += re; } else { totB.u += b; totR.u += re; }
-      const sig = Math.abs(re - b) >= 50 && (b === 0 || Math.abs(re - b) / Math.abs(b) >= 0.10);
-      h += `<tr${sig?' class="warn"':''}><td>${_esc(r.voce.nome)}${g==='fondi'?' <small style="color:var(--text-faint);">(quota)</small>':''}</td><td class="num">${_eur0(b)}</td><td class="num">${_eur0(re)}</td><td class="num" style="color:${d<-0.5?'var(--danger)':d>0.5?'var(--accent)':'var(--text-faint)'};">${d>0.5?'+':''}${_eur0(d)}</td></tr>`;
+      const v = r.voce, c = A.righe[v.id], ent = g === 'entrate';
+      const b = P ? (g === 'fondi' ? sm(r.quote, P.mesi) : sm(r.prev, P.mesi)) : 0, re = P ? sm(R.voci[v.id], P.mesi) : 0;
+      const pct = b > 0.5 ? Math.max(0, Math.min(100, re / b * 100)) : (re > 0.5 ? 100 : 0);
+      const oltre = !ent && P && re > b + 0.5;
+      const col = oltre ? '#d68910' : ent ? 'var(--accent)' : 'var(--blu)';
+      const piano = budPianoTesto(r, c, v, anno) + (oltre ? ` · oltre di ${_eur0(re - b)}` : '') + (c.escludi ? ' · esclusa dai calcoli' : '');
+      h += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
+        <span class="riga-main" style="gap:6px;"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span>${P ? `<span class="bud-voce-num"><strong${oltre ? ' style="color:var(--arancio);"' : ''}>${_eur0(re)}</strong> <span class="riga-sotto">di ${_eur0(b)}</span></span>` : ''}</span>
+          ${P ? `<span class="barretta"><i style="width:${pct.toFixed(0)}%;background:${col};"></i></span>` : ''}
+          <span class="riga-sotto"${oltre ? ' style="color:var(--arancio);"' : ''}>${piano}</span></span>${_CHEV}</button>`;
     });
+    h += `<button class="link" onclick="budApri('aggiungi','${g}')">+ Aggiungi voce</button>${inattive.length ? '' : ''}</section>`;
+    return h;
   });
-  // Spese fuori budget per categoria
-  const fuori = Object.entries(R.fuori).map(([c, a]) => [c, sm(a)]).filter(x => Math.abs(x[1]) > 0.5).sort((a,b) => b[1] - a[1]);
-  const totFuori = _sum(fuori.map(x => x[1]));
-  if(fuori.length) {
-    h += `<tr class="grp"><td colspan="4">Fuori budget (extra) — si confronta con il margine</td></tr>`;
-    fuori.forEach(([c, v]) => { h += `<tr><td>${catEmoji(c)} ${_esc(c)}</td><td class="num">—</td><td class="num">${_eur0(v)}</td><td></td></tr>`; });
-  }
-  const margB = _sum(mesi.map(m => C.tot.margine[m]));
-  h += `</tbody></table></div></div>`;
-  h += `<div class="metric-grid">
-    <div class="metric"><div class="metric-label">Entrate</div><div class="metric-value">${fmt(totR.e)}</div><div class="metric-sub">budget ${fmt(totB.e)}</div></div>
-    <div class="metric"><div class="metric-label">Spese a budget</div><div class="metric-value">${fmt(totR.u)}</div><div class="metric-sub">budget ${fmt(totB.u)}</div></div>
-    <div class="metric"><div class="metric-label">Extra fuori budget</div><div class="metric-value">${fmt(totFuori)}</div><div class="metric-sub">margine previsto ${fmt(margB)}</div></div>
-  </div>
-  <p style="font-size:12px;color:var(--text-faint);">Importi netti dei rimborsi sulla stessa voce. Per le spese certe il budget è il pagamento previsto nel periodo; per salute e regali è la quota accantonata. Evidenziate le voci con scostamento oltre 50 € e 10%.</p>`;
-  return h;
+  const meta = Math.ceil(gruppi.length / 2);
+  return `<div class="bud-piano"><div class="bud-col-sx">${sx}</div><div class="bud-col-dx">${dx}<div class="bud-gruppi"><div>${gruppi.slice(0, meta).join('')}</div><div>${gruppi.slice(meta).join('')}</div></div></div></div>`;
+}
+function budSpunta(k) { const A = budAnno(budAnnoCorrente()); if(!A || !Array.isArray(A.controlli)) return; A.controlli[k] = !A.controlli[k]; budTocca(); renderBudget(); }
+
+// ── Fondi ──
+function budViewFondiTab(anno) {
+  const C = budCalcAnno(anno), F = budFondiOggi(anno), o = budOggi(anno), cor = Math.max(0, Math.min(11, o.corrente));
+  const tot = _sum(F.righe.map(r => Math.max(0, r.saldo)));
+  let sx = `<section class="card bud-sintesi"><h2 class="card-title">Nei fondi oggi</h2><div class="bud-grande" style="color:var(--blu);">${_eur0(tot)}</div>
+    <div class="imp-testo">Soldi già messi da parte per spese certe, imposte e Cassa, salute e regali. Sono sui tuoi conti ma hanno già una destinazione.</div></section>`;
+  const fondoDi = {}; F.righe.forEach(r => { fondoDi[r.voce.id] = r; });
+  const rDi = {}; C.voci.forEach(r => { rDi[r.voce.id] = r; });
+  // Scadenze da qui a dicembre (più quelle passate non pagate)
+  const sc = budScadenze(anno).filter(s => s.stato !== 'pagata' && (s.mese >= cor || s.stato === 'scaduta'));
+  let mancaTot = 0, nScop = 0;
+  const righe = sc.map(s => {
+    const residuo = s.importo - s.pagato, f = fondoDi[s.voce.id], r = rDi[s.voce.id];
+    let st = '', col = 'var(--text-muted)';
+    if(s.stato === 'scaduta') { st = `di ${MESI_LUNGHI[s.mese]}: risulta non pagata`; col = 'var(--rosso)'; }
+    else if(f && s.mese === cor) {
+      if(f.saldo >= residuo - 0.5) { st = 'Pronta: il fondo la copre'; col = 'var(--blu)'; }
+      else { st = `Nel fondo ${_eur0(Math.max(0, f.saldo))} su ${_eur0(residuo)}`; col = 'var(--arancio)'; }
+    } else if(r && r.saldi) {
+      const dopo = r.saldi[s.mese];
+      if(dopo >= -0.5) { st = `Pronta a ${MESI_LUNGHI[s.mese]}`; col = 'var(--blu)'; }
+      else { st = `Mancano ${_eur0(-dopo)}`; col = 'var(--arancio)'; mancaTot += -dopo; nScop++; }
+    }
+    if(s.estimata) st += ' · stima';
+    return { s, residuo, st, col };
+  });
+  let dx = '';
+  if(nScop) dx += `<div class="avviso" style="margin-bottom:var(--gap);">${nScop === 1 ? 'Una scadenza non è' : nScop + ' scadenze non sono'} ancora coperte del tutto: mancano <strong>${_eur0(mancaTot)}</strong> in totale. Le quote dei prossimi mesi non bastano: valuta di aumentare il fondo iniziale.</div>`;
+  dx += `<section class="card"><h2 class="card-title">Prossime scadenze</h2>`;
+  if(!righe.length) dx += `<div class="riga-sotto">Nessuna scadenza da pagare fino a dicembre.</div>`;
+  let mese = -1;
+  righe.forEach(x => {
+    if(x.s.mese !== mese) { mese = x.s.mese; dx += `<div class="bud-mese">${MESI_LUNGHI[mese]}</div>`; }
+    const g = crGiorno(anno, x.s);
+    dx += `<div class="riga"><span class="bud-giorno">${g}</span><div class="riga-main"><span class="riga-nome" style="font-weight:400;">${_esc(x.s.voce.nome)}${x.s.nota ? ' · ' + _esc(x.s.nota) : ''}</span><span class="riga-sotto" style="color:${x.col};">${x.st}</span></div><span class="riga-imp">${_eur0(x.residuo)}</span></div>`;
+  });
+  dx += `</section>`;
+  // Elenco dei fondi
+  const prossima = id => { const s = sc.find(x => x.voce.id === id && x.stato !== 'scaduta'); return s ? ` · prossima a ${MESI_LUNGHI[s.mese]}: ${_eur0(s.importo - s.pagato)}` : ''; };
+  sx += `<section class="card"><h2 class="card-title">I fondi</h2>${F.righe.filter(r => Math.abs(r.F0) + Math.abs(r.maturato) + Math.abs(r.pagato) > 0.5 || (rDi[r.voce.id] && _sum(rDi[r.voce.id].quote) > 0.5)).map(r => `
+    <button class="riga riga-tap" onclick="budApri('fondo','${r.voce.id}')"><span class="riga-main"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="riga-sotto">${r.quotaMese > 0.5 ? '+ ' + _eur0(r.quotaMese) + ' al mese' : 'nessuna quota questo mese'}${prossima(r.voce.id)}</span></span>
+      <span class="riga-imp"${r.saldo < -0.5 ? ' style="color:var(--rosso);"' : ''}>${_eur0(r.saldo)}</span>${_CHEV}</button>`).join('') || '<div class="riga-sotto">Nessun fondo attivo.</div>'}</section>`;
+  return `<div class="bud-2col"><div>${sx}</div><div>${dx}</div></div>`;
 }
 
-function budViewScadenze(anno) {
-  const sc = budScadenze(anno), F = budFondiOggi(anno);
-  let h = `<div class="card"><div class="card-title">Scadenze ${anno}</div>`;
-  if(!sc.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessuna scadenza nel periodo.</div>`;
-  else {
-    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Mese</th><th>Voce</th><th>Importo</th><th>Stato</th></tr></thead><tbody>`;
-    sc.forEach(s => { h += `<tr><td>${MESI_LUNGHI[s.mese]}</td><td>${_esc(s.voce.nome)}${s.nota?` <small style="color:var(--text-faint);">${_esc(s.nota)}</small>`:''}</td><td class="num">${fmt(s.importo)}</td><td>${_badgeStato(s.stato)}${s.stato!=='pagata'&&s.pagato>0.5?` <small>(${fmt(s.pagato)} pagati)</small>`:''}</td></tr>`; });
-    h += `</tbody></table></div>`;
-  }
-  h += `</div><div class="card"><div class="card-title">Fondi accantonati a oggi</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Voce</th><th>Iniziale</th><th>+ Maturato</th><th>− Pagato</th><th>Saldo</th></tr></thead><tbody>`;
-  F.righe.filter(r => Math.abs(r.F0) + Math.abs(r.maturato) + Math.abs(r.pagato) > 0.5).forEach(r => {
-    h += `<tr><td>${_esc(r.voce.nome)}</td><td class="num">${_eur0(r.F0)}</td><td class="num">${_eur0(r.maturato)}</td><td class="num">${_eur0(r.pagato)}</td><td class="num" style="color:${r.saldo<-0.5?'var(--danger)':'inherit'};"><strong>${_eur0(r.saldo)}</strong></td></tr>`;
+// ── Risparmio ──
+function budViewRisparmio() {
+  const M = margCalcola(), RS = progRisparmio(M);
+  const att = progAttivi(), fatti = progTutti().filter(p => p.stato === 'realizzato');
+  let sx = `<section class="card bud-sintesi"><h2 class="card-title">Risparmio</h2>
+    <div class="cr-patr-riga"><span>Accumulato</span><span>${_eur0(RS.lordo)}</span></div>
+    ${RS.assegnato > 0.5 ? `<div class="cr-patr-riga"><span>Assegnato ai progetti</span><span>− ${_eur0(RS.assegnato)}</span></div>` : ''}
+    ${Math.abs(RS.rientri) > 0.5 ? `<div class="cr-patr-riga"><span>Saldi dei progetti chiusi</span><span>${RS.rientri >= 0 ? '+ ' : '− '}${_eur0(Math.abs(RS.rientri))}</span></div>` : ''}
+    <div class="cr-patr-sep"></div>
+    <div class="cr-patr-tot"><span>Risparmio libero</span><span${RS.libero < -0.5 ? ' style="color:var(--rosso);"' : ''}>${_eur0(RS.libero)}</span></div>
+    <div class="bud-tetto"><span class="riga-main"><span class="riga-nome" style="font-weight:400;">Tetto al riporto</span><span class="riga-sotto">L'avanzo del mese passa al mese dopo fino a questa cifra; il resto va nel risparmio${M && M.tetto == null ? '. Vuoto: passa tutto al mese dopo' : ''}.</span></span>
+      <input class="form-input" style="width:96px;text-align:right;" inputmode="decimal" placeholder="nessuno" value="${M ? _numIn(M.tetto) : ''}" onchange="margSetTetto(this.value)" aria-label="Tetto al riporto" /></div></section>`;
+  if(RS.libero < -0.5) sx += `<div class="avviso" style="margin-bottom:var(--gap);">Hai assegnato ai progetti più di quanto hai risparmiato: il risparmio libero è negativo di ${_eur0(-RS.libero)}. Riduci le somme «dal risparmio» o affidati di più alle quote mensili.</div>`;
+  sx += `<section class="card"><div class="cr-tit-riga"><h2 class="card-title">Progetti</h2><button class="btn" style="min-height:36px;height:36px;" onclick="budNuovoProgetto()">+ Nuovo</button></div>`;
+  if(!att.length) sx += `<div class="riga-sotto">Nessun progetto in corso. Creane uno qui oppure da «Posso permettermelo?» nella Panoramica.</div>`;
+  att.forEach(p => {
+    const P = progPiano(p), pct = P.obiettivo > 0 ? Math.min(100, P.coperto / P.obiettivo * 100) : 0;
+    const nota = P.stato === 'scaduto' ? 'scadenza passata: sposta la data o segnalo come realizzato'
+      : [p.dalRisparmio > 0.5 ? `${_eur0(p.dalRisparmio)} dal risparmio` : '', P.quotaMese > 0.005 ? `${_eur0(P.quotaMese)} a ${MESI_LUNGHI[new Date().getMonth()]}` : (P.stato === 'pronto' ? 'obiettivo coperto' : 'nessuna quota questo mese'), P.mesiRestanti ? `${P.mesiRestanti} ${P.mesiRestanti === 1 ? 'mese' : 'mesi'} alla scadenza` : ''].filter(Boolean).join(' · ');
+    sx += `<button class="riga riga-tap" onclick="budApri('progetto','${p.id}')"><span class="riga-main" style="gap:6px;"><span class="bud-voce-top"><span class="riga-nome">${_esc(p.nome)}</span><span class="bud-voce-num"><strong>${_eur0(P.coperto)}</strong> <span class="riga-sotto">di ${_eur0(P.obiettivo)}</span></span></span>
+      <span class="barretta"><i style="width:${pct.toFixed(0)}%;background:var(--blu);"></i></span><span class="riga-sotto"${P.stato === 'scaduto' ? ' style="color:var(--rosso);"' : ''}>${nota}</span></span>${_CHEV}</button>`;
   });
-  h += `<tr class="tot"><td>Totale vincolato</td><td></td><td></td><td></td><td class="num"><strong>${fmt(F.tot)}</strong></td></tr></tbody></table></div>
-    <p style="font-size:12px;color:var(--text-faint);margin-top:10px;">È la parte della tua liquidità già destinata alle scadenze future. Un saldo negativo indica che hai pagato più di quanto accantonato finora.</p></div>`;
-  return h;
+  if(fatti.length) {
+    sx += `<details class="bud-fatti"><summary class="link">Mostra ${fatti.length === 1 ? '1 già realizzato' : fatti.length + ' già realizzati'}</summary>${fatti.map(p => { const P = progPiano(p); return `<div class="riga"><div class="riga-main"><span class="riga-nome" style="font-weight:400;">${_esc(p.nome)}</span><span class="riga-sotto">${_kOk(p.realizzatoIl) ? _kNome(p.realizzatoIl) + ' · ' : ''}speso ${_eur0(P.speso)} · ${P.fondo >= 0 ? '+ ' : '− '}${_eur0(Math.abs(P.fondo))} al risparmio</span></div><button class="link" onclick="progRiapri('${p.id}')">Riapri</button></div>`; }).join('')}</details>`;
+  }
+  sx += `</section>`;
+  // Storico mese per mese
+  let dx = `<section class="card"><h2 class="card-title">Mese per mese</h2><div class="imp-testo" style="padding-bottom:6px;">Quanto è avanzato o sforato ogni mese, e dove è andato.</div>`;
+  const mesi = M ? M.mesi.filter(r => r.stato !== 'futuro').slice().reverse() : [];
+  if(!mesi.length) dx += `<div class="riga-sotto">Nessun mese ancora.</div>`;
+  mesi.forEach(r => {
+    const lab = `${_maiu(MESI_LUNGHI[r.m])} ${r.anno}`;
+    if(r.stato === 'corso') { dx += `<div class="riga"><div class="riga-main"><span class="riga-nome" style="font-weight:400;">${lab}</span><span class="riga-sotto">in corso · extra finora ${_eur0(r.extra)}</span></div><span class="riga-imp">${r.disp < 0 ? '− ' : ''}${_eur0(Math.abs(r.disp))} da spendere</span></div>`; return; }
+    const pos = r.disp >= 0;
+    const dove = pos ? [r.rout > 0.5 ? `${_eur0(r.rout)} al mese dopo` : '', r.aRisp > 0.5 ? `${_eur0(r.aRisp)} al risparmio` : ''].filter(Boolean).join(', ') : 'lo sforamento passa al mese dopo';
+    dx += `<div class="riga"><div class="riga-main"><span class="riga-nome" style="font-weight:400;">${lab}</span><span class="riga-sotto">margine ${_eur0(r.marg + r.extra)} · extra ${_eur0(r.extra)}${dove ? ' · ' + dove : ''}</span></div><span class="riga-imp" style="color:${pos ? 'var(--accent)' : 'var(--rosso)'};">${pos ? '+ ' : '− '}${_eur0(Math.abs(r.disp))}</span></div>`;
+  });
+  dx += `</section>`;
+  return `<div class="bud-2col"><div>${sx}</div><div>${dx}</div></div>`;
 }
+function budNuovoProgetto() { const p = progNuovo(); renderBudget(); budApri('progetto', p.id); }
 
-function budViewGruppo(anno, gruppo) {
-  const A = budAnno(anno), S = A.meseInizio || 0;
-  const gruppiTab = gruppo === 'certe' ? ['fiscale','certe'] : [gruppo];
+// ── Finestre (pannello dal basso sul telefono, centrate sul computer) ──
+function budApri(tipo, id) { budSheet = { tipo, id }; budSheetRender(); }
+function budChiudi() { budSheet = null; const el = document.getElementById('modal-bud'); if(el) el.classList.remove('open'); }
+function budSheetRender() {
+  const el = document.getElementById('modal-bud'), box = document.getElementById('bud-sheet');
+  if(!el || !box) return;
+  if(!budSheet) { el.classList.remove('open'); return; }
+  let titolo = '', sotto = '', corpo = '';
+  try {
+    const anno = budAnnoCorrente();
+    if(budSheet.tipo === 'voce') ({ titolo, sotto, corpo } = budSheetVoce(anno, budSheet.id));
+    else if(budSheet.tipo === 'fondo') ({ titolo, sotto, corpo } = budSheetFondo(anno, budSheet.id));
+    else if(budSheet.tipo === 'progetto') ({ titolo, sotto, corpo } = budSheetProgetto(budSheet.id));
+    else if(budSheet.tipo === 'aggiungi') ({ titolo, sotto, corpo } = budSheetAggiungi(anno, budSheet.id));
+    else if(budSheet.tipo === 'crea') ({ titolo, sotto, corpo } = budSheetCrea());
+    else if(budSheet.tipo === 'come') ({ titolo, sotto, corpo } = budSheetCome());
+  } catch(err) { console.error(err); corpo = `<div style="color:var(--danger);">Errore: ${_esc(err.message)}</div>`; }
+  if(!titolo) { budChiudi(); return; }
+  const foc = document.activeElement && box.contains(document.activeElement) ? document.activeElement.id : null;
+  box.innerHTML = `<div class="md-testa"><div><div class="modal-title" style="margin:0;">${titolo}</div>${sotto ? `<span class="riga-sotto">${sotto}</span>` : ''}</div><button class="x-chiudi" aria-label="Chiudi" onclick="budChiudi()">${_X}</button></div>${corpo}`;
+  el.classList.add('open');
+  if(foc) { const f = document.getElementById(foc); if(f) try { f.focus(); } catch(e) {} }
+}
+const _campo = (lab, html, nota) => `<label class="bud-campo"><span>${lab}</span>${html}${nota ? `<small>${nota}</small>` : ''}</label>`;
+const _num2 = (id, val, onch, ph) => `<input class="form-input" id="${id}" inputmode="decimal" value="${_numIn(val)}"${ph ? ` placeholder="${_esc(ph)}"` : ''} onchange="${onch}" />`;
+const _mesiSel = (val, onch, conVuoto) => `<select class="form-input" onchange="${onch}">${conVuoto ? `<option value=""${val == null || val === '' ? ' selected' : ''}>senza mese</option>` : ''}${MESI_LUNGHI.map((n, k) => `<option value="${k}"${val !== null && val !== '' && +val === k ? ' selected' : ''}>${_maiu(n)}</option>`).join('')}</select>`;
+function _fondoCampo(id, c, r, anno) {
+  const fi = r && r.fondoIni, ph = fi && fi.auto ? (fi.daAnno ? 'automatico: ' + fmtNum(fi.val, 0) : 'automatico: 0') : '';
+  return _campo(`Fondo al 1° ${MESI_LUNGHI[budAnno(anno).meseInizio || 0]}`, _num2('bf-' + id, c.fondoIniziale, `budSet('${id}','fondoIniziale',this.value)`, ph), fi && fi.auto && fi.daAnno ? `vuoto = quello che resta a fine ${fi.daAnno}` : 'vuoto = automatico');
+}
+function budSheetVoce(anno, id) {
+  const A = budAnno(anno), v = vocePerId(id), c = A && A.righe[id]; if(!v || !c) return {};
+  const r = budCalcVoce(anno, id), S = A.meseInizio || 0, g = v.gruppo;
+  const nomiG = { entrate: 'Entrata', fiscale: 'Imposte e Cassa', certe: 'Spesa certa', ricorrenti: 'Spesa ricorrente', stime: 'Spesa variabile', fondi: 'Salute e regali' };
   let h = '';
-  gruppiTab.forEach(g => {
-    const voci = vociTutte().filter(v => v.gruppo === g);
-    const attive = voci.filter(v => A.righe[v.id]), inattive = voci.filter(v => !A.righe[v.id]);
-    h += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:1rem;"><div class="card-title" style="margin:0;">${VOCI_GRUPPI[g]}${g==='fiscale'?' <span style="text-transform:none;letter-spacing:0;">— calcolate nella scheda <a href="#" onclick="budUi.tab=\'imposte\';renderBudget();return false;" style="color:var(--accent);">Imposte e Cassa</a></span>':''}</div>
-      <button class="btn" style="font-size:12px;padding:5px 10px;" onclick="budNuovaVoce('${g}')">+ Nuova voce</button></div>`;
-    attive.forEach(v => { h += budEditorVoce(anno, v, S); });
-    if(inattive.length) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:8px;">Non a budget nel ${anno}: ${inattive.map(v => `<a href="#" onclick="budAttivaVoce('${v.id}');return false;" style="color:var(--accent);">+ ${_esc(v.nome)}</a>`).join(' · ')}</div>`;
-    h += `</div>`;
-  });
-  return h;
-}
-function budEditorVoce(anno, v, S) {
-  const A = budAnno(anno), c = A.righe[v.id], r = budCalcVoce(anno, v.id), id = v.id;
-  const esclusa = !!c.escludi;
-  let h = `<div class="bud-voce${esclusa?' off':''}"><div class="bud-voce-head"><div><strong>${_esc(v.nome)}</strong> <small style="color:var(--text-faint);">${catEmoji(v.categoria)} ${_esc(v.categoria)}</small></div>
-    <div style="display:flex;gap:10px;align-items:center;font-size:12px;"><label style="cursor:pointer;"><input type="checkbox"${esclusa?' checked':''} onchange="budSet('${id}','escludi',this.checked)"> escludi</label>
-    <a href="#" onclick="budTogliVoce('${id}');return false;" style="color:var(--text-faint);">togli</a></div></div><div class="bud-voce-body">`;
-  if(v.gruppo === 'entrate') {
-    h += `<select class="bud-in" onchange="budSet('${id}','modo',this.value)"><option value="costante"${c.modo!=='mensile'?' selected':''}>Uguale ogni mese</option><option value="mensile"${c.modo==='mensile'?' selected':''}>Mese per mese</option></select> `;
-    if(c.modo === 'mensile') {
-      h += `<div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<label>${MESI_BREVI[m]}${_inNum((c.mensili||[])[m], `budSet('${id}','mensile',this.value,${m})`, 72)}</label>`).join('')}</div>`;
-    } else h += `${_inNum(c.valore, `budSet('${id}','valore',this.value)`)} € al mese`;
-  } else if(v.gruppo === 'fiscale' && !c.manuale && r && r.fisc) {
+  if(g === 'entrate') {
+    h += `<div class="seg" style="margin-bottom:14px;"><button class="${c.modo !== 'mensile' ? 'on' : ''}" onclick="budSet('${id}','modo','costante')">Uguale ogni mese</button><button class="${c.modo === 'mensile' ? 'on' : ''}" onclick="budSet('${id}','modo','mensile')">Mese per mese</button></div>`;
+    if(c.modo === 'mensile') h += `<div class="bud-mesi-grid">${Array.from({ length: 12 - S }, (_, k) => S + k).map(m => _campo(MESI_BREVI[m], _num2(`bm-${id}-${m}`, (c.mensili || [])[m], `budSet('${id}','mensile',this.value,${m})`))).join('')}</div>`;
+    else h += _campo('Importo al mese', _num2('bv-' + id, c.valore, `budSet('${id}','valore',this.value)`));
+    if(v.daFattura) h += `<div class="conto-info">Conta come fatturato per le imposte.</div>`;
+  } else if(g === 'fiscale' && !c.manuale && r && r.fisc) {
     const det = r.fisc.dettaglio;
-    h += `<div class="bud-voce-fisc">${det.length ? det.map(i => `<div>${i.d} ${MESI_LUNGHI[i.m]}${i.m < S ? ' <small>(prima del budget)</small>' : ''} · ${_esc(i.label)} · <strong>${fmt(i.amount)}</strong>${i.est ? ' <small style="color:var(--warning);">stima</small>' : ''}</div>`).join('') : '<div>Nessun versamento nel ' + anno + '.</div>'}</div>`;
-    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo(id, c, r)} € · quota mensile ${fmt(_sum(r.quote.slice(S)) / (12 - S))}${r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
-    h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" onchange="budSet('${id}','manuale',this.checked)"> usa importi manuali al posto del calcolo</label>`;
-  } else if(v.gruppo === 'certe' || v.gruppo === 'fiscale') {
-    if(v.gruppo === 'fiscale') h += `<label style="font-size:12px;cursor:pointer;color:var(--text-faint);"><input type="checkbox" checked onchange="budSet('${id}','manuale',this.checked)"> importi manuali (togli la spunta per calcolarli dai ricavi)</label>`;
-    (c.scadenze || []).forEach((sc, i) => {
-      h += `<div class="bud-riga">${_selMese(sc.mese, `budSet('${id}','scMese',this.value,${i})`)} ${_inNum(sc.importo, `budSet('${id}','scImporto',this.value,${i})`)} € <a href="#" onclick="budScRimuovi('${id}',${i});return false;" style="color:var(--text-faint);">✕</a>${+sc.mese < S ? ' <small style="color:var(--text-faint);">(prima dell\'inizio del budget)</small>' : ''}</div>`;
+    h += `<div class="conto-info">Gli importi sono calcolati dai ricavi: li trovi nella scheda <button class="link forte" style="color:inherit;" onclick="budChiudi();budVai('imposte')">Imposte</button>.</div>`;
+    h += `<div class="bud-sotto-tit">Versamenti ${anno}</div>${det.length ? det.map((i, k) => `<div class="riga${k ? '' : ' primo'}"><span class="riga-main"><span class="riga-nome" style="font-weight:400;">${i.d} ${MESI_LUNGHI[i.m]}</span><span class="riga-sotto">${_esc(i.label)}${i.est ? ' · stima' : ''}</span></span><span class="riga-imp">${fmt(i.amount)}</span></div>`).join('') : '<div class="riga-sotto">Nessun versamento nel ' + anno + '.</div>'}`;
+    h += _fondoCampo(id, c, r, anno);
+    h += `<label class="interr"><span>Scrivi gli importi a mano</span><input type="checkbox" onchange="budSet('${id}','manuale',this.checked)" /></label>`;
+  } else if(g === 'certe' || g === 'fiscale') {
+    if(g === 'fiscale') h += `<label class="interr"><span>Scrivi gli importi a mano (togli la spunta per calcolarli dai ricavi)</span><input type="checkbox" checked onchange="budSet('${id}','manuale',this.checked)" /></label>`;
+    h += `<div class="bud-sotto-tit">Scadenze</div>`;
+    (c.scadenze || []).forEach((sc, k) => {
+      h += `<div class="bud-sc-riga">${_mesiSel(sc.mese, `budSet('${id}','scMese',this.value,${k})`)}${_num2(`bs-${id}-${k}`, sc.importo, `budSet('${id}','scImporto',this.value,${k})`)}<button class="x-chiudi" style="margin:0;width:40px;height:44px;" aria-label="Togli la scadenza" onclick="budScRimuovi('${id}',${k})">${_X}</button></div>`;
     });
-    h += `<div class="bud-riga"><a href="#" onclick="budScAggiungi('${id}');return false;" style="color:var(--accent);font-size:12px;">+ scadenza</a></div>`;
-    h += `<div class="bud-riga" style="font-size:12px;">Fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo(id, c, r)} € · quota mensile ${r ? fmt(_sum(r.quote.slice(S)) / (12 - S)) : '—'}${r && r.info && r.info.scoperto ? ` · <span style="color:var(--danger);">fondo insufficiente, consigliato ${fmt(r.info.fondoConsigliato)}</span>` : ''}</div>`;
-  } else if(v.gruppo === 'ricorrenti') {
-    h += `${_inNum(c.importo, `budSet('${id}','importo',this.value)`)} € al mese da ${_selMese(c.da == null ? 0 : c.da, `budSet('${id}','da',this.value)`)} a ${_selMese(c.a == null ? 11 : c.a, `budSet('${id}','a',this.value)`)}`;
-  } else if(v.gruppo === 'stime') {
-    const st = r && r.info;
-    const metodi = [['media12','Media ultimi 12 mesi'],['mediana12','Mediana ultimi 12 mesi'],['media6','Media ultimi 6 mesi'],['media3','Media ultimi 3 mesi'],['mediaTot','Media di tutti i dati'],['manuale','Valore fisso']];
-    h += `<select class="bud-in" onchange="budSet('${id}','metodo',this.value)">${metodi.map(([k,l]) => `<option value="${k}"${c.metodo===k?' selected':''}>${l}</option>`).join('')}</select> `;
-    if(c.metodo === 'manuale') h += `${_inNum(c.valoreManuale, `budSet('${id}','valoreManuale',this.value)`)} € al mese `;
-    h += `<select class="bud-in" onchange="budSet('${id}','profilo',this.value)"><option value="costante"${c.profilo!=='stagionale'?' selected':''}>Uguale ogni mese</option><option value="stagionale"${c.profilo==='stagionale'?' selected':''}>Stagionale</option></select>
-      margine ${_inNum(c.margine, `budSet('${id}','margine',this.value)`, 56)} %`;
-    if(st) h += `<div style="font-size:12px;color:var(--text-faint);margin-top:6px;">${st.nPunti} mesi di dati (${st.nReali} da Patrimonio) · base ${fmt(st.base)} al mese${c.profilo==='stagionale'&&!st.stagionale?' · dati insufficienti per la stagionalità':''}</div>
-      <div class="bud-mesi">${Array.from({length: 12 - S}, (_, i) => S + i).map(m => `<span><small>${MESI_BREVI[m]}</small> ${_eur0(st.mensili[m])}</span>`).join('')}</div>`;
+    h += `<button class="link" style="margin-bottom:8px;" onclick="budScAggiungi('${id}')">+ Aggiungi scadenza</button>`;
+    h += `<div class="form-row">${_fondoCampo(id, c, r, anno)}${_campo('Quota al mese', `<input class="form-input" disabled value="${r ? fmt(_sum(r.quote.slice(S)) / (12 - S)) : '—'}" />`, 'calcolata')}</div>`;
+    if(r && r.info && r.info.scoperto) h += `<div class="avviso">Il fondo non basta per le scadenze: fondo iniziale consigliato ${_eur0(r.info.fondoConsigliato)}.</div>`;
+  } else if(g === 'ricorrenti') {
+    h += _campo('Importo al mese', _num2('br-' + id, c.importo, `budSet('${id}','importo',this.value)`));
+    h += `<div class="form-row">${_campo('Da', _mesiSel(c.da == null ? 0 : c.da, `budSet('${id}','da',this.value)`))}${_campo('A', _mesiSel(c.a == null ? 11 : c.a, `budSet('${id}','a',this.value)`))}</div>`;
+  } else if(g === 'stime') {
+    const st = r && r.info, metodi = [['media12', 'Media ultimi 12 mesi'], ['mediana12', 'Mediana ultimi 12 mesi'], ['media6', 'Media ultimi 6 mesi'], ['media3', 'Media ultimi 3 mesi'], ['mediaTot', 'Media di tutti i dati'], ['manuale', 'Valore fisso']];
+    const media = r ? _sum(r.prev.slice(S)) / (12 - S) : 0, nomeM = (metodi.find(x => x[0] === c.metodo) || metodi[0])[1].toLowerCase();
+    h += `<div class="conto-info">Previsti <strong>circa ${_eur0(media)} al mese</strong>${c.metodo === 'manuale' ? ', valore fisso' : `, dalla ${nomeM}${st ? ` (${fmt(st.base)}, ${st.nPunti} mesi di dati)` : ''}`}${_num(c.margine) ? ` più un margine di sicurezza del ${fmtNum(_num(c.margine), 0)}%` : ''}.</div>`;
+    h += _campo('Come stimarla', `<select class="form-input" onchange="budSet('${id}','metodo',this.value)">${metodi.map(([k, l]) => `<option value="${k}"${c.metodo === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`);
+    if(c.metodo === 'manuale') h += _campo('Valore fisso al mese', _num2('bsv-' + id, c.valoreManuale, `budSet('${id}','valoreManuale',this.value)`));
+    h += `<div class="form-row">${_campo('Andamento', `<select class="form-input" onchange="budSet('${id}','profilo',this.value)"><option value="costante"${c.profilo !== 'stagionale' ? ' selected' : ''}>Uguale ogni mese</option><option value="stagionale"${c.profilo === 'stagionale' ? ' selected' : ''}>Stagionale</option></select>`, st && c.profilo === 'stagionale' && !st.stagionale ? 'dati insufficienti per la stagionalità' : '')}${_campo('Margine di sicurezza %', _num2('bmg-' + id, c.margine, `budSet('${id}','margine',this.value)`, '0'))}</div>`;
+  } else if(id === 'fondo_salute') {
+    h += `<div class="form-row">${_campo('Quota al mese', _num2('bq-' + id, c.quota, `budSet('${id}','quota',this.value)`))}${_campo('Tetto del fondo', _num2('bt-' + id, c.tetto, `budSet('${id}','tetto',this.value)`, 'nessuno'))}</div>`;
+    h += _fondoCampo(id, c, r, anno);
+    h += `<div class="imp-testo">Mette da parte la quota ogni mese finché il fondo arriva al tetto; le spese in Salute lo riducono. Saldo previsto a dicembre senza spese: ${_eur0(r.saldi[11])}.</div>`;
+  } else if(id === 'regali') {
+    const tot = _sum((c.righe || []).map(x => _num(x.importo) || 0));
+    h += `<div class="bud-sotto-tit">Regali dell'anno</div>`;
+    (c.righe || []).forEach((x, k) => {
+      h += `<div class="bud-rg-riga"><input class="form-input" value="${_esc(x.nome)}" aria-label="Regalo" onchange="budSet('regali','rgNome',this.value,${k})">${_mesiSel(x.mese, `budSet('regali','rgMese',this.value,${k})`, true)}${_num2(`bg-${k}`, x.importo, `budSet('regali','rgImporto',this.value,${k})`)}<button class="x-chiudi" style="margin:0;width:40px;height:44px;" aria-label="Togli" onclick="budRgRimuovi(${k})">${_X}</button></div>`;
+    });
+    h += `<button class="link" style="margin-bottom:8px;" onclick="budRgAggiungi()">+ Aggiungi regalo</button>`;
+    h += `<div class="form-row">${_fondoCampo('regali', c, r, anno)}${_campo('Quota al mese', `<input class="form-input" disabled value="${fmt(tot / 12)}" />`, `${_eur0(tot)} l'anno`)}</div>`;
+    h += `<div class="imp-testo">Con un mese (compleanni) il regalo compare tra le scadenze; senza mese resta coperto dal fondo durante l'anno.</div>`;
   }
-  h += `</div></div>`;
-  return h;
+  h += `<label class="interr"><span>Escludi dai calcoli del ${anno}</span><input type="checkbox"${c.escludi ? ' checked' : ''} onchange="budSet('${id}','escludi',this.checked)" /></label>`;
+  h += `<button class="btn btn-primary btn-largo" style="margin-top:6px;" onclick="budChiudi()">Salva</button>`;
+  h += `<div class="conto-elimina"><button class="link rosso" onclick="budTogliVoce('${id}');if(!budAnno(budAnnoCorrente()).righe['${id}'])budChiudi();">Togli dal piano ${anno}</button></div>`;
+  return { titolo: _esc(v.nome), sotto: nomiG[g] + ' · ' + _esc(v.categoria), corpo: h };
 }
-
-function budViewFondi(anno) {
-  const A = budAnno(anno), S = A.meseInizio || 0;
-  let h = '';
-  const sal = A.righe.fondo_salute, reg = A.righe.regali;
-  h += `<div class="card"><div class="card-title">💊 Fondo salute</div>`;
-  if(sal) {
-    const r = budCalcVoce(anno, 'fondo_salute');
-    h += `<div class="bud-riga">Quota ${_inNum(sal.quota, `budSet('fondo_salute','quota',this.value)`)} € al mese · tetto ${_inNum(sal.tetto, `budSet('fondo_salute','tetto',this.value)`)} € · fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo('fondo_salute', sal, r)} €</div>
-      <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Accantona la quota ogni mese finché il fondo raggiunge il tetto; le spese in Salute lo riducono. Saldo previsto a dicembre senza spese: ${fmt(r.saldi[11])}.</p>`;
-  } else h += `<a href="#" onclick="budAttivaVoce('fondo_salute');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
-  h += `</div><div class="card"><div class="card-title">🎁 Fondo regali</div>`;
-  if(reg) {
-    const tot = _sum((reg.righe || []).map(x => _num(x.importo) || 0));
-    h += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Regalo</th><th>Mese</th><th>Importo</th><th></th></tr></thead><tbody>`;
-    (reg.righe || []).forEach((x, i) => {
-      h += `<tr><td><input class="bud-in" style="width:100%;min-width:140px;" value="${_esc(x.nome)}" onchange="budSet('regali','rgNome',this.value,${i})"></td><td>${_selMese(x.mese, `budSet('regali','rgMese',this.value,${i})`, true)}</td><td>${_inNum(x.importo, `budSet('regali','rgImporto',this.value,${i})`, 80)}</td><td><a href="#" onclick="budRgRimuovi(${i});return false;" style="color:var(--text-faint);">✕</a></td></tr>`;
-    });
-    h += `<tr class="tot"><td>Totale annuo</td><td></td><td class="num">${fmt(tot)}</td><td></td></tr></tbody></table></div>
-      <div class="bud-riga" style="margin-top:8px;"><a href="#" onclick="budRgAggiungi();return false;" style="color:var(--accent);font-size:12px;">+ regalo</a></div>
-      <div class="bud-riga" style="font-size:12px;">Quota ${fmt(tot/12)} al mese · fondo al 1° ${MESI_LUNGHI[S]} ${_inFondo('regali', reg, budCalcVoce(anno, 'regali'))} €</div>
-      <p style="font-size:12px;color:var(--text-faint);margin-top:8px;">Indica il mese dei regali con una data fissa (compleanni): comparirà tra le scadenze. Quelli senza mese restano coperti dal fondo durante l'anno.</p>`;
-  } else h += `<a href="#" onclick="budAttivaVoce('regali');return false;" style="color:var(--accent);">+ Attiva nel ${anno}</a>`;
-  h += `</div>`;
-  return h;
+function budSheetFondo(anno, id) {
+  const F = budFondiOggi(anno), r = F.righe.find(x => x.voce.id === id); if(!r) return {};
+  const h = `<div class="cr-patr" style="gap:10px;">
+    <div class="cr-patr-riga"><span>Al 1° ${MESI_LUNGHI[budAnno(anno).meseInizio || 0]}</span><span>${_eur0(r.F0)}</span></div>
+    <div class="cr-patr-riga"><span>Messo da parte</span><span>+ ${_eur0(r.maturato)}</span></div>
+    <div class="cr-patr-riga"><span>Pagato</span><span>− ${_eur0(r.pagato)}</span></div>
+    <div class="cr-patr-sep"></div>
+    <div class="cr-patr-riga" style="font-weight:600;font-size:15px;"><span style="color:var(--text);">Saldo oggi</span><span${r.saldo < -0.5 ? ' style="color:var(--rosso);"' : ''}>${_eur0(r.saldo)}</span></div></div>
+    <p class="imp-testo" style="margin:14px 0;">Ogni mese entra la quota${r.quotaMese > 0.5 ? ` (${_eur0(r.quotaMese)} questo mese)` : ''}; quando paghi, la spesa esce da qui e non pesa sul margine del mese.</p>
+    <button class="btn btn-largo" onclick="budApri('voce','${id}')">Modifica scadenze e importi</button>
+    <button class="btn btn-primary btn-largo" style="margin-top:10px;" onclick="budChiudi()">Chiudi</button>`;
+  return { titolo: _esc(r.voce.nome), sotto: 'Fondo', corpo: h };
+}
+function budSheetProgetto(id) {
+  const p = progPerId(id); if(!p) return {};
+  const P = progPiano(p);
+  let h = _campo('Nome', `<input class="form-input" id="bp-nome" value="${_esc(p.nome)}" onchange="progSet('${id}','nome',this.value)" />`);
+  h += `<div class="form-row">${_campo('Obiettivo', _num2('bp-ob', p.obiettivo, `progSet('${id}','obiettivo',this.value)`))}${_campo('Entro il mese', `<input type="month" class="form-input" id="bp-sc" value="${_esc(p.scadenza || '')}" onchange="progSet('${id}','scadenza',this.value)" />`)}</div>`;
+  h += `<div class="form-row">${_campo('Dal risparmio', _num2('bp-dr', p.dalRisparmio, `progSet('${id}','dalRisparmio',this.value)`), 'subito, riduce il risparmio libero')}${_campo('Accantona da', `<input type="month" class="form-input" id="bp-in" value="${_esc(p.inizio || '')}" onchange="progSet('${id}','inizio',this.value)" />`)}</div>`;
+  h += `<div class="seg" style="margin:2px 0 10px;"><button class="${p.quotaModo !== 'manuale' ? 'on' : ''}" onclick="progSet('${id}','quotaModo','auto')">Quota calcolata</button><button class="${p.quotaModo === 'manuale' ? 'on' : ''}" onclick="progSet('${id}','quotaModo','manuale')">Quota fissa</button></div>`;
+  if(p.quotaModo === 'manuale') h += _campo('Quota al mese', _num2('bp-qm', p.quotaManuale, `progSet('${id}','quotaManuale',this.value)`), 'riduce il margine di ogni mese');
+  h += `<div class="conto-info">Coperti <strong>${_eur0(P.coperto)}</strong> su ${_eur0(P.obiettivo)}${P.mancante > 0.5 ? ` · mancano ${_eur0(P.mancante)}` : ''}${P.speso > 0.5 ? ` · già spesi ${_eur0(P.speso)}` : ''}${P.quotaMese > 0.005 ? ` · quota di ${MESI_LUNGHI[new Date().getMonth()]} ${_eur0(P.quotaMese)}` : ''}. Per abbinare una spesa al progetto aprila in Movimenti e scegli il progetto.</div>`;
+  h += `<button class="btn btn-primary btn-largo" onclick="budChiudi()">Salva</button>`;
+  h += `<div class="conto-elimina"><button class="link" onclick="budChiudi();progRealizza('${id}')">Segna come realizzato</button><button class="link rosso" onclick="budChiudi();progElimina('${id}')">Elimina il progetto</button></div>`;
+  return { titolo: _esc(p.nome), sotto: 'Progetto', corpo: h };
+}
+function budSheetAggiungi(anno, g) {
+  const A = budAnno(anno), lab = (BUD_GRUPPI_PIANO.find(x => x[0] === g) || [g, g])[1];
+  const inattive = vociTutte().filter(v => v.gruppo === g && !A.righe[v.id]);
+  let h = inattive.length ? `<div class="bud-sotto-tit">Voci già pronte</div>${inattive.map(v => `<button class="riga riga-tap" onclick="budAttivaVoce('${v.id}');budApri('voce','${v.id}')"><span class="riga-main"><span class="riga-nome">${_esc(v.nome)}</span><span class="riga-sotto">${_esc(v.categoria)}</span></span>${_CHEV}</button>`).join('')}` : '';
+  h += `<button class="btn btn-largo" style="margin-top:12px;" onclick="budChiudi();budNuovaVoce('${g}')">Crea una voce nuova</button>`;
+  return { titolo: 'Aggiungi voce', sotto: lab + ' · ' + anno, corpo: h };
+}
+function budSheetCome() {
+  const h = `<div class="bud-come">
+    <p><strong>1. Il piano.</strong> All'inizio dell'anno scrivi sei tipi di voci: entrate, imposte e Cassa (calcolate dal fatturato), spese certe (in mesi precisi, come assicurazioni e bollo), ricorrenti (uguali ogni mese), variabili (stimate dallo storico), salute e regali.</p>
+    <p><strong>2. I fondi.</strong> Per spese certe, imposte, salute e regali l'app mette da parte una quota ogni mese. Quando arriva il pagamento esce dal fondo e non pesa su quel mese.</p>
+    <p><strong>3. Il margine.</strong> Ogni mese: entrate incassate − quote dei fondi − ricorrenti − variabili = quanto puoi spendere in extra. È il numero nel riquadro verde della Panoramica.</p>
+    <p><strong>4. Il risparmio.</strong> L'avanzo passa al mese dopo fino al tetto, il resto va nel risparmio; uno sforamento passa per intero al mese dopo. Il risparmio può finanziare i progetti.</p>
+    <p><strong>5. Ogni anno.</strong> Con «Crea budget» copi l'anno prima: fondi, variabili e imposte si aggiornano da soli, tu controlli entrate, ricorrenti e scadenze.</p></div>
+    <button class="btn btn-primary btn-largo" onclick="budChiudi()">Ho capito</button>`;
+  return { titolo: 'Come funziona il budget', sotto: '', corpo: h };
+}
+function budCreaFinestra() { budApri('crea'); }
+function budSheetCrea() {
+  const anni = budAnni(); if(!anni.length) return {};
+  const ult = anni[anni.length - 1], nuovo = ult + 1;
+  const auto = [['Tutte le voci', 'con gli stessi importi.'], ['I fondi al 1° gennaio', `ripartono da quello che resta a fine ${ult}.`], ['Le spese variabili', 'si ricalcolano dallo storico aggiornato.'], ['Imposte e Cassa', `si ricalcolano dai ricavi del ${ult}.`]];
+  const h = `<div class="bud-crea-blocco"><strong>Non riparti da zero</strong><span>L'app copia il budget del ${ult} e lo aggiorna da sola:</span>
+      ${auto.map(([t, d]) => `<div class="bud-crea-riga"><span class="bud-ok">${_CHECK}</span><span><strong>${t}</strong> ${d}</span></div>`).join('')}</div>
+    <div class="bud-crea-blocco grigio"><strong>Dopo, controlla tu queste cose</strong>
+      ${BUD_CONTROLLI.map(([t, d], k) => `<div class="bud-crea-riga"><span class="bud-n">${k + 1}</span><span><strong>${t}</strong> ${d.replace("dell'anno prima", 'del ' + ult)}</span></div>`).join('')}
+      <small>Te li ricordo io: nel budget ${nuovo} trovi questo elenco da spuntare.</small></div>
+    <details class="bud-come-mini"><summary>Come funziona il budget<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b6b67" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg></summary>
+      <p>Il piano ha sei tipi di voci: <strong>entrate</strong>, <strong>imposte e Cassa</strong> (calcolate dal fatturato), <strong>spese certe</strong> (in mesi precisi), <strong>ricorrenti</strong> (uguali ogni mese), <strong>variabili</strong> (stimate dallo storico) e <strong>salute e regali</strong>.</p>
+      <p>Per spese certe, imposte, salute e regali l'app mette da parte una quota ogni mese nei <strong>fondi</strong>: quando arriva il pagamento esce dal fondo e non pesa su quel mese.</p>
+      <p>Ogni mese: entrate incassate − quote dei fondi − ricorrenti − variabili = <strong>margine</strong>, cioè quanto puoi spendere in extra. L'avanzo passa al mese dopo fino al tetto, il resto va nel <strong>risparmio</strong>.</p></details>
+    <p class="imp-testo" style="margin:12px 0;">Puoi crearlo quando vuoi, anche a dicembre: il budget ${ult} resta com'è e i fondi del ${nuovo} si aggiornano con i pagamenti di fine anno.</p>
+    <div class="imp-btn"><button class="btn" style="flex:1;height:48px;" onclick="budChiudi()">Annulla</button><button class="btn btn-primary" style="flex:2;height:48px;" onclick="budCreaAnno()">Crea budget ${nuovo}</button></div>`;
+  return { titolo: `Crea il budget ${nuovo}`, sotto: '', corpo: h };
+}
+function budPrimoAnno(y) {
+  vociInit();
+  if(!state.budget.anni) state.budget.anni = {};
+  const m = new Date().getFullYear() === y ? new Date().getMonth() : 0;
+  state.budget.anni[y] = { meseInizio: m, righe: {} };
+  vociTutte().forEach(v => { state.budget.anni[y].righe[v.id] = budRigaDefault(v); });
+  budUi.anno = y; budUi.tab = 'piano'; budTocca(); renderAll();
 }
 
 // ═════════════════════════════════════════════════════════════════
@@ -3309,7 +3412,7 @@ const FISC_KIND_VOCE = { tax:'imp_sost', cdc:'cassa_sogg', cli:'cassa_int', bol:
 const FISC_VOCE_KIND = { imp_sost:'tax', cassa_sogg:'cdc', cassa_int:'cli', bollo_fatt:'bol' };
 const FISC_NOME = { tax:'Imposta sostitutiva', cdc:'Cassa a tuo carico', cli:'Integrativo (dai clienti)', bol:'Bolli fatture' };
 const FISC_COL = { tax:'#2c5f2e', cdc:'#4a7396', cli:'#a9c1d6', bol:'#c79a2e' };
-let fiscUi = { anno:null, aperti:{}, simYear:null, simPct:null, importa:false };
+let fiscUi = { anno:null, aperti:{}, simYear:null, simPct:null, importa:false, altri:false };
 let _fiscCache = null;
 
 function fiscHa() { return !!(state.budget && state.budget.fiscale && state.budget.fiscale.years); }
@@ -3546,46 +3649,38 @@ function budViewImposte(anno) {
   const B = fiscBudget(anno), netto = B.tot - B.cli - B.bol;
   let h = '';
 
-  // ── riepilogo
-  h += `<div class="card fisc-testa"><div class="card-title">Imposte e Cassa ${anno}</div>
-    <p class="fisc-frase">Nel ${anno} versi <strong>${fmt(B.tot)}</strong>${B.cli + B.bol > 0.5 ? `. Di questi, ${fmt(B.cli + B.bol)} sono integrativo e bolli, già incassati in fattura: a tuo carico restano <strong>${fmt(netto)}</strong>, circa ${fmt(netto / 12)} al mese` : ''}.</p>
-    <div class="metric-grid" style="margin-bottom:14px;">
-      <div class="metric"><div class="metric-label">Imposta sostitutiva</div><div class="metric-value">${fmt(B.tax)}</div><div class="metric-sub">saldo ${anno - 1} e acconti ${anno}</div></div>
-      <div class="metric"><div class="metric-label">Cassa a tuo carico</div><div class="metric-value">${fmt(B.cdc)}</div><div class="metric-sub">soggettivo e maternità</div></div>
-      <div class="metric"><div class="metric-label">Integrativo</div><div class="metric-value">${fmt(B.cli)}</div><div class="metric-sub">incassato dai clienti</div></div>
-      <div class="metric"><div class="metric-label">Bolli fatture</div><div class="metric-value">${fmt(B.bol)}</div><div class="metric-sub">addebitati in fattura</div></div>
-    </div>${fiscStriscia(B, S)}`;
-  // stato delle voci nel budget
+  // ── quanto costano
+  const pagDi = {}; if(A) budScadenze(anno).forEach(x => { pagDi[x.voce.id + '|' + x.mese] = x; });
+  const rigaC = (n, nota, v) => `<div class="cr-patr-riga"><span><span style="color:var(--text);">${n}</span><br><small class="riga-sotto">${nota}</small></span><span>${_eur0(v)}</span></div>`;
+  let hCosti = `<section class="card cr-patr"><h2 class="card-title">Quanto costano nel ${anno}</h2>
+    ${rigaC('Imposta sostitutiva', `saldo ${anno - 1} e acconti ${anno}`, B.tax)}${rigaC('Cassa a tuo carico', 'soggettivo e maternità', B.cdc)}${rigaC('Integrativo', 'incassato dai clienti', B.cli)}${rigaC('Bolli sulle fatture', 'addebitati in fattura', B.bol)}
+    <div class="cr-patr-sep"></div><div class="cr-patr-tot"><span>Totale</span><span style="color:var(--text);">${_eur0(B.tot)}</span></div>
+    ${B.cli + B.bol > 0.5 ? `<div class="imp-testo">Integrativo e bolli li incassi già in fattura: a tuo carico restano <strong>${_eur0(netto)}</strong>, circa ${_eur0(netto / 12)} al mese.</div>` : ''}`;
   if(A) {
     const st4 = ['tax','cdc','cli','bol'].map(k => {
       const id = FISC_KIND_VOCE[k], c = A.righe[id];
-      const stato = !c ? `<a href="#" onclick="budAttivaVoce('${id}');return false;" style="color:var(--accent);">+ aggiungi</a>` : c.escludi ? 'esclusa' : c.manuale ? 'importi manuali' : 'calcolata';
-      return `<span>${FISC_NOME[k]}: ${stato}</span>`;
+      const stato = !c ? `<button class="link" style="padding:0;font-size:12px;" onclick="budAttivaVoce('${id}')">+ aggiungi</button>` : c.escludi ? 'esclusa' : c.manuale ? 'importi manuali' : 'calcolata';
+      return `${FISC_NOME[k]}: ${stato}`;
     }).join(' · ');
-    h += `<div style="font-size:12px;color:var(--text-faint);margin-top:10px;line-height:1.7;">Nel budget ${anno}: ${st4}. <a href="#" onclick="budUi.tab='certe';renderBudget();return false;" style="color:var(--accent);">Fondi e accantonamenti →</a></div>`;
+    hCosti += `<div class="riga-sotto" style="line-height:1.6;">Nel budget ${anno}: ${st4}.</div>`;
   }
-  h += `</div>`;
-
-  // ── scadenze
-  h += `<div class="card"><div class="card-title">Versamenti ${anno}</div>`;
-  if(!B.items.length) h += `<div style="font-size:13px;color:var(--text-faint);">Nessun versamento calcolabile per il ${anno}: servono i ricavi del ${anno - 1}.</div>`;
-  else {
-    h += `<div class="bud-scroll"><table class="bud-table fisc-tab"><thead><tr><th>Versamento</th><th>Importo</th></tr></thead><tbody>`;
-    let ult = '';
-    B.items.forEach(i => {
-      const key = i.m + '-' + i.d, fuori = A && i.m < S;
-      if(key !== ult) {
-        const sub = _sum(B.items.filter(x => x.m === i.m && x.d === i.d).map(x => x.amount));
-        h += `<tr class="grp${fuori ? ' fisc-fuori' : ''}"><td>${i.d} ${MESI_LUNGHI[i.m]} ${anno}${fuori ? ' · prima del budget' : ''}</td><td class="num">${fmt(sub)}</td></tr>`;
-        ult = key;
-      }
-      const tag = (i.kind === 'cli' ? _fChip('dai clienti', '#4a7396') : '') + (i.kind === 'bol' ? _fChip('in fattura') : '') + (i.est ? _fChip('stima', 'var(--warning)') : '');
-      h += `<tr${fuori ? ' class="fisc-fuori"' : ''}><td style="white-space:normal;">${_esc(i.label)}${tag}</td><td class="num"${i.amount < 0 ? ' style="color:var(--accent);"' : ''}>${fmt(i.amount)}</td></tr>`;
-    });
-    h += `<tr class="tot"><td>Totale ${anno}</td><td class="num">${fmt(B.tot)}</td></tr></tbody></table></div>`;
-  }
-  if(B.notes.length) h += B.notes.map(n => `<div class="fisc-nota">${_esc(n)}</div>`).join('');
-  h += `</div>`;
+  hCosti += `</section>`;
+  // ── versamenti
+  let hVers = `<section class="card"><h2 class="card-title">Versamenti ${anno}</h2>`;
+  if(!B.items.length) hVers += `<div class="riga-sotto">Nessun versamento calcolabile per il ${anno}: servono i ricavi del ${anno - 1}.</div>`;
+  B.items.forEach(i => {
+    const fuori = A && i.m < S, sc = pagDi[FISC_KIND_VOCE[i.kind] + '|' + i.m];
+    let st = 'Da pagare', col = 'var(--text-muted)';
+    if(sc && sc.stato === 'pagata') st = '✓ Pagato';
+    else if(sc && sc.stato === 'scaduta') { st = 'Non risulta pagato'; col = 'var(--rosso)'; }
+    if(i.est) { st += ' · stima'; col = 'var(--arancio)'; }
+    if(i.kind === 'cli') st += ' · dai clienti'; else if(i.kind === 'bol') st += ' · in fattura';
+    if(fuori) st += ' · prima del budget';
+    hVers += `<div class="riga"><span class="bud-data-v">${i.d} ${MESI_BREVI[i.m].toLowerCase()}</span><span class="riga-main"><span class="riga-nome" style="font-weight:400;">${_esc(i.label)}</span><span class="riga-sotto" style="color:${col};">${st}</span></span><span class="riga-imp"${i.amount < 0 ? ' style="color:var(--accent);"' : i.est ? ' style="color:var(--text-muted);"' : ''}>${fmt(i.amount)}</span></div>`;
+  });
+  if(B.items.length) hVers += `<div class="cr-patr-tot" style="border-top:1.5px solid rgba(0,0,0,0.2);padding-top:10px;margin-top:4px;"><span>Totale ${anno}</span><span style="font-family:inherit;font-size:15px;font-weight:600;color:var(--text);">${fmt(B.tot)}</span></div>`;
+  if(B.notes.length) hVers += B.notes.map(n => `<div class="avviso" style="margin-top:10px;">${_esc(n)}</div>`).join('');
+  hVers += `</section>`;
 
   // ── da dove arrivano i numeri
   h += _fApribile('calc', 'Da dove arrivano i numeri', `Saldo, acconti ${anno} e contributi di dicembre dipendono dai ricavi ${anno - 1}.`, () => {
@@ -3623,6 +3718,7 @@ function budViewImposte(anno) {
   });
 
   // ── archivio per anno
+  const hCalc = h; h = '';
   const anni = Object.keys(F.years).map(Number).sort((a,b) => a-b);
   if(fiscUi.anno == null || !F.years[fiscUi.anno]) fiscUi.anno = anni.includes(anno) ? anno : anni[anni.length - 1];
   const fa = fiscUi.anno, rr = raw.years[fa] || null, fr = F.years[fa], c = Fisco.compute(fa);
@@ -3657,7 +3753,7 @@ function budViewImposte(anno) {
   }
   if(c && c.hasData) h += `<p class="fisc-hint">Compensi ${fmt(c.compensi)} · bolli ${fmt(c.bollo)} · integrativo incassato ${fmt(c.cassaIncassata)} · ricavi ${fmt(c.ricavi)} · reddito ${fmt(c.reddito)}</p>`;
   const campo = (k, label, hint, ph) => `<label class="fisc-campo"><span>${label}</span>${_fIn('y', k, fa, rr ? rr[k] : null, 110, ph)}<small>${hint}</small></label>`;
-  h += `<div class="fisc-campi">
+  h += `<details class="bud-altri"${fiscUi.altri ? ' open' : ''} ontoggle="fiscUi.altri=this.open"><summary class="link">Altri dati della dichiarazione</summary><div class="fisc-campi">
     ${campo('ricaviExtra', 'Altri compensi', 'Senza cassa né bollo, si sommano.', '0')}
     ${campo('nBolli', 'Fatture con bollo', 'Vuoto: dalle fatture.', c && c.nBolli != null && !c.bolliOverride ? String(c.nBolli) : '')}
     ${campo('imposta', 'Imposta da dichiarazione', 'Vuoto: usa il calcolo.', c && c.hasData ? _numIn(c.impostaCalc) : 'calcolata')}
@@ -3665,9 +3761,10 @@ function budViewImposte(anno) {
     ${campo('contribDed', 'Contributi deducibili versati', 'Soggettivo e maternità.', c ? _numIn(c.autoDed) : '')}
     ${campo('sogPct', 'Aliquota soggettivo %', 'Scelta a dicembre dell\'anno dopo.', fmtNum(st.sogPct, 0))}
     <label class="fisc-campo" style="flex:2 1 260px;"><span>Note</span><input class="bud-in" style="width:100%;" value="${_esc(rr ? rr.note || '' : '')}" onchange="fiscSet('y','note',${fa},this)"><small>&nbsp;</small></label>
-  </div>`;
+  </div></details>`;
   if(rr) h += `<div style="margin-top:10px;"><a href="#" onclick="fiscAzione('delAnno');return false;" style="color:var(--danger);font-size:12px;">Elimina i dati inseriti per il ${fa}</a></div>`;
   h += `</div>`;
+  h = `<div class="bud-2col"><div>${hCosti}${h}</div><div>${hVers}</div></div>` + hCalc;
 
   // ── simulatore aliquota soggettivo
   h += _fApribile('sim', 'Simulatore aliquota soggettivo', 'Quanto costa davvero alzare l\'aliquota, al netto della minore imposta.', () => {
