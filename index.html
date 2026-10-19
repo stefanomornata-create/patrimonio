@@ -1333,7 +1333,7 @@ function migraCategorie() {
 // Regola: {re: 'regex sulla descrizione minuscola', min, max}
 //         {tutta: true} = tutta la categoria (es. Spesa = Alimentari)
 // ═════════════════════════════════════════════════════════════════
-const VOCI_VERSIONE = 2;
+const VOCI_VERSIONE = 3;
 const VOCI_GRUPPI = {
   entrate: 'Entrate', fiscale: 'Imposte e contributi', certe: 'Spese certe',
   ricorrenti: 'Spese ricorrenti', stime: 'Spese variabili', fondi: 'Salute e regali'
@@ -1379,7 +1379,7 @@ const VOCI_DEFAULT = [
   // Fondi senza scadenza fissa
   {id:'fondo_salute',   nome:'Fondo salute',                categoria:'Salute', gruppo:'fondi', regole:[{tutta:true}]},
   {id:'regali',         nome:'Regali',                      categoria:'Regali/Donazioni', gruppo:'fondi', regole:[{tutta:true}]},
-  {id:'carburante',     nome:'Carburante',                  categoria:'Trasporti', gruppo:'stime', regole:[{re:'\\bq8\\b|tamoil|\\beni\\b|agip|\\bshell\\b|\\besso\\b|\\bip\\b|benzin|carburant|rifornim|easy service'}]},
+  {id:'carburante',     nome:'Carburante',                  categoria:'Trasporti', gruppo:'stime', regole:[{re:'\\bq8\\b|tamoil|\\beni\\d*\\b|agip|\\bshell\\b|\\besso\\b|\\bip\\b|benzin|carburant|rifornim|easy service'}]},
 ];
 
 function vociInit() {
@@ -1539,6 +1539,23 @@ const MIGRAZIONI_UNA_TANTUM = [
         const dt = new Date(s); if(isNaN(dt)) return;
         const nuova = _isoGiorno(dt.getFullYear(), dt.getMonth() + 1, dt.getDate());
         if(nuova !== s) { tx.data = nuova; n++; }
+      });
+      return n;
+  }},
+  { id: 'f3_giroconti_categorie', run() {
+      // Giroconti propri non riconosciuti prima (TR «STEFANO MORNATA», BBVA «| Giroconto»,
+      // Revolut «To Stefano Mornata») e alcune categorie del dizionario corrette
+      let n = 0;
+      const giro = /incoming transfer from (stefano mornata|mornata stefano)|outgoing transfer (for|to) (stefano mornata|mornata stefano)|^to stefano mornata$|^bonifico eseguito \| giroconto\b/;
+      const reg = [
+        [/^acqua & sapone/, ['Utenze','Da classificare'], 'Cura personale'],
+        [/easy service|(^|[^a-z])eni\d*([^a-z]|$)/, ['Da classificare'], 'Trasporti'],
+        [/\bpub\b|pasticceria|gelat|croce di malto/, ['Da classificare'], 'Ristorazione'],
+      ];
+      state.transactions.forEach(tx => {
+        const d = _normDesc(tx.descrizione);
+        if(giro.test(d) && ['Entrate','Da classificare'].includes(tx.categoria)) { tx.categoria = 'Giroconto'; delete tx.voce; delete tx.voceManuale; n++; return; }
+        for(const [re, da, a] of reg) if(re.test(d) && da.includes(tx.categoria)) { tx.categoria = a; n++; break; }
       });
       return n;
   }},
@@ -4205,7 +4222,10 @@ async function processFile(file, tipoHint) {
 
   try {
     if(ext === 'pdf') throw new Error('i PDF non sono più supportati: scarica l\'estratto in formato CSV');
-    if(ext === 'csv') {
+    // Alcuni export (Revolut) sono file Excel anche se si chiamano .csv: si riconoscono dalla firma
+    const firma = new Uint8Array(await file.slice(0, 4).arrayBuffer());
+    const isExcel = (firma[0] === 0x50 && firma[1] === 0x4B) || (firma[0] === 0xD0 && firma[1] === 0xCF);
+    if(ext === 'csv' && !isExcel) {
       rawText = await file.text();
       logMsg(`📊 CSV letto: ${rawText.split('\n').length} righe`, 'info');
       transactions = parseCSV(rawText, file.name);
@@ -4214,13 +4234,18 @@ async function processFile(file, tipoHint) {
       const buf = await file.arrayBuffer();
       const wb = XLSX.read(buf, {type:'array', cellDates:true});
       const ws = wb.Sheets[wb.SheetNames[0]];
-      rawText = XLSX.utils.sheet_to_csv(ws);
+      // Excel con l'intero CSV in una sola colonna (export Revolut): si usa il testo così com'è
+      const righe = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' })
+        .map(r => r.filter(c => String(c).trim() !== '')).filter(r => r.length);
+      const unaColonna = righe.length > 1 && righe.every(r => r.length === 1) && /[,;]/.test(String(righe[0][0]));
+      rawText = unaColonna ? righe.map(r => String(r[0])).join('\n') : XLSX.utils.sheet_to_csv(ws);
       logMsg(`📊 Excel letto: foglio "${wb.SheetNames[0]}", ${rawText.split('\n').length} righe`, 'info');
       transactions = parseCSV(rawText, file.name);
     }
 
     showProgress('Analisi delle transazioni…', 40);
     if(!transactions.length) throw new Error('nessuna transazione trovata: formato del file non riconosciuto');
+    const saldiFile = transactions.saldiFile || null;   // saldi riportati dal file (Revolut)
 
     showProgress('Salvataggio…', 90);
 
@@ -4260,11 +4285,15 @@ async function processFile(file, tipoHint) {
       const sv = getSalvadanaioVirtuale();
       if(sv) {
         risparmi.forEach(t => { t.conto = sv.banca; t.contoFisso = true; });
-        logMsg(`🐷 ${risparmi.length} accrediti risparmi assegnati al salvadanaio virtuale (+${fmt(_sum(risparmi.map(t => t.importo)))})`, 'ok');
+        logMsg(`🐷 ${risparmi.length} movimenti assegnati al salvadanaio virtuale`, 'ok');
       } else {
         logMsg('⚠ Trovati accrediti risparmi Revolut ma nessun salvadanaio virtuale configurato.', 'warn');
       }
     }
+
+    // Saldo del salvadanaio virtuale riportato dal file: diventa il saldo verificato
+    if(saldiFile && saldiFile.risparmi) applicaSaldoFile(getSalvadanaioVirtuale(), saldiFile.risparmi);
+    _saldoFileProv = saldiFile && saldiFile.attuale ? saldiFile.attuale : null;
 
     save();
 
@@ -4317,6 +4346,8 @@ function parseCSV(text, filename) {
     const iState = findCol(cols, ['state']);
     const iTipo  = findCol(cols, ['tipo']);
     const iProd  = findCol(cols, ['prodotto']);
+    const iSaldo = cols.indexOf('saldo');
+    const saldiFile = {};   // ultimo saldo del file per prodotto: attuale / risparmi
 
     for(let i=1; i<lines.length; i++) {
       const cells = splitCSVLine(lines[i], sep);
@@ -4328,10 +4359,17 @@ function parseCSV(text, filename) {
       const tipoOp = cleanVal(cells[iTipo]||'').toLowerCase();
       const prodotto = cleanVal(cells[iProd]||'').toLowerCase();
 
-      const data = parseDate(cleanVal(cells[iData]||''));
+      const dataRaw = cleanVal(cells[iData]||'');
+      const data = parseDate(dataRaw);
       const desc = cleanVal(cells[iDesc]||'');
       // "Accredita EUR Risparmi" = arrotondamento verso salvadanaio virtuale Revolut
       const isRisparmi = desc.toLowerCase().includes('accredita eur risparmi');
+      // Righe del prodotto «Risparmi» (non «Attuale»): sono movimenti del salvadanaio virtuale
+      const prodRisp = !!prodotto && !['attuale','current'].includes(prodotto);
+      if(iSaldo >= 0) {
+        const sal = parseNum(cleanVal(cells[iSaldo]||''), true), k = prodRisp ? 'risparmi' : 'attuale';
+        if(!saldiFile[k] || dataRaw >= saldiFile[k].quando) saldiFile[k] = { saldo: sal, data: data.substring(0, 10), quando: dataRaw };
+      }
 
       const raw = parseNum(cleanVal(cells[iImp]||''), true);  // Revolut usa punto decimale
       if(raw === 0) continue;
@@ -4347,16 +4385,15 @@ function parseCSV(text, filename) {
         tipo = raw < 0 ? 'uscita' : 'entrata';
       }
 
-      // Accrediti risparmi: giroconto verso salvadanaio virtuale
-      if(isRisparmi) {
+      // Accrediti risparmi (giroconto conto ↔ salvadanaio) e movimenti del prodotto Risparmi
+      if(isRisparmi || prodRisp) {
         transactions.push({
           data,
           descrizione: desc.trim(),
           importo,
           tipo,
-          categoria: 'Giroconto',
-          conto: 'Revolut',
-          isRisparmiVirtuale: raw > 0  // positivo = entrata nel salvadanaio
+          categoria: isRisparmi ? 'Giroconto' : guessCat(desc, tipoOp, prodotto),
+          isRisparmiVirtuale: prodRisp  // va sul conto salvadanaio virtuale
         });
         continue;
       }
@@ -4368,6 +4405,7 @@ function parseCSV(text, filename) {
         categoria: guessCat(desc, tipoOp, prodotto)
       });
     }
+    transactions.saldiFile = saldiFile;
     return transactions;
   }
 
@@ -4383,14 +4421,18 @@ function parseCSV(text, filename) {
     const trIName = cols.indexOf('name');
     const trISym  = cols.indexOf('symbol');
     const trITax  = cols.indexOf('tax');
+    const trIFee  = cols.indexOf('fee');
+    const trICp   = cols.indexOf('counterparty_name');
 
     for(let i=1; i<lines.length; i++) {
       const cells = splitCSVLine(lines[i], sep);
       if(!cells || cells.length < 5) continue;
 
       // Importo: formato anglosassone con 6 decimali (es. "500.000000" = €500)
-      const amtRaw = cleanVal(cells[trIAmt]||'');
-      const raw = parseNum(amtRaw, true);
+      // Importo netto = amount + fee + tax (commissioni e ritenute sono negative):
+      // es. costo carta 0 + fee −5, interessi 1,67 + tax −0,43
+      const _n = i => i >= 0 ? parseNum(cleanVal(cells[i]||''), true) : 0;
+      const raw = Math.round((_n(trIAmt) + _n(trIFee) + _n(trITax)) * 100) / 100;
       if(raw === 0) continue;
       const importo = Math.abs(raw);
 
@@ -4409,6 +4451,7 @@ function parseCSV(text, filename) {
       if(!desc && importo === 0) continue;
 
       const data = parseDate(cleanVal(cells[trIData]||''));
+      const controparte = cleanVal(cells[trICp]||'').toLowerCase();
 
       // Categoria in base al tipo operazione
       let categoria;
@@ -4416,10 +4459,12 @@ function parseCSV(text, filename) {
         categoria = 'Entrate';
       } else if(tipoOp === 'TAX_OPTIMIZATION') {
         categoria = 'Tasse/Contributi';
-      } else if(tipoOp.includes('INBOUND') && desc.toLowerCase().includes('incoming transfer from mornata')) {
+      } else if(tipoOp.includes('TRANSFER') && !tipoOp.includes('DIRECT_DEBIT') &&
+                /mornata/.test(desc.toLowerCase() + ' ' + controparte)) {
+        // bonifico da/verso un conto proprio (in qualsiasi ordine di nome e cognome)
         categoria = 'Giroconto';
-      } else if(tipoOp.includes('OUTBOUND') && desc.toLowerCase().includes('outgoing transfer for mornata')) {
-        categoria = 'Giroconto';
+      } else if(tipoOp.includes('FEE')) {
+        categoria = 'Commissioni';
       } else if(tipoOp === 'CARD_TRANSACTION') {
         categoria = guessCat(desc, '', '');
       } else if(tipoOp.includes('DIRECT_DEBIT')) {
@@ -4612,6 +4657,7 @@ function parseCSV(text, filename) {
     const bbvaIDesc1 = bbvaCols.findIndex(c => c.includes('causale') || c.includes('parola chiave'));
     const bbvaIDesc2 = bbvaCols.findIndex(c => c.includes('movimento'));
     const bbvaIImp   = bbvaCols.findIndex(c => c === 'importo' || (c.includes('importo') && !c.includes('disponib')));
+    const bbvaIBen   = bbvaCols.findIndex(c => c.includes('beneficiario'));
     const hdrIdx     = fixedLines.indexOf(hdrLine);
 
     for(let i = hdrIdx + 1; i < fixedLines.length; i++) {
@@ -4641,7 +4687,8 @@ function parseCSV(text, filename) {
       if(dl.includes('rit. contanti') || dl.includes('prelievo')) {
         categoria = 'Giroconto';
       } else if(dl.includes('bonifico') &&
-                (dl.includes('mornata') || dl.includes('altro conto personale'))) {
+                (dl.includes('mornata') || dl.includes('altro conto personale') || /\|\s*giroconto\b/.test(dl) ||
+                 (bbvaIBen >= 0 && /mornata/i.test(cells[bbvaIBen] || '')))) {
         categoria = 'Giroconto';
       } else {
         categoria = guessCat(desc, '', '');
@@ -4791,6 +4838,7 @@ function guessCat(desc, tipoOp, prodotto) {
     'mix markt':             'Alimentari',
     'too good to go':        'Alimentari',
     'azienda agricola':      'Alimentari',
+    'acqua & sapone':        'Cura personale',   // drogheria: prima della parola chiave «acqua» (Utenze)
     // Ristorazione
     'glovo':                     'Ristorazione',
     'burger king':               'Ristorazione',
@@ -4808,12 +4856,14 @@ function guessCat(desc, tipoOp, prodotto) {
     'gunther stube':             'Ristorazione',
     'haikky':                    'Ristorazione',
     'gruppo alpini':             'Ristorazione',
+    'croce di malto':            'Ristorazione',
     // Trasporti
     'atm - azienda trasporti milanesi': 'Trasporti',
     'easypark':  'Trasporti',
     'tap & go':  'Trasporti',
     'q8':        'Trasporti',
     'tamoil':    'Trasporti',
+    'easy service': 'Trasporti',
     // Utenze
     'iliad':          'Utenze',
     'fastweb':        'Utenze',
@@ -4878,6 +4928,7 @@ function guessCat(desc, tipoOp, prodotto) {
     // Giroconti verso conti propri (Mornata Stefano)
     'revolut**':                              'Giroconto',
     'transfer to stefano mornata':            'Giroconto',
+    'to stefano mornata':                     'Giroconto',   // Revolut: «To Stefano Mornata»
     'outgoing transfer for stefano mornata':  'Giroconto',
     'outgoing transfer for mornata stefano':  'Giroconto',
     'incoming transfer from mornata stefano': 'Giroconto',
@@ -4935,8 +4986,8 @@ function guessCat(desc, tipoOp, prodotto) {
 
   // ── Keyword generiche (fallback) ─────────────────────────────────
   if(/supermercato|conad|coop|aldi|pam|spesa|alimentar|panetteria|forno|macelleria/.test(d)) return 'Alimentari';
-  if(/ristorante|pizzeria|caffè|cafe|trattoria|osteria|sushi|mcdonald|deliveroo|just eat|ubereats/.test(d)) return 'Ristorazione';
-  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|parcheggi|autostrada|pedaggi|benzina|agip|\beni\b|\bshell\b/.test(d)) return 'Trasporti';
+  if(/ristorante|pizzeria|caffè|cafe|trattoria|osteria|sushi|mcdonald|deliveroo|just eat|ubereats|\bpub\b|pasticceria|gelat/.test(d)) return 'Ristorazione';
+  if(/trenitalia|italo|atac|autobus|metro|taxi|uber|bolt|parking|parcheggi|autostrada|pedaggi|benzina|agip|\beni\d*\b|\bshell\b/.test(d)) return 'Trasporti';
   if(/\benel\b|\ba2a\b|\bhera\b|\biren\b|\bluce\b|\bgas\b|\bacqua\b|bolletta|octopus|iliad|fastweb/.test(d)) return 'Utenze';
   if(/spotify|disney|apple|abbonamento|subscription/.test(d)) return 'Abbonamenti';
   if(/farmacia|medico|ospedale|dentista|ottic|parafarma/.test(d)) return 'Salute';
@@ -5127,6 +5178,17 @@ function salvaSpesaContanti() {
 // ─── Selezione conto e aggiornamento saldo automatico ────────────
 let _txDaAssegnare = [];
 let _contoNameProv = '';
+let _saldoFileProv = null;   // saldo del conto riportato dal file importato, se presente
+
+// Saldo letto dal file della banca: diventa il saldo verificato se è più recente di quello esistente
+function applicaSaldoFile(conto, sf) {
+  if(!conto || !sf || !isFinite(sf.saldo) || !sf.data) return false;
+  if(conto.dataVerifica && sf.data < conto.dataVerifica) return false;
+  conto.saldoVerificato = Math.round(sf.saldo * 100) / 100;
+  conto.dataVerifica = sf.data; conto.verificaTs = Date.now();
+  logMsg(`✔ Saldo verificato di ${conto.banca} aggiornato dal file: ${fmt(conto.saldoVerificato)} al ${fmtDate(sf.data + 'T00:00:00Z')}`, 'ok');
+  return true;
+}
 
 function apriModaleSelezioneContoConTransazioni(transactions, contoNameProv) {
   _txDaAssegnare = transactions;
@@ -5195,6 +5257,7 @@ function aggiornaPreviewSaldo(conto, transactions) {
         <div style="font-size:18px;font-family:'DM Serif Display',serif;color:var(--text);">${fmt(nuovoSaldo)}</div>
       </div>
     </div>
+    ${_saldoFileProv ? `<div style="font-size:12px;color:var(--accent);margin-top:6px;">Il file riporta il saldo: ${fmt(_saldoFileProv.saldo)} al ${fmtDate(_saldoFileProv.data + 'T00:00:00Z')}. Confermando diventa il saldo verificato del conto.</div>` : ''}
     ${nPrima ? `<div style="font-size:11px;color:var(--text-faint);margin-top:6px;">${nPrima} movimenti precedenti al saldo verificato del ${fmtDate(conto.dataVerifica + 'T00:00:00Z')} non lo modificano.</div>` : ''}`;
 }
 
@@ -5207,6 +5270,7 @@ function confermaSelezioneContoOk() {
   // Assegna il conto ai movimenti appena importati (non a quelli già destinati a un conto speciale)
   const prima = _saldoSenza(conto, _txDaAssegnare.filter(t => !t.contoFisso));
   _txDaAssegnare.forEach(t => { if(!t.contoFisso) t.conto = conto.banca; delete t.contoFisso; });
+  if(_saldoFileProv) { applicaSaldoFile(conto, _saldoFileProv); _saldoFileProv = null; }
   ricalcolaSaldi();
   const delta = (conto.saldo || 0) - prima;
   logMsg(`🏦 Saldo ${conto.banca}: ${delta >= 0 ? '+' : ''}${fmt(delta)} → ${fmt(conto.saldo)}`, 'ok');
@@ -5225,6 +5289,7 @@ function chiudiModaleSelezioneContoAndRender() {
   document.getElementById('modal-selezione-conto').classList.remove('open');
   _txDaAssegnare = [];
   _contoNameProv = '';
+  _saldoFileProv = null;
   renderAll();
 }
 
