@@ -834,8 +834,8 @@ canvas, img, svg { max-width: 100%; }
       <select class="form-input" id="etx-tipo" onchange="etxAggiornaFattura()">
         <option value="uscita">💸 Uscita</option>
         <option value="entrata">💰 Entrata</option>
-        <option value="Giroconto">🔄 Giroconto</option>
       </select>
+      <div style="font-size:11px;color:var(--text-faint);margin-top:4px;">Per un giroconto scegli uscita o entrata e la categoria 🔄 Giroconto.</div>
     </div>
     <div class="form-group">
       <label class="form-label">Descrizione</label>
@@ -1558,6 +1558,13 @@ const MIGRAZIONI_UNA_TANTUM = [
         const d = _normDesc(tx.descrizione);
         if(giro.test(d) && ['Entrate','Da classificare'].includes(tx.categoria)) { tx.categoria = 'Giroconto'; delete tx.voce; delete tx.voceManuale; n++; return; }
         for(const [re, da, a] of reg) if(re.test(d) && da.includes(tx.categoria)) { tx.categoria = a; n++; break; }
+      });
+      return n;
+  }},
+  { id: 'f4_enoteca', run() {
+      let n = 0;
+      state.transactions.forEach(tx => {
+        if(/enoteca micheletto/.test(_normDesc(tx.descrizione)) && tx.categoria === 'Da classificare') { tx.categoria = 'Alimentari'; n++; }
       });
       return n;
   }},
@@ -3606,6 +3613,11 @@ function _unisciSezioni(loc, rem, piuRecente) {
 }
 
 function unisciStati(loc, rem) {
+  // Cancellazione totale fatta su un dispositivo: l'archivio azzerato più di recente
+  // vince per intero (i dati dell'altro sono precedenti all'azzeramento)
+  const zL = loc.azzeratoIl || '', zR = rem.azzeratoIl || '';
+  if(zR > zL) return JSON.parse(JSON.stringify(rem));
+  if(zL > zR) return loc;
   // porta l'archivio remoto alla stessa versione (conversioni, nomi conti, id dei conti)
   const salva = state; state = rem;
   try { migraCategorie(); contiAssegnaId(rem); } catch(e) { console.warn(e); }
@@ -3852,8 +3864,7 @@ function editTx(idx) {
 
   // Tipo
   const tipoSel = document.getElementById('etx-tipo');
-  const tipoVal = tx.tipo === 'Giroconto' ? 'Giroconto' : (tx.tipo || 'uscita');
-  tipoSel.value = ['entrata','uscita','Giroconto'].includes(tipoVal) ? tipoVal : 'uscita';
+  tipoSel.value = tx.tipo === 'entrata' ? 'entrata' : 'uscita';
 
   // Categoria
   const catSel = document.getElementById('etx-cat');
@@ -4972,6 +4983,7 @@ function guessCat(desc, tipoOp, prodotto) {
     'mix markt':             'Alimentari',
     'too good to go':        'Alimentari',
     'azienda agricola':      'Alimentari',
+    'enoteca micheletto':    'Alimentari',
     'acqua & sapone':        'Cura personale',   // drogheria: prima della parola chiave «acqua» (Utenze)
     // Ristorazione
     'glovo':                     'Ristorazione',
@@ -5489,6 +5501,8 @@ function importData(input) {
       const data = JSON.parse(e.target.result);
       if(!confirm('Sovrascrivere tutti i dati attuali con il backup?')) return;
       state = data;
+      // il ripristino sostituisce tutto, anche sugli altri dispositivi (come una cancellazione totale)
+      state.azzeratoIl = new Date().toISOString();
       sincroFotografa();
       _driveNoMerge = true; // il prossimo salvataggio su Drive sostituisce, non unisce
       save();
@@ -5502,8 +5516,21 @@ function importData(input) {
   input.value = '';
 }
 function clearAll() {
-  if(!confirm('Eliminare TUTTI i dati? Questa operazione non può essere annullata.')) return;
-  state = {accounts:[], transactions:[], files:[]};
+  const nTx = (state.transactions || []).length, nConti = (state.accounts || []).length;
+  const anni = budAnni();
+  const msg = '⚠️ CANCELLAZIONE TOTALE DEI DATI\n\n' +
+    'Verranno eliminati definitivamente:\n' +
+    `• ${nTx} movimenti e ${nConti} conti con i loro saldi\n` +
+    `• il budget${anni.length ? ' (' + anni.join(', ') + ')' : ''}, i fondi, i progetti e i dati di Imposte e Cassa\n` +
+    '• le impostazioni (cifre dei conti per i giroconti)\n\n' +
+    'La cancellazione vale anche per la copia su Google Drive e per tutti gli altri dispositivi collegati, che si svuoteranno alla prossima sincronizzazione.\n\n' +
+    'Non si può annullare. Se vuoi conservare una copia, annulla e usa prima «Esporta backup JSON».\n\n' +
+    'Per confermare scrivi CANCELLA:';
+  const r = prompt(msg, '');
+  if(r === null) return;
+  if(r.trim().toUpperCase() !== 'CANCELLA') { alert('Parola non corretta: nessun dato è stato cancellato.'); return; }
+  // la data dell'azzeramento fa svuotare anche gli altri dispositivi quando si sincronizzano
+  state = {accounts:[], transactions:[], files:[], azzeratoIl: new Date().toISOString()};
   sincroFotografa();
   _driveNoMerge = true;
   save();
