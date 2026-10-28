@@ -1576,6 +1576,7 @@ const VOCI_DEFAULT = [
   {id:'revisori_sost',  nome:'Elenco Revisori sostenibilità',categoria:'Lavoro', gruppo:'certe', regole:[]},
   {id:'registro_rev',   nome:'Iscrizione Registro revisori legali', categoria:'Lavoro', gruppo:'certe', regole:[]},
   {id:'pec',            nome:'PEC',                         categoria:'Lavoro', gruppo:'certe', regole:[{re:'aruba'}]},
+  {id:'lenti',          nome:'Lenti a contatto',            categoria:'Cura personale', gruppo:'certe', regole:[{re:'ottica'}]},
   // Spese ricorrenti
   {id:'rata_mutuo',     nome:'Rata mutuo',                  categoria:'Casa', gruppo:'ricorrenti', regole:[{re:'procedura mutui|0246766500000|mutuo', min:100}]},
   {id:'ass_vita_mutuo', nome:'Assicurazione vita mutuo',    categoria:'Casa', gruppo:'ricorrenti', regole:[{re:'procedura mutui|0247075100000', max:100}]},
@@ -1585,7 +1586,6 @@ const VOCI_DEFAULT = [
   {id:'amazon_prime',   nome:'Amazon Prime',                categoria:'Abbonamenti', gruppo:'ricorrenti', regole:[{re:'amazon prime'}]},
   {id:'patreon',        nome:'Patreon',                     categoria:'Abbonamenti', gruppo:'ricorrenti', regole:[{re:'patreon'}]},
   {id:'parrucchiere',   nome:'Parrucchiere',                categoria:'Cura personale', gruppo:'ricorrenti', regole:[{re:'parrucch|barber'}]},
-  {id:'lenti',          nome:'Lenti a contatto',            categoria:'Cura personale', gruppo:'ricorrenti', regole:[{re:'ottica'}]},
   // Spese variabili (stime)
   {id:'luce_gas',       nome:'Luce e gas',                  categoria:'Utenze', gruppo:'stime', regole:[{re:'octopus|vivigas|\\benel\\b|\\bluce\\b|\\bgas\\b'}]},
   {id:'spesa',          nome:'Spesa',                       categoria:'Alimentari', gruppo:'stime', regole:[{tutta:true}]},
@@ -1778,6 +1778,31 @@ const MIGRAZIONI_UNA_TANTUM = [
       state.transactions.forEach(tx => {
         if(/enoteca micheletto/.test(_normDesc(tx.descrizione)) && tx.categoria === 'Da classificare') { tx.categoria = 'Alimentari'; n++; }
       });
+      return n;
+  }},
+  // Ottobre 2026: lenti a contatto ogni 3 mesi (90) come spesa certa con fondo;
+  // spese condominiali 2026 (1.264,12 in due rate) tornate nel budget: la voce
+  // era rimasta su una riga senza voce (u_mufmigyr). La rata di giugno è stata
+  // pagata con gli arretrati a settembre, quindi nel 2026 (budget da settembre) sta a settembre.
+  { id: 'f5_condominio_lenti', run() {
+      const b = state.budget; if(!b || !b.anni) return 0;
+      let n = 0;
+      const v = (b.voci || []).find(x => x.id === 'lenti');
+      if(v && v.gruppo !== 'certe') { v.gruppo = 'certe'; n++; }
+      const scLenti = () => [0, 3, 6, 9].map(m => ({ mese: m, importo: 90 }));
+      const A6 = b.anni[2026], A7 = b.anni[2027];
+      if(A6 && A6.righe) {
+        if(A6.righe.lenti) { A6.righe.lenti = { modo: 'scadenza', fondoIniziale: 60, scadenze: scLenti() }; n++; }
+        const orfana = A6.righe.u_mufmigyr;
+        if(!A6.righe.condominio) {
+          A6.righe.condominio = { modo: 'scadenza', fondoIniziale: orfana && _num(orfana.fondoIniziale) != null ? _num(orfana.fondoIniziale) : 210.67,
+            scadenze: [{ mese: 8, importo: 632.06 }, { mese: 11, importo: 632.06 }] };
+          n++;
+        }
+        if(orfana && !(b.voci || []).some(x => x.id === 'u_mufmigyr')) { delete A6.righe.u_mufmigyr; n++; }
+      }
+      if(A7 && A7.righe && A7.righe.lenti) { A7.righe.lenti = { modo: 'scadenza', fondoIniziale: null, scadenze: scLenti() }; n++; }
+      if(n) b.aggiornato = new Date().toISOString();
       return n;
   }},
   { id: 'f1_varie', run() {
@@ -2873,6 +2898,47 @@ function budPianoTesto(r, c, v, anno) {
   if(v.id === 'regali') { const n = (c.righe || []).length, tot = _sum((c.righe || []).map(x => _num(x.importo) || 0)); return `${n} ${n === 1 ? 'regalo' : 'regali'} · ${_eur0(tot)} l'anno`; }
   return '';
 }
+// Riga di una spesa certa o imposta nel Piano: quanto c'è nel fondo per la prossima scadenza
+function budProssimaFuoriAnno(anno, r, c) {
+  const patt = (r.fisc && r.fisc.prossime) || (c && c.scadenze) || [];
+  const vv = patt.map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0 })).filter(x => x.mese >= 0 && x.mese < 12 && x.importo > 0.005).sort((a, b) => a.mese - b.mese);
+  return vv.length ? { mese: vv[0].mese, importo: vv[0].importo, anno: anno + 1 } : null;
+}
+function budRigaFondo(anno, r, c, FO, SC) {
+  const v = r.voce;
+  const f = FO.righe.find(x => x.voce.id === v.id) || { saldo: r.F0, quotaMese: 0 };
+  const mie = SC.filter(x => x.voce.id === v.id);
+  const aperte = mie.filter(x => x.stato !== 'pagata'), pagate = mie.filter(x => x.stato === 'pagata');
+  const fondo = Math.max(0, f.saldo), q = f.quotaMese;
+  let serve = 0, nota = '', pronta = false, grigia = false;
+  const quando = (m, a) => _maiu(MESI_LUNGHI[m]) + (a !== anno ? ' ' + a : '');
+  if(aperte.length) {
+    const n = aperte[0], resta = n.importo - n.pagato;
+    serve = resta; pronta = fondo >= resta - 0.5;
+    const parti = [quando(n.mese, anno)];
+    if(n.pagato > 0.5) parti.push(`già pagati ${_eur0(n.pagato)}`);
+    parti.push(pronta ? 'pronta: il fondo la copre' : q > 0.5 ? `${_eur0(q)} al mese` : `mancano ${_eur0(resta - fondo)}`);
+    if(aperte[1]) parti.push(`poi ${_eur0(aperte[1].importo - aperte[1].pagato)} a ${MESI_LUNGHI[aperte[1].mese]}`);
+    nota = parti.join(' · ');
+  } else {
+    const nx = budProssimaFuoriAnno(anno, r, c);
+    serve = nx ? nx.importo : 0;
+    if(pagate.length) {
+      const u = pagate[pagate.length - 1]; grigia = true;
+      nota = `Pagata ${_eur0(u.pagato)} a ${MESI_LUNGHI[u.mese]}` + (nx ? ` · ricomincia per ${MESI_LUNGHI[nx.mese]} ${nx.anno}` : '');
+    } else if(nx) {
+      pronta = fondo >= serve - 0.5;
+      nota = `${quando(nx.mese, nx.anno)} · ` + (pronta ? 'pronta: il fondo la copre' : q > 0.5 ? `${_eur0(q)} al mese` : `mancano ${_eur0(serve - fondo)}`);
+    } else nota = 'nessuna scadenza';
+  }
+  if(c.escludi) nota += ' · esclusa dai calcoli';
+  const pct = serve > 0.5 ? Math.max(0, Math.min(100, fondo / serve * 100)) : 0;
+  const col = grigia ? 'var(--text-faint, #a3a39e)' : 'var(--blu)';
+  return `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
+        <span class="riga-main" style="gap:6px;"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span><span class="bud-voce-num"><strong>${_eur0(fondo)}</strong> <span class="riga-sotto">di ${_eur0(serve)}</span></span></span>
+          <span class="barretta"><i style="width:${pct.toFixed(0)}%;background:${col};"></i></span>
+          <span class="riga-sotto"${pronta ? ' style="color:var(--accent);"' : ''}>${nota}</span></span>${_CHEV}</button>`;
+}
 function budViewPiano(anno) {
   const A = budAnno(anno), C = budCalcAnno(anno), S = C.S, t = C.tot;
   const tt = k => _sum(t[k].slice(S));
@@ -2900,13 +2966,16 @@ function budViewPiano(anno) {
   let dx = '';
   if(P) dx += `<div class="bud-periodo"><span class="riga-sotto" style="font-size:13px;">Speso finora rispetto al previsto</span>${_pillSelect('bud-periodo', P.opz.find(o => o[0] === budUi.periodo)[1], P.opz, budUi.periodo, "budUi.periodo=this.value;renderBudget()")}</div>`;
   const vociAtt = vociTutte();
+  const FO = budFondiOggi(anno), SC = budScadenze(anno);
   const gruppi = BUD_GRUPPI_PIANO.map(([g, lab]) => {
     const rs = C.voci.filter(r => r.voce.gruppo === g);
     const inattive = vociAtt.filter(v => v.gruppo === g && !A.righe[v.id]);
-    let h = `<section class="card bud-gruppo"><div class="cr-tit-riga"><h2 class="card-title">${lab}</h2>${P ? `<span class="riga-sotto">${P.etichetta}</span>` : ''}</div>`;
+    const conFondo = g === 'certe' || g === 'fiscale';
+    let h = `<section class="card bud-gruppo"><div class="cr-tit-riga"><h2 class="card-title">${lab}</h2>${conFondo ? '<span class="riga-sotto">nel fondo oggi</span>' : P ? `<span class="riga-sotto">${P.etichetta}</span>` : ''}</div>`;
     if(!rs.length) h += `<div class="riga-sotto" style="padding:4px 0 6px;">Nessuna voce nel ${anno}.</div>`;
     rs.forEach(r => {
       const v = r.voce, c = A.righe[v.id], ent = g === 'entrate';
+      if(conFondo) { h += budRigaFondo(anno, r, c, FO, SC); return; }
       const b = P ? (g === 'fondi' ? sm(r.quote, P.mesi) : sm(r.prev, P.mesi)) : 0, re = P ? sm(R.voci[v.id], P.mesi) : 0;
       const pct = b > 0.5 ? Math.max(0, Math.min(100, re / b * 100)) : (re > 0.5 ? 100 : 0);
       const oltre = !ent && P && re > b + 0.5;
