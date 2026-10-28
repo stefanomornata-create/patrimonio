@@ -1805,6 +1805,14 @@ const MIGRAZIONI_UNA_TANTUM = [
       if(n) b.aggiornato = new Date().toISOString();
       return n;
   }},
+  // Ottobre 2026: fondo al 1° gennaio 2027 dell'imposta sostitutiva automatico (era scritto a mano 209,03)
+  { id: 'f6_impsost_2027_auto', run() {
+      const A7 = state.budget && state.budget.anni && state.budget.anni[2027];
+      const c = A7 && A7.righe && A7.righe.imp_sost;
+      if(!c || c.fondoIniziale == null) return 0;
+      c.fondoIniziale = null; state.budget.aggiornato = new Date().toISOString();
+      return 1;
+  }},
   { id: 'f1_varie', run() {
       let n = 0;
       state.transactions.forEach(tx => {
