@@ -732,7 +732,9 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .tx-barra { flex-direction: row; align-items: center; flex-wrap: wrap; }
   .tx-cerca { width: 300px; height: 40px; }
   .tx-giorno-corpo { padding: 0 8px; }
-  .tx-riga { display: grid; grid-template-columns: 12px minmax(0,2.2fr) minmax(0,1fr) minmax(0,0.9fr) auto; gap: 14px; padding: 10px; border-radius: 10px; }
+  /* Colonna dell'importo a larghezza fissa: con «auto» ogni riga la calcolava sul proprio importo
+     e categoria e conto finivano disallineati da una riga all'altra */
+  .tx-riga { display: grid; grid-template-columns: 12px minmax(0,2.2fr) minmax(0,1fr) minmax(0,0.9fr) 120px; gap: 14px; padding: 10px; border-radius: 10px; }
   .tx-riga:hover { background: #faf8f3; }
   .tx-riga.sel { background: #eef3ec; }
   .tx-riga .tx-cat, .tx-riga .tx-conto { display: none; }
