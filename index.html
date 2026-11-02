@@ -1712,6 +1712,26 @@ function rimuoviDoppioniFormato() {
   return daTogliere.size;
 }
 
+// Movimenti su un «conto» che non esiste (nome provvisorio dell'import) con un gemello
+// identico (data, importo, tipo, descrizione) su un conto vero: sono copie, si eliminano
+// e si segnano tra le lapidi così non tornano con la sincronizzazione
+function rimuoviDoppioniContoProvvisorio() {
+  const veri = new Set((state.accounts || []).map(a => _normConto(a.banca)));
+  const _kg = t => [String(t.data || '').substring(0, 10), (+t.importo || 0).toFixed(2), t.tipo, _normDesc(t.descrizione)].join('|');
+  const gemelli = {};
+  state.transactions.forEach(t => { if(veri.has(_normConto(t.conto))) gemelli[_kg(t)] = (gemelli[_kg(t)] || 0) + 1; });
+  const via = new Set();
+  state.transactions.forEach((t, i) => {
+    if(!t.conto || veri.has(_normConto(t.conto))) return;
+    const k = _kg(t);
+    if(gemelli[k] > 0) { gemelli[k]--; via.add(i); }
+  });
+  if(!via.size) return 0;
+  txSegnaEliminate(state.transactions.filter((t, i) => via.has(i)));
+  state.transactions = state.transactions.filter((t, i) => !via.has(i));
+  return via.size;
+}
+
 // ─── Conversioni una tantum (fase 1), registrate in state.migrazioni ──
 const MIGRAZIONI_UNA_TANTUM = [
   { id: 'f1_altro', run() {
@@ -1813,6 +1833,8 @@ const MIGRAZIONI_UNA_TANTUM = [
       c.fondoIniziale = null; state.budget.aggiornato = new Date().toISOString();
       return 1;
   }},
+  // Novembre 2026: doppioni rimasti col conto provvisorio dell'import (es. «Trade Republic (1)»)
+  { id: 'f7_doppioni_conto_provvisorio', run: rimuoviDoppioniContoProvvisorio },
   { id: 'f1_varie', run() {
       let n = 0;
       state.transactions.forEach(tx => {
@@ -5807,6 +5829,9 @@ function confermaSelezioneContoOk() {
 
   // Assegna il conto ai movimenti appena importati (non a quelli già destinati a un conto speciale)
   const prima = _saldoSenza(conto, _txDaAssegnare.filter(t => !t.contoFisso));
+  // La versione col conto provvisorio può essere già arrivata su Drive (salvataggio dopo 3 s):
+  // va segnata come eliminata, altrimenti l'unione con Drive la ripresenta come doppione
+  txSegnaEliminate(_txDaAssegnare.filter(t => !t.contoFisso && _normConto(t.conto) !== _normConto(conto.banca)));
   _txDaAssegnare.forEach(t => { if(!t.contoFisso) t.conto = conto.banca; delete t.contoFisso; });
   if(_saldoFileProv) { applicaSaldoFile(conto, _saldoFileProv); _saldoFileProv = null; }
   ricalcolaSaldi();
