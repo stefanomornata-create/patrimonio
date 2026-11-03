@@ -1857,6 +1857,12 @@ const MIGRAZIONI_UNA_TANTUM = [
       if(v && v.entroGiorno == null) { v.entroGiorno = 7; return 1; }
       return 0;
   }},
+  { id: 'f9_sheida_entro', run() {
+      // Anche l'incasso di Sheida arriva ogni mese nella prima settimana, sempre uguale
+      const v = vocePerId('sheida');
+      if(v && v.entroGiorno == null) { v.entroGiorno = 7; return 1; }
+      return 0;
+  }},
   { id: 'f1_varie', run() {
       let n = 0;
       state.transactions.forEach(tx => {
