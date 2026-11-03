@@ -854,6 +854,66 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
   .bud-gruppi, .bud-2col { grid-template-columns: minmax(0,1fr); }
   .bud-testa { max-width: none; }
 }
+/* Piano del budget (novembre 2026): fascia del piano e griglia dei gruppi */
+.bud-band .cr-tit-riga { margin-bottom: 14px; }
+.bud-band-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)) 1px minmax(0,1fr); gap: 0 24px; }
+.bud-band-v { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.bud-band-lab { font-size: 13px; color: var(--text-muted); }
+.bud-band-num { font-family: 'DM Serif Display', serif; font-size: 28px; line-height: 1; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.bud-band-num.verde { color: var(--accent); } .bud-band-num.blu { color: var(--blu); } .bud-band-num.neg { color: var(--rosso); }
+.bud-band-marg .bud-band-lab { color: var(--text); font-weight: 600; }
+.bud-band-sep { background: var(--border); }
+.bud-griglia { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--gap); align-items: stretch; }
+.bud-griglia > .card { margin-bottom: 0; display: flex; flex-direction: column; min-width: 0; }
+.bud-griglia > .card > .link:last-child { margin-top: auto; align-self: flex-start; padding-top: 10px; }
+.bud-g-imposte { grid-column: span 2; }
+.bud-g-certe { grid-column: 1 / -1; }
+.bud-righe-2, .bud-righe-3 { display: grid; gap: 0 32px; }
+.bud-righe-2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.bud-righe-3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.bud-voce-riga > .riga-main { gap: 6px; }
+.bud-dx { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.bud-dx strong { font-size: 14px; font-variant-numeric: tabular-nums; }
+.bud-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+.bud-pill.ok { background: #e8f0e8; color: var(--accent); }
+.bud-pill.neutro { background: #f0ede6; color: #5c5c58; }
+.bud-pill.warn { background: var(--arancio-bg); color: var(--arancio); }
+.bud-cerchio { width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid rgba(0,0,0,0.2); color: transparent; box-sizing: border-box; }
+.bud-cerchio.on { background: var(--blu); border-color: var(--blu); color: #fff; }
+.riga-imp.grigio { color: var(--text-muted); font-weight: 400; }
+.barretta.bud-ritmo { position: relative; overflow: visible; }
+.bud-ritmo b { position: absolute; top: -3px; width: 2px; height: 11px; margin-left: -1px; background: var(--text); border-radius: 1px; }
+.bud-scad { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
+.bud-tacche { display: flex; gap: 3px; }
+.bud-tacche > span { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.bud-tacche i { display: block; width: 100%; height: 10px; border-radius: 3px; background: #fff; border: 1.5px solid #b7c7d8; box-sizing: border-box; }
+.bud-tacche i.on { background: var(--blu); border-color: var(--blu); }
+.bud-tacche i.gr { background: #f0ede6; border-color: #f0ede6; }
+.bud-tacche small { font-size: 10px; line-height: 1; color: var(--text-muted); }
+.bud-riserva { font-family: 'DM Serif Display', serif; font-size: 22px; line-height: 1; color: var(--blu); white-space: nowrap; }
+.bud-riserva.neg { color: var(--rosso); }
+.bud-det { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 10px; font-size: 12px; color: var(--text-muted); }
+.bud-det span:nth-child(even) { text-align: right; white-space: nowrap; }
+@media (max-width: 1179px) {
+  .bud-griglia { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .bud-g-fondi { order: 4; } .bud-g-imposte { order: 5; grid-column: 1 / -1; } .bud-g-certe { order: 6; }
+  .bud-righe-3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 768px) {
+  .bud-griglia { grid-template-columns: minmax(0,1fr); }
+  .bud-g-imposte, .bud-g-certe { grid-column: auto; }
+  .bud-g-imposte { order: 4; } .bud-g-certe { order: 5; } .bud-g-fondi { order: 6; }
+  .bud-righe-2, .bud-righe-3 { grid-template-columns: minmax(0,1fr); }
+  .bud-band-grid { grid-template-columns: minmax(0,1fr); gap: 12px; }
+  .bud-band-v { flex-direction: row; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 2px 10px; }
+  .bud-band-v .riga-sotto { display: none; }
+  .bud-band-lab { font-size: 14px; }
+  .bud-band-num { font-family: 'DM Sans', sans-serif; font-size: 14px; line-height: 1.4; }
+  .bud-band-num.verde { font-weight: 600; }
+  .bud-band-sep { height: 1px; }
+  .bud-band-marg .bud-band-num { font-family: 'DM Serif Display', serif; font-size: 26px; line-height: 1; }
+  .bud-band-marg .riga-sotto { display: block; width: 100%; font-size: 12px; }
+}
 /* Aggiungi */
 .modal.modal-ag { width: 480px; max-height: calc(100vh - 40px); overflow-y: auto; display: flex; flex-direction: column; }
 #ag-corpo { display: flex; flex-direction: column; gap: 16px; }
@@ -1890,7 +1950,7 @@ const MIGRAZIONI_UNA_TANTUM = [
 const MESI_BREVI = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 const MESI_LUNGHI = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 const BUD_TABS = [['piano','Piano'], ['fondi','Fondi'], ['imposte','Imposte'], ['risparmio','Risparmio']];
-let budUi = { tab: 'piano', anno: null, periodo: 'prog' };
+let budUi = { tab: 'piano', anno: null, mese: null, meseAnno: null };
 
 function _z12() { return [0,0,0,0,0,0,0,0,0,0,0,0]; }
 function _r2(n) { return Math.round((n + Number.EPSILON) * 100) / 100; }
@@ -2983,16 +3043,6 @@ function renderBudget() {
 }
 
 // ── Piano ──
-function _budPeriodo(anno, S) {
-  const o = budOggi(anno);
-  if(o.corrente < S) return null;
-  const ultimo = Math.min(11, o.corrente);
-  if(budUi.periodo !== 'prog' && !(+budUi.periodo >= S && +budUi.periodo <= ultimo)) budUi.periodo = 'prog';
-  const mesi = budUi.periodo === 'prog' ? Array.from({ length: ultimo - S + 1 }, (_, k) => S + k) : [+budUi.periodo];
-  const opz = [['prog', `${_maiu(MESI_LUNGHI[S])} – ${MESI_LUNGHI[ultimo]}`]];
-  for(let m = ultimo; m >= S; m--) opz.push([String(m), _maiu(MESI_LUNGHI[m])]);
-  return { mesi, opz, etichetta: budUi.periodo === 'prog' ? `${MESI_BREVI[S].toLowerCase()} – ${MESI_BREVI[ultimo].toLowerCase()}` : MESI_LUNGHI[+budUi.periodo] };
-}
 function budPianoTesto(r, c, v, anno) {
   const S = budAnno(anno).meseInizio || 0, mesi = 12 - S;
   const g = v.gruppo;
@@ -3016,93 +3066,234 @@ function budProssimaFuoriAnno(anno, r, c) {
   const vv = patt.map(x => ({ mese: +x.mese, importo: _num(x.importo) || 0 })).filter(x => x.mese >= 0 && x.mese < 12 && x.importo > 0.005).sort((a, b) => a.mese - b.mese);
   return vv.length ? { mese: vv[0].mese, importo: vv[0].importo, anno: anno + 1 } : null;
 }
-function budRigaFondo(anno, r, c, FO, SC) {
+// Mese mostrato nel Piano (selettore «Mese»): di partenza il mese in corso
+function _budMese(anno, S) {
+  const o = budOggi(anno);
+  if(o.corrente < S) return null;   // anno futuro: niente andamento
+  const ultimo = Math.min(11, o.corrente);
+  if(!(+budUi.mese >= S && +budUi.mese <= ultimo) || budUi.meseAnno !== anno) { budUi.mese = ultimo; budUi.meseAnno = anno; }
+  const m = +budUi.mese, opz = [];
+  for(let k = ultimo; k >= S; k--) opz.push([String(k), _maiu(MESI_LUNGHI[k])]);
+  return { m, corrente: m === o.corrente, opz };
+}
+// Giorni dei movimenti per voce e mese (per «arrivata il 2», «uscita il 1 novembre», «di solito verso il 10»)
+function budGiorniVoci(anno) {
+  const out = {}, prefissi = [String(anno) + '-', String(anno - 1) + '-12'];
+  state.transactions.forEach(t => {
+    if(t.esclusa || t.categoria === 'Giroconto' || t.categoria === 'Per conto terzi') return;
+    const ds = String(t.data || '');
+    if(!prefissi.some(p => ds.startsWith(p))) return;
+    const y = +ds.substring(0, 4), m = y < anno ? -1 : parseInt(ds.substring(5, 7), 10) - 1, g = parseInt(ds.substring(8, 10), 10);
+    const parti = Array.isArray(t.ripartizione) && t.ripartizione.length ? t.ripartizione : (t.voce ? [{ voce: t.voce }] : []);
+    parti.forEach(p => { if(!p.voce) return; const o = out[p.voce] = out[p.voce] || {}; (o[m] = o[m] || []).push(g); });
+  });
+  return out;
+}
+const _BUD_CHECK_S = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+const _budImp = n => fmtNum(n, Math.abs(n - Math.round(n)) > 0.005 ? 2 : 0);
+const _MESI_INIZ = ['g', 'f', 'm', 'a', 'm', 'g', 'l', 'a', 's', 'o', 'n', 'd'];
+// Tacche delle quote fino alla scadenza (spese certe e imposte)
+function _budTacche(mFine, n, piene, grigie) {
+  let h = '<span class="bud-tacche" aria-hidden="true">';
+  for(let k = 0; k < n; k++) {
+    const mm = ((mFine - n + 1 + k) % 12 + 12) % 12;
+    h += `<span><i class="${grigie ? 'gr' : k < piene ? 'on' : ''}"></i><small>${n > 7 ? _MESI_INIZ[mm] : MESI_BREVI[mm].toLowerCase()}</small></span>`;
+  }
+  return h + '</span>';
+}
+function budRigaTacche(anno, r, c, FO, SC) {
   const v = r.voce;
   const f = FO.righe.find(x => x.voce.id === v.id) || { saldo: r.F0, quotaMese: 0 };
   const mie = SC.filter(x => x.voce.id === v.id);
   const aperte = mie.filter(x => x.stato !== 'pagata'), pagate = mie.filter(x => x.stato === 'pagata');
-  const fondo = Math.max(0, f.saldo), q = f.quotaMese;
-  let serve = 0, nota = '', pronta = false, grigia = false;
-  const quando = (m, a) => _maiu(MESI_LUNGHI[m]) + (a !== anno ? ' ' + a : '');
+  const fondo = Math.max(0, f.saldo);
+  let serve = 0, mFine = 11, scad = '', nota = '', pronta = false, grigia = false;
+  const mb = m => MESI_BREVI[m].toLowerCase();
   if(aperte.length) {
-    const n = aperte[0], resta = n.importo - n.pagato;
-    serve = resta; pronta = fondo >= resta - 0.5;
-    const parti = [quando(n.mese, anno)];
-    if(n.pagato > 0.5) parti.push(`già pagati ${_eur0(n.pagato)}`);
-    parti.push(pronta ? 'pronta: il fondo la copre' : q > 0.5 ? `${_eur0(q)} al mese` : `mancano ${_eur0(resta - fondo)}`);
-    if(aperte[1]) parti.push(`poi ${_eur0(aperte[1].importo - aperte[1].pagato)} a ${MESI_LUNGHI[aperte[1].mese]}`);
-    nota = parti.join(' · ');
+    const n = aperte[0], g = crGiorno(anno, n);
+    serve = n.importo - n.pagato; mFine = n.mese; pronta = fondo >= serve - 0.5;
+    scad = `${g ? g + ' ' : ''}${mb(n.mese)} · ${_eur0(serve)}`;
+    if(n.pagato > 0.5) nota = `già pagati ${_eur0(n.pagato)} · `;
   } else {
     const nx = budProssimaFuoriAnno(anno, r, c);
-    serve = nx ? nx.importo : 0;
+    if(nx) { serve = nx.importo; mFine = nx.mese; scad = `${mb(nx.mese)} ${nx.anno} · ${_eur0(serve)}`; }
     if(pagate.length) {
       const u = pagate[pagate.length - 1]; grigia = true;
+      scad = `pagata a ${mb(u.mese)}`;
       nota = `Pagata ${_eur0(u.pagato)} a ${MESI_LUNGHI[u.mese]}` + (nx ? ` · ricomincia per ${MESI_LUNGHI[nx.mese]} ${nx.anno}` : '');
-    } else if(nx) {
-      pronta = fondo >= serve - 0.5;
-      nota = `${quando(nx.mese, nx.anno)} · ` + (pronta ? 'pronta: il fondo la copre' : q > 0.5 ? `${_eur0(q)} al mese` : `mancano ${_eur0(serve - fondo)}`);
-    } else nota = 'nessuna scadenza';
+    } else if(nx) pronta = fondo >= serve - 0.5;
+    else { scad = 'nessuna scadenza'; nota = ''; }
+  }
+  const q = f.quotaMese > 0.5 ? f.quotaMese : (serve > 0.5 ? serve / 12 : 0);
+  const n = q > 0.5 ? Math.max(1, Math.min(12, Math.round(serve / q))) : 1;
+  const piene = pronta ? n : Math.max(0, Math.min(n - 1, Math.floor((fondo + 0.5) / (q || 1))));
+  if(!grigia && serve > 0.5) {
+    if(pronta) nota += 'Pronta: il fondo la copre';
+    else { const manc = Math.max(1, Math.ceil((serve - fondo - 0.5) / (q || serve))); nota += `Nel fondo ${_eur0(fondo)} · ${manc === 1 ? 'manca 1 quota' : `mancano ${manc} quote`} da ${_eur0(q)}`; }
+    if(aperte[1]) nota += ` · poi ${_eur0(aperte[1].importo - aperte[1].pagato)} a ${MESI_LUNGHI[aperte[1].mese]}`;
   }
   if(c.escludi) nota += ' · esclusa dai calcoli';
-  const pct = serve > 0.5 ? Math.max(0, Math.min(100, fondo / serve * 100)) : 0;
-  const col = grigia ? 'var(--text-faint, #a3a39e)' : 'var(--blu)';
-  return `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
-        <span class="riga-main" style="gap:6px;"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span><span class="bud-voce-num"><strong>${_eur0(fondo)}</strong> <span class="riga-sotto">di ${_eur0(serve)}</span></span></span>
-          <span class="barretta"><i style="width:${pct.toFixed(0)}%;background:${col};"></i></span>
-          <span class="riga-sotto"${pronta ? ' style="color:var(--accent);"' : ''}>${nota}</span></span>${_CHEV}</button>`;
+  return `<button class="riga riga-tap bud-voce-riga bud-r-tacche${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
+      <span class="riga-main"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span><span class="bud-scad">${scad}</span></span>
+        ${serve > 0.5 || grigia ? _budTacche(mFine, n, piene, grigia) : ''}
+        <span class="riga-sotto"${pronta && !grigia ? ' style="color:var(--accent);"' : ''}>${nota}</span></span></button>`;
 }
+
 function budViewPiano(anno) {
   const A = budAnno(anno), C = budCalcAnno(anno), S = C.S, t = C.tot;
   const tt = k => _sum(t[k].slice(S));
-  const nMesi = 12 - S;
-  let sx = `<section class="card bud-sintesi"><h2 class="card-title">Il piano del ${anno}</h2>
-    <div class="cr-patr-riga"><span>Entrate previste</span><span>${_eur0(tt('entrate'))}</span></div>
-    <div class="cr-patr-riga"><span>Messo da parte nei fondi</span><span>− ${_eur0(tt('accant'))}</span></div>
-    <div class="cr-patr-riga"><span>Spese ricorrenti</span><span>− ${_eur0(tt('ricorrenti'))}</span></div>
-    <div class="cr-patr-riga"><span>Spese variabili</span><span>− ${_eur0(tt('stime'))}</span></div>
-    <div class="cr-patr-sep"></div>
-    <div class="cr-patr-tot"><span>Margine per extra e risparmio</span><span${tt('margine') < 0 ? ' style="color:var(--rosso);"' : ''}>${_eur0(tt('margine'))}</span></div>
-    <div class="riga-sotto" style="font-size:13px;">circa ${_eur0(tt('margine') / nMesi)} al mese${S > 0 ? ` (da ${MESI_LUNGHI[S]})` : ''}</div></section>`;
+  const nMesi = 12 - S, periodo = `da ${MESI_LUNGHI[S]} a dicembre · ${nMesi} ${nMesi === 1 ? 'mese' : 'mesi'}`;
+  const margNeg = tt('margine') < 0 ? ' neg' : '';
+  const voceBand = (lab, val, cls, sotto) => `<div class="bud-band-v"><span class="bud-band-lab">${lab}</span><span class="bud-band-num ${cls}">${val}</span><span class="riga-sotto">${sotto}</span></div>`;
+  let h = `<section class="card bud-band"><div class="cr-tit-riga"><h2 class="card-title">Il piano del ${anno}</h2><span class="riga-sotto">${periodo}</span></div>
+    <div class="bud-band-grid">
+      ${voceBand('Entrate previste', _eur0(tt('entrate')), 'verde', `${_eur0(tt('entrate') / nMesi)} al mese`)}
+      ${voceBand('Messo da parte nei fondi', '− ' + _eur0(tt('accant')), 'blu', `${_eur0(tt('accant') / nMesi)} al mese`)}
+      ${voceBand('Spese ricorrenti', '− ' + _eur0(tt('ricorrenti')), 'blu', `${_eur0(tt('ricorrenti') / nMesi)} al mese`)}
+      ${voceBand('Spese variabili', '− ' + _eur0(tt('stime')), 'blu', `${_eur0(tt('stime') / nMesi)} al mese`)}
+      <div class="bud-band-sep"></div>
+      <div class="bud-band-v bud-band-marg"><span class="bud-band-lab">Margine per extra e risparmio</span><span class="bud-band-num verde${margNeg}">${_eur0(tt('margine'))}</span><span class="riga-sotto">${_eur0(tt('margine') / nMesi)} al mese</span></div>
+    </div></section>`;
   const scoperti = C.voci.filter(r => r.info && r.info.scoperto);
-  if(scoperti.length) sx += `<div class="avviso" style="margin-bottom:var(--gap);">${scoperti.length === 1 ? 'Un fondo non basta' : scoperti.length + ' fondi non bastano'} a coprire le scadenze dell'anno: ${scoperti.map(r => `${_esc(r.voce.nome)} (fondo iniziale consigliato ${_eur0(r.info.fondoConsigliato)})`).join(', ')}.</div>`;
-  // Elenco da spuntare dopo la creazione del budget
+  if(scoperti.length) h += `<div class="avviso" style="margin-bottom:var(--gap);">${scoperti.length === 1 ? 'Un fondo non basta' : scoperti.length + ' fondi non bastano'} a coprire le scadenze dell'anno: ${scoperti.map(r => `${_esc(r.voce.nome)} (fondo iniziale consigliato ${_eur0(r.info.fondoConsigliato)})`).join(', ')}.</div>`;
   if(Array.isArray(A.controlli) && A.controlli.some(x => !x)) {
     const resto = A.controlli.filter(x => !x).length;
-    sx += `<section class="card bud-controlli"><div class="cr-tit-riga"><h2 class="card-title">Da controllare nel ${anno}</h2><span class="riga-sotto">ne ${resto === 1 ? 'manca 1' : 'mancano ' + resto}</span></div>
+    h += `<section class="card bud-controlli"><div class="cr-tit-riga"><h2 class="card-title">Da controllare nel ${anno}</h2><span class="riga-sotto">ne ${resto === 1 ? 'manca 1' : 'mancano ' + resto}</span></div>
       ${BUD_CONTROLLI.map(([tit, d], k) => `<button class="bud-check${A.controlli[k] ? ' fatto' : ''}" onclick="budSpunta(${k})"><span class="bud-box">${_CHECK}</span><span><strong>${tit}</strong> ${d}</span></button>`).join('')}
       <div class="riga-sotto" style="padding-top:6px;">Quando li hai spuntati tutti, questo riquadro sparisce.</div></section>`;
   }
-  const P = _budPeriodo(anno, S);
-  const R = budRealeVoci(anno);
-  const sm = (a, mesi) => _sum(mesi.map(m => (a || _z12())[m]));
-  let dx = '';
-  if(P) dx += `<div class="bud-periodo"><span class="riga-sotto" style="font-size:13px;">Speso finora rispetto al previsto</span>${_pillSelect('bud-periodo', P.opz.find(o => o[0] === budUi.periodo)[1], P.opz, budUi.periodo, "budUi.periodo=this.value;renderBudget()")}</div>`;
-  const vociAtt = vociTutte();
+  const P = _budMese(anno, S);
+  if(P) h += `<div class="bud-periodo"><span class="riga-sotto" style="font-size:13px;">Come sta andando a ${MESI_LUNGHI[P.m]}, voce per voce</span>${_pillSelect('bud-mese', P.opz.find(o => o[0] === String(P.m))[1], P.opz, String(P.m), "budUi.mese=+this.value;renderBudget()")}</div>`;
+  const R = budRealeVoci(anno).voci, G = P ? budGiorniVoci(anno) : {};
   const FO = budFondiOggi(anno), SC = budScadenze(anno);
-  const gruppi = BUD_GRUPPI_PIANO.map(([g, lab]) => {
-    const rs = C.voci.filter(r => r.voce.gruppo === g);
-    const inattive = vociAtt.filter(v => v.gruppo === g && !A.righe[v.id]);
-    const conFondo = g === 'certe' || g === 'fiscale';
-    let h = `<section class="card bud-gruppo"><div class="cr-tit-riga"><h2 class="card-title">${lab}</h2>${conFondo ? '<span class="riga-sotto">nel fondo oggi</span>' : P ? `<span class="riga-sotto">${P.etichetta}</span>` : ''}</div>`;
-    if(!rs.length) h += `<div class="riga-sotto" style="padding:4px 0 6px;">Nessuna voce nel ${anno}.</div>`;
+  const oggi = new Date(), gOggi = oggi.getDate();
+  const m = P ? P.m : -1, mNome = m >= 0 ? MESI_LUNGHI[m] : '';
+  const giorniDi = (id, mm) => ((G[id] || {})[mm] || []).slice().sort((a, b) => a - b);
+  const vociAtt = vociTutte();
+  const cardApri = (cls, tit, destra) => `<section class="card bud-gruppo ${cls}"><div class="cr-tit-riga"><h2 class="card-title">${tit}</h2>${destra ? `<span class="riga-sotto">${destra}</span>` : ''}</div>`;
+  const cardChiudi = g => `<button class="link" onclick="budApri('aggiungi','${g}')">+ Aggiungi voce</button></section>`;
+  const vuoto = `<div class="riga-sotto" style="padding:4px 0 6px;">Nessuna voce nel ${anno}.</div>`;
+  const rsDi = g => C.voci.filter(r => r.voce.gruppo === g);
+  // Riga semplice (anno futuro o voce senza previsione nel mese)
+  const rigaPiano = (r, c) => `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${r.voce.id}')"><span class="riga-main"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="riga-sotto">${budPianoTesto(r, c, r.voce, anno)}${c.escludi ? ' · esclusa dai calcoli' : ''}</span></span>${_CHEV}</button>`;
+  const pill = (testo, cls) => `<span class="bud-pill ${cls}">${testo}</span>`;
+  const blocchi = {};
+
+  // Entrate: stato del mese
+  {
+    const rs = rsDi('entrate');
+    let righe = '', arrivate = 0, attese = 0;
     rs.forEach(r => {
-      const v = r.voce, c = A.righe[v.id], ent = g === 'entrate';
-      if(conFondo) { h += budRigaFondo(anno, r, c, FO, SC); return; }
-      const b = P ? (g === 'fondi' ? sm(r.quote, P.mesi) : sm(r.prev, P.mesi)) : 0, re = P ? sm(R.voci[v.id], P.mesi) : 0;
-      const pct = b > 0.5 ? Math.max(0, Math.min(100, re / b * 100)) : (re > 0.5 ? 100 : 0);
-      const oltre = !ent && P && re > b + 0.5;
-      const col = oltre ? '#d68910' : ent ? 'var(--accent)' : 'var(--blu)';
-      const piano = budPianoTesto(r, c, v, anno) + (oltre ? ` · oltre di ${_eur0(re - b)}` : '') + (c.escludi ? ' · esclusa dai calcoli' : '');
-      h += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
-        <span class="riga-main" style="gap:6px;"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span>${P ? `<span class="bud-voce-num"><strong${oltre ? ' style="color:var(--arancio);"' : ''}>${_eur0(re)}</strong> <span class="riga-sotto">di ${_eur0(b)}</span></span>` : ''}</span>
-          ${P ? `<span class="barretta"><i style="width:${pct.toFixed(0)}%;background:${col};"></i></span>` : ''}
-          <span class="riga-sotto"${oltre ? ' style="color:var(--arancio);"' : ''}>${piano}</span></span>${_CHEV}</button>`;
+      const c = A.righe[r.voce.id];
+      if(!P) { righe += rigaPiano(r, c); return; }
+      const prev = r.prev[m] || 0, re = (R[r.voce.id] || _z12())[m] || 0;
+      if(prev <= 0.5 && re <= 0.5) { righe += rigaPiano(r, c); return; }
+      attese++;
+      let st;
+      if(re >= prev - 0.5) { arrivate++; const gg = giorniDi(r.voce.id, m); st = pill(gg.length ? `Arrivata il ${gg[gg.length - 1]}` : 'Arrivata', 'ok'); }
+      else if(!P.corrente) st = pill(re > 0.5 ? `Arrivati ${_eur0(re)}` : 'Non arrivata', 'warn');
+      else {
+        const g = parseInt(r.voce.entroGiorno, 10);
+        if(g >= 1 && g <= 31) st = gOggi <= g + MARG_TOLL_INCASSO ? pill(`In arrivo · entro il ${g}`, 'neutro') : pill('In ritardo', 'warn');
+        else st = pill(re > 0.5 ? `Arrivati ${_eur0(re)}` : 'Da arrivare', 'neutro');
+      }
+      const prog = _sum(r.prev.slice(S, m + 1)), progR = _sum(((R[r.voce.id] || _z12())).slice(S, m + 1));
+      const sotto = m > S ? `da ${MESI_LUNGHI[S]} ${_eur0(progR)} di ${_eur0(prog)}` : budPianoTesto(r, c, r.voce, anno);
+      righe += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${r.voce.id}')">
+        <span class="riga-main"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="riga-sotto">${sotto}${c.escludi ? ' · esclusa dai calcoli' : ''}</span></span>
+        <span class="bud-dx"><strong>${_eur0(prev)}</strong>${st}</span></button>`;
     });
-    h += `<button class="link" onclick="budApri('aggiungi','${g}')">+ Aggiungi voce</button>${inattive.length ? '' : ''}</section>`;
-    return h;
-  });
-  const meta = Math.ceil(gruppi.length / 2);
-  return `<div class="bud-piano"><div class="bud-col-sx">${sx}</div><div class="bud-col-dx">${dx}<div class="bud-gruppi"><div>${gruppi.slice(0, meta).join('')}</div><div>${gruppi.slice(meta).join('')}</div></div></div></div>`;
+    blocchi.entrate = cardApri('bud-g-entrate', 'Entrate', P && attese ? `${arrivate} su ${attese} ${attese === 1 ? 'arrivata' : 'arrivate'}` : '') + (rs.length ? righe : vuoto) + cardChiudi('entrate');
+  }
+
+  // Ricorrenti: spunta del mese
+  {
+    const rs = rsDi('ricorrenti');
+    let righe = '', uscite = 0, previste = 0, manca = 0;
+    rs.forEach(r => {
+      const c = A.righe[r.voce.id];
+      if(!P) { righe += rigaPiano(r, c); return; }
+      const prev = r.prev[m] || 0, re = (R[r.voce.id] || _z12())[m] || 0;
+      if(prev <= 0.5 && re <= 0.5) { righe += rigaPiano(r, c); return; }
+      previste++;
+      const ok = re > 0.5;
+      let sotto, warn = false;
+      if(ok) {
+        uscite++;
+        const gg = giorniDi(r.voce.id, m);
+        if(Math.abs(re - prev) > 0.5) { sotto = `${_budImp(re)} invece di ${_budImp(prev)}`; warn = true; }
+        else sotto = gg.length ? `uscita il ${gg[gg.length - 1]} ${mNome}` : `uscita a ${mNome}`;
+      } else {
+        manca += prev;
+        if(!P.corrente) { sotto = `non uscita a ${mNome}`; warn = true; }
+        else { const gp = giorniDi(r.voce.id, m - 1); sotto = gp.length ? `di solito verso il ${gp[gp.length - 1]}` : `non ancora a ${mNome}`; }
+      }
+      righe += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${r.voce.id}')">
+        <span class="bud-cerchio${ok ? ' on' : ''}">${_BUD_CHECK_S}</span>
+        <span class="riga-main"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="riga-sotto"${warn ? ' style="color:var(--arancio);"' : ''}>${sotto}${c.escludi ? ' · esclusa dai calcoli' : ''}</span></span>
+        <span class="riga-imp${ok ? '' : ' grigio'}">${_budImp(ok ? re : prev)}</span></button>`;
+    });
+    const destra = P && previste ? `${uscite} su ${previste} uscite${P.corrente && manca > 0.5 ? ` · mancano ${_eur0(manca)}` : ''}` : '';
+    blocchi.ricorrenti = cardApri('bud-g-ricorrenti', 'Ricorrenti', destra) + (rs.length ? righe : vuoto) + cardChiudi('ricorrenti');
+  }
+
+  // Variabili: busta del mese con il segno di oggi
+  {
+    const rs = rsDi('stime');
+    const gMese = m >= 0 ? new Date(anno, m + 1, 0).getDate() : 30;
+    const ritmo = P && P.corrente ? Math.min(100, gOggi / gMese * 100) : null;
+    let righe = '';
+    rs.forEach(r => {
+      const c = A.righe[r.voce.id];
+      if(!P) { righe += rigaPiano(r, c); return; }
+      const b = r.prev[m] || 0, re = (R[r.voce.id] || _z12())[m] || 0;
+      const pct = b > 0.5 ? Math.max(0, Math.min(100, re / b * 100)) : (re > 0.5 ? 100 : 0);
+      const oltre = re > b + 0.5;
+      let nota = oltre ? `Oltre di ${_eur0(re - b)}` : `Restano ${_eur0(b - re)}`;
+      if(!oltre && ritmo != null && re > 0.5 && pct > ritmo + 15) nota += ' · un po’ avanti sul ritmo del mese';
+      righe += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${r.voce.id}')">
+        <span class="riga-main"><span class="bud-voce-top"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="bud-voce-num"><strong${oltre ? ' style="color:var(--arancio);"' : ''}>${_eur0(re)}</strong> <span class="riga-sotto">di ${_eur0(b)}</span></span></span>
+          <span class="barretta bud-ritmo"><i style="width:${pct.toFixed(0)}%;background:${oltre ? '#d68910' : 'var(--blu)'};"></i>${ritmo != null ? `<b style="left:${ritmo.toFixed(0)}%;"></b>` : ''}</span>
+          <span class="riga-sotto"${oltre ? ' style="color:var(--arancio);"' : ''}>${nota}${c.escludi ? ' · esclusa dai calcoli' : ''}</span></span></button>`;
+    });
+    const destra = ritmo != null ? `${gOggi} ${mNome} · ${ritmo.toFixed(0)}% del mese` : mNome;
+    blocchi.stime = cardApri('bud-g-variabili', 'Variabili', destra) + (rs.length ? righe : vuoto) + cardChiudi('stime');
+  }
+
+  // Imposte e spese certe: quote fino alla scadenza
+  const tacche = (g, cls, tit, colonne) => {
+    const rs = rsDi(g);
+    const righe = rs.map(r => budRigaTacche(anno, r, A.righe[r.voce.id], FO, SC)).join('');
+    const n = rs.length;
+    return cardApri(cls, tit, g === 'certe' && n ? `${n} ${n === 1 ? 'voce' : 'voci'} · prossima scadenza` : 'prossima scadenza') + (n ? `<div class="bud-righe-${colonne}">${righe}</div>` : vuoto) + cardChiudi(g);
+  };
+  blocchi.fiscale = tacche('fiscale', 'bud-g-imposte', 'Imposte e Cassa', 2);
+  blocchi.certe = tacche('certe', 'bud-g-certe', 'Spese certe', 3);
+
+  // Salute e regali: entrato, uscito, prossimi
+  {
+    const rs = rsDi('fondi');
+    let righe = '';
+    rs.forEach(r => {
+      const c = A.righe[r.voce.id], f = FO.righe.find(x => x.voce.id === r.voce.id) || { F0: r.F0, maturato: 0, pagato: 0, saldo: r.F0 };
+      let det = '';
+      if(r.voce.id === 'regali') {
+        const mo = budOggi(anno).corrente;
+        const con = (c.righe || []).filter(x => x.mese != null && x.mese !== '' && +x.mese >= Math.max(S, mo)).sort((a, b) => +a.mese - +b.mese);
+        const senza = (c.righe || []).filter(x => x.mese == null || x.mese === '');
+        const lista = con.concat(senza).slice(0, 3);
+        det = lista.length ? lista.map(x => `<span>${_esc(x.nome || 'Regalo')} · ${x.mese == null || x.mese === '' ? 'senza mese' : MESI_LUNGHI[+x.mese]}</span><span>${_eur0(_num(x.importo) || 0)}</span>`).join('') : '<span>Nessun regalo in programma</span><span></span>';
+      } else {
+        det = `<span>Al 1° ${MESI_LUNGHI[S]}</span><span>${_eur0(f.F0)}</span><span>Messi da parte</span><span>+ ${_eur0(f.maturato)}</span><span>Spesi</span><span>− ${_eur0(f.pagato)}</span>`;
+      }
+      righe += `<button class="riga riga-tap bud-voce-riga${c.escludi ? ' off' : ''}" onclick="budApri('voce','${r.voce.id}')">
+        <span class="riga-main"><span class="bud-voce-top"><span class="riga-nome">${_esc(r.voce.nome)}</span><span class="bud-riserva${f.saldo < -0.5 ? ' neg' : ''}">${f.saldo < -0.5 ? '− ' : ''}${_eur0(Math.abs(f.saldo))}</span></span>
+          <span class="bud-det">${det}</span>${c.escludi ? '<span class="riga-sotto">esclusa dai calcoli</span>' : ''}</span></button>`;
+    });
+    blocchi.fondi = cardApri('bud-g-fondi', 'Salute e regali', `da ${MESI_LUNGHI[S]}`) + (rs.length ? righe : vuoto) + cardChiudi('fondi');
+  }
+
+  return h + `<div class="bud-griglia">${blocchi.entrate}${blocchi.ricorrenti}${blocchi.stime}${blocchi.fiscale}${blocchi.fondi}${blocchi.certe}</div>`;
 }
 function budSpunta(k) { const A = budAnno(budAnnoCorrente()); if(!A || !Array.isArray(A.controlli)) return; A.controlli[k] = !A.controlli[k]; budTocca(); renderBudget(); }
 
