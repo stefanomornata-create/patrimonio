@@ -884,12 +884,12 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .barretta.bud-ritmo { position: relative; overflow: visible; }
 .bud-ritmo b { position: absolute; top: -3px; width: 2px; height: 11px; margin-left: -1px; background: var(--text); border-radius: 1px; }
 .bud-scad { font-size: 13px; color: var(--text-muted); white-space: nowrap; }
-.bud-tacche { display: flex; gap: 3px; }
-.bud-tacche > span { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.bud-tacche i { display: block; width: 100%; height: 10px; border-radius: 3px; background: #fff; border: 1.5px solid #b7c7d8; box-sizing: border-box; }
-.bud-tacche i.on { background: var(--blu); border-color: var(--blu); }
-.bud-tacche i.gr { background: #f0ede6; border-color: #f0ede6; }
-.bud-tacche small { font-size: 10px; line-height: 1; color: var(--text-muted); }
+.bud-tac-riga { display: flex; gap: 4px; }
+.bud-tac { position: relative; flex: 1 1 0; min-width: 18px; height: 14px; border-radius: 4px; box-sizing: border-box; overflow: hidden; background: #fff; border: 1.5px solid #9fb5cb; }
+.bud-tac.dopo { border-style: dashed; }
+.bud-tac.pagata { background: #e4e1da; border-color: #e4e1da; }
+.bud-tac > i { display: block; height: 100%; background: var(--blu); }
+.bud-tac svg { position: absolute; left: 50%; top: 50%; margin: -5px 0 0 -5px; }
 .bud-riserva { font-family: 'DM Serif Display', serif; font-size: 22px; line-height: 1; color: var(--blu); white-space: nowrap; }
 .bud-riserva.neg { color: var(--rosso); }
 .bud-det { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 3px 10px; font-size: 12px; color: var(--text-muted); }
@@ -3091,52 +3091,56 @@ function budGiorniVoci(anno) {
 }
 const _BUD_CHECK_S = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 const _budImp = n => fmtNum(n, Math.abs(n - Math.round(n)) > 0.005 ? 2 : 0);
-const _MESI_INIZ = ['g', 'f', 'm', 'a', 'm', 'g', 'l', 'a', 's', 'o', 'n', 'd'];
-// Tacche delle quote fino alla scadenza (spese certe e imposte)
-function _budTacche(mFine, n, piene, grigie) {
-  let h = '<span class="bud-tacche" aria-hidden="true">';
-  for(let k = 0; k < n; k++) {
-    const mm = ((mFine - n + 1 + k) % 12 + 12) % 12;
-    h += `<span><i class="${grigie ? 'gr' : k < piene ? 'on' : ''}"></i><small>${n > 7 ? _MESI_INIZ[mm] : MESI_BREVI[mm].toLowerCase()}</small></span>`;
-  }
-  return h + '</span>';
-}
+// Spese certe e imposte: una tacca per scadenza dell'anno (larghezza = importo, riempimento = quanto il fondo la copre);
+// se nell'anno non resta niente da pagare, la prossima scadenza dell'anno dopo con il bordo tratteggiato
+const _BUD_SPUNTA_TAC = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#6b6b67" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
 function budRigaTacche(anno, r, c, FO, SC) {
   const v = r.voce;
   const f = FO.righe.find(x => x.voce.id === v.id) || { saldo: r.F0, quotaMese: 0 };
   const mie = SC.filter(x => x.voce.id === v.id);
   const aperte = mie.filter(x => x.stato !== 'pagata'), pagate = mie.filter(x => x.stato === 'pagata');
   const fondo = Math.max(0, f.saldo);
-  let serve = 0, mFine = 11, scad = '', nota = '', pronta = false, grigia = false;
   const mb = m => MESI_BREVI[m].toLowerCase();
+  const tac = [];
+  let resto = fondo;
+  mie.forEach(s => {
+    if(s.stato === 'pagata') { tac.push({ imp: s.importo, cls: 'pagata', pct: 0 }); return; }
+    const res = Math.max(0, s.importo - s.pagato), cop = Math.min(resto, res); resto -= cop;
+    tac.push({ imp: s.importo, cls: '', pct: s.importo > 0.005 ? (s.pagato + cop) / s.importo * 100 : 100 });
+  });
+  const nx = aperte.length ? null : budProssimaFuoriAnno(anno, r, c);
+  if(nx) tac.push({ imp: nx.importo, cls: 'dopo', pct: nx.importo > 0.005 ? Math.min(1, fondo / nx.importo) * 100 : 100 });
+  // Prossimo pagamento: il primo aperto dell'anno, altrimenti quello dell'anno dopo
+  let serve = 0, scad = '', pronta = false;
   if(aperte.length) {
     const n = aperte[0], g = crGiorno(anno, n);
-    serve = n.importo - n.pagato; mFine = n.mese; pronta = fondo >= serve - 0.5;
+    serve = n.importo - n.pagato; pronta = fondo >= serve - 0.5;
     scad = `${g ? g + ' ' : ''}${mb(n.mese)} · ${_eur0(serve)}`;
-    if(n.pagato > 0.5) nota = `già pagati ${_eur0(n.pagato)} · `;
-  } else {
-    const nx = budProssimaFuoriAnno(anno, r, c);
-    if(nx) { serve = nx.importo; mFine = nx.mese; scad = `${mb(nx.mese)} ${nx.anno} · ${_eur0(serve)}`; }
-    if(pagate.length) {
-      const u = pagate[pagate.length - 1]; grigia = true;
-      scad = `pagata a ${mb(u.mese)}`;
-      nota = `Pagata ${_eur0(u.pagato)} a ${MESI_LUNGHI[u.mese]}` + (nx ? ` · ricomincia per ${MESI_LUNGHI[nx.mese]} ${nx.anno}` : '');
-    } else if(nx) pronta = fondo >= serve - 0.5;
-    else { scad = 'nessuna scadenza'; nota = ''; }
-  }
+  } else if(nx) {
+    serve = nx.importo; pronta = fondo >= serve - 0.5;
+    scad = `${mb(nx.mese)} ${nx.anno} · ${_eur0(serve)}`;
+  } else if(pagate.length) scad = `pagata a ${mb(pagate[pagate.length - 1].mese)}`;
+  else scad = 'nessuna scadenza';
   const q = f.quotaMese > 0.5 ? f.quotaMese : (serve > 0.5 ? serve / 12 : 0);
-  const n = q > 0.5 ? Math.max(1, Math.min(12, Math.round(serve / q))) : 1;
-  const piene = pronta ? n : Math.max(0, Math.min(n - 1, Math.floor((fondo + 0.5) / (q || 1))));
-  if(!grigia && serve > 0.5) {
-    if(pronta) nota += 'Pronta: il fondo la copre';
-    else { const manc = Math.max(1, Math.ceil((serve - fondo - 0.5) / (q || serve))); nota += `Nel fondo ${_eur0(fondo)} · ${manc === 1 ? 'manca 1 quota' : `mancano ${manc} quote`} da ${_eur0(q)}`; }
-    if(aperte[1]) nota += ` · poi ${_eur0(aperte[1].importo - aperte[1].pagato)} a ${MESI_LUNGHI[aperte[1].mese]}`;
+  const parti = [];
+  if(pagate.length) { const u = pagate[pagate.length - 1]; parti.push(`Pagata ${_eur0(u.pagato)} a ${MESI_LUNGHI[u.mese]}`); }
+  if(serve > 0.5) {
+    const per = aperte.length ? '' : nx ? ` per ${MESI_LUNGHI[nx.mese]} ${nx.anno}` : '';
+    if(aperte.length && aperte[0].stato === 'scaduta') parti.push(`${_maiu(MESI_LUNGHI[aperte[0].mese])}: risulta non pagata`);
+    else if(pronta) parti.push(pagate.length && !aperte.length ? `nel fondo ${_eur0(fondo)}${per}: basta` : 'Pronta: il fondo la copre');
+    else {
+      const manc = Math.max(1, Math.ceil((serve - fondo - 0.5) / (q || serve)));
+      parti.push(`${pagate.length ? 'nel' : 'Nel'} fondo ${_eur0(fondo)}${per} · ${manc === 1 ? 'manca 1 quota' : `mancano ${manc} quote`} da ${_eur0(q)}`);
+    }
   }
+  let nota = parti.join(' · ');
   if(c.escludi) nota += ' · esclusa dai calcoli';
+  const scaduta = aperte.length && aperte[0].stato === 'scaduta';
+  const barre = tac.length ? `<span class="bud-tac-riga" aria-hidden="true">${tac.map(t => `<span class="bud-tac${t.cls ? ' ' + t.cls : ''}" style="flex-grow:${Math.max(1, Math.round(t.imp))};">${t.cls === 'pagata' ? _BUD_SPUNTA_TAC : `<i style="width:${Math.max(0, Math.min(100, t.pct)).toFixed(0)}%;"></i>`}</span>`).join('')}</span>` : '';
   return `<button class="riga riga-tap bud-voce-riga bud-r-tacche${c.escludi ? ' off' : ''}" onclick="budApri('voce','${v.id}')">
       <span class="riga-main"><span class="bud-voce-top"><span class="riga-nome">${_esc(v.nome)}</span><span class="bud-scad">${scad}</span></span>
-        ${serve > 0.5 || grigia ? _budTacche(mFine, n, piene, grigia) : ''}
-        <span class="riga-sotto"${pronta && !grigia ? ' style="color:var(--accent);"' : ''}>${nota}</span></span></button>`;
+        ${barre}
+        <span class="riga-sotto"${scaduta ? ' style="color:var(--rosso);"' : pronta ? ' style="color:var(--accent);"' : ''}>${nota}</span></span></button>`;
 }
 
 function budViewPiano(anno) {
@@ -3265,7 +3269,7 @@ function budViewPiano(anno) {
     const rs = rsDi(g);
     const righe = rs.map(r => budRigaTacche(anno, r, A.righe[r.voce.id], FO, SC)).join('');
     const n = rs.length;
-    return cardApri(cls, tit, g === 'certe' && n ? `${n} ${n === 1 ? 'voce' : 'voci'} · prossima scadenza` : 'prossima scadenza') + (n ? `<div class="bud-righe-${colonne}">${righe}</div>` : vuoto) + cardChiudi(g);
+    return cardApri(cls, tit, g === 'certe' && n ? `${n} ${n === 1 ? 'voce' : 'voci'} · una tacca per scadenza` : 'una tacca per scadenza') + (n ? `<div class="bud-righe-${colonne}">${righe}</div>` : vuoto) + cardChiudi(g);
   };
   blocchi.fiscale = tacche('fiscale', 'bud-g-imposte', 'Imposte e Cassa', 2);
   blocchi.certe = tacche('certe', 'bud-g-certe', 'Spese certe', 3);
