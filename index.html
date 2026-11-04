@@ -422,6 +422,7 @@ canvas, img, svg { max-width: 100%; }
 .fisc-hint { font-size:12px; color:var(--text-faint); margin-top:8px; line-height:1.5; }
 /* Calcolatore aliquota Cassa (novembre 2026) */
 .cc-testa { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.cc-azioni { display:flex; gap:8px; flex-wrap:wrap; }
 .cc-sel { height:30px; padding:0 6px; font-size:13px; }
 .cc-met { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
 .cc-met > div { background:var(--bg); border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:4px; }
@@ -4188,7 +4189,7 @@ function ccSet(k, el, sub) {
   if(!fiscHa()) return;
   const F = fiscRaw(); if(!F.settings) F.settings = {};
   const S = F.settings, D = Fisco.defaults().settings;
-  if(k === 'nascita') S.nascita = el.value || null;
+  if(k === 'nascita') S.nascita = ccDataIso(el.value);
   else {
     const n = fiscNum(el.value);
     if(sub != null) { S[k] = Object.assign({}, D[k], S[k] || {}); S[k][sub] = n != null ? n : D[k][sub]; }
@@ -4196,7 +4197,18 @@ function ccSet(k, el, sub) {
   }
   budTocca(); renderBudget();
 }
+// data di nascita: scritta come gg/mm/aaaa, salvata come aaaa-mm-gg
+function ccDataIso(v) {
+  const m = String(v || '').trim().match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})$/);
+  if(!m) return null;
+  const d = +m[1], mo = +m[2], y = +m[3];
+  if(mo < 1 || mo > 12 || d < 1 || d > 31 || y < 1900) return null;
+  return y + '-' + String(mo).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+}
+function ccDataIt(iso) { const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? m[3] + '/' + m[2] + '/' + m[1] : ''; }
 function ccHtml(anni, anno) {
+  // si apre e si chiude come il vecchio simulatore (chiuso all'avvio)
+  if(!fiscUi.aperti.sim) return _fApribile('sim', 'Calcolatore aliquota Cassa', "Quanto costa alzare l'aliquota, se è sostenibile e se conviene rispetto a investire.", () => '');
   const ys = anni.filter(y => { const c = Fisco.compute(y); return c && c.hasData; });
   if(!ys.length) return `<section class="card"><h2 class="card-title">Calcolatore aliquota Cassa</h2><div class="riga-sotto">Servono i ricavi di almeno un anno.</div></section>`;
   if(fiscUi.simYear == null || !ys.includes(fiscUi.simYear)) fiscUi.simYear = ys.includes(anno - 1) ? anno - 1 : ys[ys.length - 1];
@@ -4218,7 +4230,7 @@ function ccHtml(anni, anno) {
   // 1. calcolatore
   let h = `<section class="card"><div class="cc-testa"><div><h2 class="card-title" style="margin:0;">Calcolatore aliquota Cassa</h2>
     <div class="riga-sotto" style="margin-top:4px;">Sul reddito <select class="bud-in cc-sel" onchange="fiscSet('simYear','','',this)">${ys.map(y => `<option value="${y}"${y === Y ? ' selected' : ''}>${y}</option>`).join('')}</select>${withMin ? ` · minimo soggettivo ${Yd} ${_eur0(cs.p.minSog)}` : ''} · pagamento il 20 dicembre ${Yd}</div></div>
-    <button class="btn${uso ? '' : ' btn-primary'}" onclick="fiscAzione('simApply')"${uso ? ' disabled' : ''}>${uso ? 'Aliquota già in uso' : `Usa ${ccPc(sel)}% per il reddito ${Y}`}</button></div>
+    <div class="cc-azioni"><button class="btn${uso ? '' : ' btn-primary'}" onclick="fiscAzione('simApply')"${uso ? ' disabled' : ''}>${uso ? 'Aliquota già in uso' : `Usa ${ccPc(sel)}% per il reddito ${Y}`}</button><button class="btn" onclick="fiscAzione('toggle','sim')">Chiudi</button></div></div>
     <div class="cc-met">
       <div><span class="l">A dicembre ${Yd}</span><span class="v" style="color:var(--blu);">${_eur0(s.dicTot)}</span><span class="s">${eccN} soggettivo ${_eur0(s.ecc)} + integrativo ${_eur0(s.intDic)} + maternità ${_eur0(s.mat)}</span></div>
       <div><span class="l">Plus sul montante</span><span class="v" style="color:var(--accent);">${_eur0(s.plus)}</span><span class="s">${s.plusAlMin ? `il minimo: ${ccPc(st.cassaPlusMin)}% del soggettivo minimo` : `${ccPc(s.pct)}% del reddito`}</span></div>
@@ -4265,7 +4277,7 @@ function ccHtml(anni, anno) {
   if(costo <= 0.5) conf += `<div class="riga-sotto">Al minimo non versi niente in più: scegli un'aliquota più alta per confrontarla.</div>`;
   else {
     conf += `<div class="cc-corpo"><div class="imp-testo" style="color:var(--text);">Versi <strong>${_eur0(s.ecc)}</strong> in più, che ti costano <strong>${_eur0(costo)}</strong> dopo l'imposta. La Cassa ti accredita <strong>${_eur0(incr)}</strong> di montante in più.</div>
-      <div class="cc-in"><label>Data di nascita<input class="bud-in" type="date" value="${_esc(st.nascita || '')}" onchange="ccSet('nascita',this)"></label>
+      <div class="cc-in"><label>Data di nascita<input class="bud-in" inputmode="numeric" placeholder="gg/mm/aaaa" value="${_esc(ccDataIt(st.nascita))}" onchange="ccSet('nascita',this)"></label>
         <label>Età di pensione<select class="bud-in" onchange="ccSet('etaPens',this)">${etaOpz.map(e => `<option value="${e}"${e === +st.etaPens ? ' selected' : ''}>${e}</option>`).join('')}</select></label>
         ${inp('cassaRiv', 'Rivalutazione Cassa %', _numIn(st.cassaRiv))}${inp('irpefFut', 'IRPEF media futura %', _numIn(st.irpefFut))}
         ${inp('altRend', 'Rendimento lordo %', _numIn(st.altRend))}${inp('altTer', 'TER %', _numIn(st.altTer))}
