@@ -401,6 +401,7 @@ canvas, img, svg { max-width: 100%; }
 .bud-table th:first-child { text-align:left; }
 .bud-table td { padding:6px 8px; border-bottom:1px solid var(--border); white-space:nowrap; }
 .bud-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
+.bud-table td.del { width:1%; text-align:center; padding-left:12px; }
 .bud-table tr.grp td { background:var(--surface2, #f2f0ea); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); }
 .bud-table tr.tot td { font-weight:600; border-top:1px solid var(--border-strong); }
 .bud-table tr.sub td { color:var(--text-faint); font-size:12px; }
@@ -4145,7 +4146,7 @@ function budViewImposte(anno) {
       <div class="bud-scroll"><table class="bud-table"><thead><tr><th>Descrizione</th><th>N.</th><th>Totale fattura</th><th>Totale</th><th></th></tr></thead><tbody>`;
     if(!fatt.length) h += `<tr><td colspan="5" style="color:var(--text-faint);">Nessuna fattura inserita.</td></tr>`;
     fatt.forEach((f, i) => {
-      h += `<tr><td><input class="bud-in" style="width:100%;min-width:140px;" value="${_esc(f.descr || '')}" onchange="fiscSet('inv','descr',${i},this)"></td><td>${_fIn('inv','n',i,f.n,56)}</td><td>${_fIn('inv','lordo',i,f.lordo,96)}</td><td class="num">${fmt((+f.n || 0) * (+f.lordo || 0))}</td><td><a href="#" onclick="fiscAzione('delInv',${i});return false;" style="color:var(--text-faint);">✕</a></td></tr>`;
+      h += `<tr><td><input class="bud-in" style="width:100%;min-width:140px;" value="${_esc(f.descr || '')}" onchange="fiscSet('inv','descr',${i},this)"></td><td class="num">${_fIn('inv','n',i,f.n,56)}</td><td class="num">${_fIn('inv','lordo',i,f.lordo,96)}</td><td class="num">${fmt((+f.n || 0) * (+f.lordo || 0))}</td><td class="del"><a href="#" onclick="fiscAzione('delInv',${i});return false;" style="color:var(--text-faint);">✕</a></td></tr>`;
     });
     h += `</tbody></table></div><div class="bud-riga" style="margin-top:8px;font-size:12px;"><a href="#" onclick="fiscAzione('addInv');return false;" style="color:var(--accent);">+ riga</a>${raw.years[fa - 1] && (raw.years[fa - 1].fatture || []).length ? ` · <a href="#" onclick="fiscAzione('copyInv');return false;" style="color:var(--accent);">copia le fatture del ${fa - 1}</a>` : ''}</div>`;
   }
@@ -4210,7 +4211,7 @@ function budViewImposte(anno) {
     const cy = Object.keys(raw.cdc).map(Number).sort((p, q) => p - q);
     out += `<div style="font-weight:600;font-size:13px;margin:16px 0 6px;">Minimi Cassa deliberati</div><div class="bud-scroll"><table class="bud-table"><thead><tr><th>Anno</th><th>Minimo soggettivo</th><th>Minimo integrativo</th><th>Maternità</th><th>Limite reddituale</th><th></th></tr></thead><tbody>`;
     cy.forEach(y => { const cc = raw.cdc[y];
-      out += `<tr><td>${y}</td><td>${_fIn('cdc','minSog',y,cc.minSog,90)}</td><td>${_fIn('cdc','minInt',y,cc.minInt,90)}</td><td>${_fIn('cdc','mat',y,cc.mat,80,'da deliberare')}</td><td>${_fIn('cdc','lim',y,cc.lim,100)}</td><td><a href="#" onclick="fiscAzione('delCdc',${y});return false;" style="color:var(--text-faint);">✕</a></td></tr>`; });
+      out += `<tr><td>${y}</td><td class="num">${_fIn('cdc','minSog',y,cc.minSog,90)}</td><td class="num">${_fIn('cdc','minInt',y,cc.minInt,90)}</td><td class="num">${_fIn('cdc','mat',y,cc.mat,80,'da deliberare')}</td><td class="num">${_fIn('cdc','lim',y,cc.lim,100)}</td><td class="del"><a href="#" onclick="fiscAzione('delCdc',${y});return false;" style="color:var(--text-faint);">✕</a></td></tr>`; });
     out += `</tbody></table></div><div class="bud-riga" style="margin-top:8px;font-size:12px;"><a href="#" onclick="fiscAzione('addCdc');return false;" style="color:var(--accent);">+ anno ${cy.length ? cy[cy.length - 1] + 1 : new Date().getFullYear()}</a></div>
       <p class="fisc-hint">I minimi dell'anno si versano a maggio e ottobre; le eccedenze sul reddito dell'anno prima e la maternità il 20 dicembre.</p>`;
     return out;
