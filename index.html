@@ -420,6 +420,82 @@ canvas, img, svg { max-width: 100%; }
 .fisc-chip { display:inline-block; font-size:10.5px; padding:0 6px; border:1px solid var(--border-strong); border-radius:999px; color:var(--text-muted); margin-left:4px; white-space:nowrap; vertical-align:1px; }
 .fisc-nota { font-size:12.5px; color:var(--text-muted); background:var(--warning-light); border-left:3px solid var(--warning); padding:7px 10px; border-radius:4px; margin-top:8px; }
 .fisc-hint { font-size:12px; color:var(--text-faint); margin-top:8px; line-height:1.5; }
+/* Calcolatore aliquota Cassa (novembre 2026) */
+.cc-testa { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; margin-bottom:16px; }
+.cc-sel { height:30px; padding:0 6px; font-size:13px; }
+.cc-met { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:16px; }
+.cc-met > div { background:var(--bg); border-radius:14px; padding:14px 16px; display:flex; flex-direction:column; gap:4px; }
+.cc-met .l { font-size:13px; color:var(--text-muted); }
+.cc-met .v { font-family:'DM Serif Display',serif; font-size:28px; line-height:1.1; }
+.cc-met .s { font-size:12px; color:var(--text-muted); line-height:1.4; }
+.cc-tab-r { display:grid; grid-template-columns:150px repeat(6,minmax(0,1fr)); gap:12px; align-items:center; width:100%; min-height:44px; padding:0 12px; border:none; border-top:1px solid rgba(0,0,0,0.06); background:none; font:inherit; font-size:14px; color:var(--text); text-align:right; cursor:pointer; font-variant-numeric:tabular-nums; }
+.cc-tab-r > :first-child { display:flex; align-items:center; gap:8px; text-align:left; }
+.cc-tab-r.cc-tab-h { min-height:0; padding-bottom:8px; border:none; font-size:12px; color:var(--text-muted); cursor:default; align-items:end; }
+.cc-tab-r.on, .cc-tel-r.on { background:#eef2f6; box-shadow:inset 0 0 0 1.5px var(--blu); border-radius:10px; }
+.cc-pill { font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--accent-light); color:var(--accent); }
+.cc-tel { display:none; }
+.cc-tel-r { display:flex; flex-direction:column; gap:4px; width:100%; min-height:56px; padding:10px; border:none; border-top:1px solid rgba(0,0,0,0.06); background:none; font:inherit; font-size:14px; color:var(--text); text-align:left; cursor:pointer; }
+.cc-tel-top { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.cc-tel-top > span:first-child { display:flex; align-items:center; gap:6px; }
+.cc-cols { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--gap); align-items:stretch; margin-bottom:var(--gap); }
+.cc-cols .card { margin-bottom:0; }
+.cc-col { display:flex; flex-direction:column; gap:var(--gap); }
+.cc-tit { display:flex; justify-content:space-between; align-items:baseline; gap:10px; margin-bottom:12px; }
+.cc-righe { display:grid; grid-template-columns:1fr auto; gap:8px 16px; font-size:14px; margin-bottom:12px; }
+.cc-righe > span:nth-child(odd) { color:var(--text-muted); }
+.cc-righe > span:nth-child(even) { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+.cc-righe-p { font-size:13px; margin:0; }
+.cc-righe-p > span:nth-child(even) { color:var(--text); }
+.card > .cc-righe-p { border-top:1px solid rgba(0,0,0,0.06); padding-top:12px; }
+.cc-soglia { display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:14px; color:var(--text-muted); margin:12px 0 8px; }
+.cc-soglia .bud-in { width:110px; text-align:right; }
+.cc-sug { display:flex; justify-content:space-between; align-items:center; gap:12px; background:var(--accent-light); border-radius:14px; padding:12px 14px; margin:10px 0 12px; }
+.cc-sug > div { display:flex; flex-direction:column; gap:3px; font-size:12px; }
+.cc-sug strong { font-size:13px; color:var(--accent); }
+.cc-sug .btn { white-space:nowrap; border-color:var(--accent); color:var(--accent); font-weight:600; }
+.cc-num { font-family:'DM Serif Display',serif; font-size:24px; white-space:nowrap; }
+.cc-conf { display:flex; flex-direction:column; }
+.cc-corpo { flex:1; display:flex; flex-direction:column; justify-content:space-between; gap:14px; }
+.cc-in { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; }
+.cc-in label { display:flex; flex-direction:column; gap:4px; font-size:12px; color:var(--text-muted); }
+.cc-in .bud-in { width:100%; box-sizing:border-box; }
+.cc-in .cc-2 { grid-column:span 2; }
+.cc-2box { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+.cc-box { border:1px solid var(--border-strong); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:8px; }
+.cc-barre { display:flex; flex-direction:column; gap:6px; }
+.cc-barre > div { display:flex; align-items:center; gap:10px; font-size:12px; color:var(--text-muted); }
+.cc-barre > div > span:first-child { width:90px; }
+.cc-barre > div > span:last-child { width:100px; text-align:right; color:var(--text); }
+.cc-barra { flex:1; height:12px; background:#f0ede6; border-radius:6px; }
+.cc-barra i { display:block; height:100%; border-radius:6px; }
+.cc-verd { background:var(--bg); border-radius:14px; padding:12px 14px; display:flex; flex-direction:column; gap:4px; font-size:13px; color:var(--text-muted); }
+.cc-verd strong { font-size:14px; color:var(--text); }
+.cc-scen { display:grid; grid-template-columns:1.4fr 1fr 1fr 1fr; gap:10px; font-size:13px; padding:9px 0; border-top:1px solid rgba(0,0,0,0.06); }
+.cc-scen > span:not(:first-child) { text-align:right; }
+.cc-scen-h { border:none; font-size:12px; color:var(--text-muted); padding-top:0; }
+.cc-regole { display:grid; grid-template-columns:1.3fr 1fr; gap:28px; }
+.cc-sub { font-size:13px; font-weight:600; margin-bottom:8px; }
+.cc-par { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; }
+.cc-par3 { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:10px; }
+.cc-par4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.cc-par label { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--text-muted); }
+.cc-par label > span { text-align:right; white-space:nowrap; }
+.cc-par .bud-in { width:100%; box-sizing:border-box; text-align:right; }
+@media (max-width: 900px) {
+  .cc-cols, .cc-regole { grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width: 768px) {
+  .cc-met { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cc-met .v { font-size:24px; }
+  .cc-pc { display:none; }
+  .cc-tel { display:block; }
+  .cc-in, .cc-2box { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .cc-2box { grid-template-columns:minmax(0,1fr); }
+  .cc-par { grid-template-columns:repeat(4,minmax(0,1fr)); }
+  .cc-par3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .cc-par3 label > span { white-space:normal; }
+  .cc-par4 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
 .fisc-campi { display:flex; flex-wrap:wrap; gap:12px 16px; margin-top:14px; align-items:flex-start; }
 .fisc-campo { display:flex; flex-direction:column; gap:3px; flex:1 1 170px; font-size:12px; color:var(--text-muted); }
 .fisc-campo small { color:var(--text-faint); font-size:11px; }
@@ -3585,7 +3661,13 @@ const Fisco = (function(){
     return {
       version: 1,
       settings: { coeff:78, aliquota:15, sogPct:12, intPct:4, bollo:2, sogliaBollo:77.47,
-        bolloInRicavi:true, intDeducibile:false, rival:1.3, rateMinimi:2, rateEcc:1, meseExtra:8, metodoAcconti:'storico', annoMinimi:null },
+        bolloInRicavi:true, intDeducibile:false, rival:1.3, rateMinimi:2, rateEcc:1, meseExtra:8, metodoAcconti:'storico', annoMinimi:null,
+        // calcolatore aliquota Cassa: Tabella C bis (plus % del reddito per aliquota), plus minimo
+        // in % del soggettivo minimo, coefficiente di equità, Tabella B (coefficienti di trasformazione)
+        cassaPlus:{ 12:3, 13:3.2, 14:3.4, 15:3.6, 16:3.8, 17:4, 18:4.2, 19:4.4, 20:4.6, 21:4.8, 22:5 }, cassaPlusMin:25, cassaEquita:1,
+        cassaCoeff:{ 57:4.020, 58:4.116, 59:4.219, 60:4.327, 61:4.442, 62:4.565, 63:4.695, 64:4.835, 65:4.984, 66:5.143, 67:5.315, 68:5.499,
+          69:5.699, 70:5.914, 71:6.147, 72:6.400, 73:6.674, 74:6.972, 75:7.297, 76:7.653, 77:8.043, 78:8.472, 79:8.943, 80:9.462 },
+        cassaRiv:2, etaPens:67, nascita:null, irpefFut:25, altRend:5, altTer:0.2, altTassa:26, sogliaCassa:3000 },
       cdc: {
         '2024': { minSog:3075, minInt:923, mat:77.09, lim:202700 },
         '2025': { minSog:3140, minInt:942, mat:74.92, lim:206800 },
@@ -3675,20 +3757,25 @@ const Fisco = (function(){
       if(c <= st.sogliaBollo){ c = L/(1 + st.intPct/100); b = 0; }
       compensi += c*n; bollo += b*n; nf += n; lordo += L*n;
     }
-    compensi += Number(r.ricaviExtra) || 0;
-    const hasData = nf > 0 || (Number(r.ricaviExtra) || 0) > 0;
+    // volume d'affari per la Cassa: compensi lordi fatturati al netto del 4% (senza bolli)
+    let volume = compensi;
+    const extra = Number(r.ricaviExtra) || 0;
+    compensi += extra;
+    const hasData = nf > 0 || extra > 0;
     const nBolli = r.nBolli != null ? Number(r.nBolli) : (nf > 0 ? Math.round(bollo/(st.bollo || 2)) : null);
+    // i ricavi inseriti a mano sono il totale fatturato, integrativo e bolli compresi
+    if(extra > 0) volume += Math.max(0, extra - (nf > 0 ? 0 : (nBolli || 0)*(st.bollo || 2)))/(1 + st.intPct/100);
     const ricavi = compensi + (st.bolloInRicavi ? bollo : 0);
     const reddito = ricavi*st.coeff/100;
     const pct = r.sogPct != null ? Number(r.sogPct) : st.sogPct;
     const sogCalc = r2(Math.min(reddito, p.lim)*pct/100);
-    const intCalc = r2(compensi*st.intPct/100);
+    const intCalc = r2(volume*st.intPct/100);
     const std = conMinimi(y + 1);
     const sogDue = hasData ? (std ? Math.max(p.minSog, sogCalc) : sogCalc) : 0;
     const intDue = hasData ? (std ? Math.max(p.minInt, intCalc) : intCalc) : 0;
     const eccSog = hasData ? r2(Math.max(0, sogCalc - p.minSog)) : 0;
     const eccInt = hasData ? r2(Math.max(0, intCalc - p.minInt)) : 0;
-    const res = { y, p, nf, lordo, compensi, bollo, ricavi, reddito, pct, sogCalc, intCalc, sogDue, intDue,
+    const res = { y, p, nf, lordo, compensi, volume, bollo, ricavi, reddito, pct, sogCalc, intCalc, sogDue, intDue,
       eccSog, eccInt, conMinimi:std, hasData, nBolli, bolliOverride: r.nBolli != null, cassaIncassata:intCalc, dataFinal: r.imposta != null };
     memo.set(y, res);   // segnaposto: cdcPayments può leggere quest'anno senza cicli
 
@@ -3934,6 +4021,11 @@ function fiscMigra() {
     if(F.settings && +F.settings.rateMinimi === 1) F.settings.rateMinimi = 2;
     F.migrazioni.push('2b-minimi-due-rate'); n++;
   }
+  if(!F.migrazioni.includes('cdc-2026-maternita')) {
+    // contributo di maternità 2026 deliberato dalla Cassa: 79,09
+    if(F.cdc && F.cdc['2026'] && F.cdc['2026'].mat == null) F.cdc['2026'].mat = 79.09;
+    F.migrazioni.push('cdc-2026-maternita'); n++;
+  }
   return n > 0;
 }
 
@@ -4037,6 +4129,194 @@ function fiscStriscia(B, S) {
   return s;
 }
 
+// ─── Calcolatore aliquota Cassa (novembre 2026) ─────────────────
+// Regolamento unitario CNPADC: Tabella C bis (plus sul montante, % del reddito
+// per aliquota, minimo 25% del soggettivo minimo, × coefficiente di equità) e
+// Tabella B (coefficienti di trasformazione). Soggettivo e maternità sono
+// deducibili dall'imposta sostitutiva, l'integrativo no.
+function ccSt() { return Fisco.stato().settings; }
+function ccPc(v) { return String(Math.round((+v || 0) * 1000) / 1000).replace('.', ','); }
+function ccPlusPct(a) { if(a < 12) return 0; const t = ccSt().cassaPlus || {}, k = Math.min(22, Math.floor(a)); return +(t[k] != null ? t[k] : 0) || 0; }
+function ccCalc(cs, a) {
+  const st = ccSt(), p = cs.p, withMin = Fisco.conMinimi(cs.y + 1);
+  const base = Math.min(cs.reddito, p.lim);
+  const sogCalc = _r2(base * a / 100);
+  const sog = withMin ? Math.max(p.minSog, sogCalc) : sogCalc;
+  const ecc = withMin ? _r2(sog - p.minSog) : sog;
+  const pct = ccPlusPct(a), eq = st.cassaEquita != null ? +st.cassaEquita : 1;
+  const plusBase = base * pct / 100, plusMin = withMin ? p.minSog * (+st.cassaPlusMin || 0) / 100 : 0;
+  const plus = _r2(Math.max(plusBase, plusMin) * eq);
+  const risp = _r2(ecc * st.aliquota / 100);
+  const intDic = withMin ? cs.eccInt : cs.intDue;
+  return { a, pct, sog, ecc, plus, plusAlMin: plusBase < plusMin, mont: sog + plus, risp, costo: ecc - risp, intDic, mat: p.mat, dicTot: _r2(ecc + intDic + p.mat) };
+}
+// Soldi fino al 21 dicembre dell'anno del versamento: liquidità di oggi, entrate previste,
+// scadenze non ancora pagate, ricorrenti e variabili ancora da spendere (budget dell'anno).
+// Il pagamento Cassa di dicembre è escluso: lo aggiunge il calcolatore secondo l'aliquota.
+function ccFlusso(Yd) {
+  const oggi = new Date();
+  if(oggi.getFullYear() !== Yd || !budAnno(Yd) || oggi > new Date(Yd, 11, 21)) return null;
+  const C = budCalcAnno(Yd); if(!C) return null;
+  const R = budRealeVoci(Yd).voci, cor = Math.max(oggi.getMonth(), C.S);
+  let entr = 0, ric = 0, scad = 0;
+  C.voci.forEach(r => {
+    const g = r.voce.gruppo, re = R[r.voce.id] || _z12();
+    if(g === 'entrate') {
+      for(let m = cor; m < 12; m++) {
+        if(m === 11 && parseInt(r.voce.entroGiorno, 10) > 21) continue;
+        entr += m === oggi.getMonth() ? Math.max(0, r.prev[m] - re[m]) : r.prev[m];
+      }
+    } else if(g === 'ricorrenti' || g === 'stime') {
+      for(let m = cor; m < 12; m++) ric += m === oggi.getMonth() ? Math.max(0, r.prev[m] - re[m]) : r.prev[m];
+    }
+  });
+  budScadenze(Yd).forEach(s => {
+    if(s.stato === 'pagata' || s.mese < oggi.getMonth()) return;
+    if(s.mese === 11 && (s.voce.id === 'cassa_sogg' || s.voce.id === 'cassa_int')) return;
+    scad += Math.max(0, s.importo - s.pagato);
+  });
+  const liq = state.accounts.reduce((t, a) => t + (a.saldo || 0), 0);
+  return { liq, entr, ric, scad, usc: ric + scad };
+}
+function ccEta(nascita, d) {
+  const n = new Date(String(nascita) + 'T00:00:00');
+  return isNaN(n.getTime()) ? null : (d - n) / (365.2425 * 864e5);
+}
+function ccSet(k, el, sub) {
+  if(!fiscHa()) return;
+  const F = fiscRaw(); if(!F.settings) F.settings = {};
+  const S = F.settings, D = Fisco.defaults().settings;
+  if(k === 'nascita') S.nascita = el.value || null;
+  else {
+    const n = fiscNum(el.value);
+    if(sub != null) { S[k] = Object.assign({}, D[k], S[k] || {}); S[k][sub] = n != null ? n : D[k][sub]; }
+    else S[k] = n != null ? n : D[k];
+  }
+  budTocca(); renderBudget();
+}
+function ccHtml(anni, anno) {
+  const ys = anni.filter(y => { const c = Fisco.compute(y); return c && c.hasData; });
+  if(!ys.length) return `<section class="card"><h2 class="card-title">Calcolatore aliquota Cassa</h2><div class="riga-sotto">Servono i ricavi di almeno un anno.</div></section>`;
+  if(fiscUi.simYear == null || !ys.includes(fiscUi.simYear)) fiscUi.simYear = ys.includes(anno - 1) ? anno - 1 : ys[ys.length - 1];
+  const Y = fiscUi.simYear, Yd = Y + 1, cs = Fisco.compute(Y), st = ccSt(), withMin = Fisco.conMinimi(Yd);
+  if(fiscUi.simPct == null) fiscUi.simPct = cs.pct;
+  const sel = fiscUi.simPct, s = ccCalc(cs, sel), base = ccCalc(cs, 12), uso = cs.pct === sel;
+  const Fl = ccFlusso(Yd), soglia = +st.sogliaCassa || 0;
+  const resta = k => Fl.liq + Fl.entr - Fl.usc - k.dicTot;
+  let sug = null; if(Fl) for(let a = 22; a >= 12; a--) { if(resta(ccCalc(cs, a)) >= soglia) { sug = a; break; } }
+  const aliq = []; for(let a = 12; a <= 25; a++) aliq.push(a);
+  [cs.pct, sel].forEach(a => { if(a >= 12 && !aliq.includes(a)) aliq.push(a); }); aliq.sort((x, y) => x - y);
+  const rows = aliq.map(a => {
+    const k = ccCalc(cs, a), incr = k.mont - base.mont;
+    return { a, k, rap: k.costo > 0.5 ? '× ' + fmtNum(incr / k.costo, 2) : '—',
+      badge: (a === sug ? '<span class="cc-pill">consigliata</span>' : '') + (a === cs.pct ? '<small class="riga-sotto">in uso</small>' : '') };
+  });
+  const eccN = withMin ? 'eccedenza' : 'soggettivo';
+
+  // 1. calcolatore
+  let h = `<section class="card"><div class="cc-testa"><div><h2 class="card-title" style="margin:0;">Calcolatore aliquota Cassa</h2>
+    <div class="riga-sotto" style="margin-top:4px;">Sul reddito <select class="bud-in cc-sel" onchange="fiscSet('simYear','','',this)">${ys.map(y => `<option value="${y}"${y === Y ? ' selected' : ''}>${y}</option>`).join('')}</select>${withMin ? ` · minimo soggettivo ${Yd} ${_eur0(cs.p.minSog)}` : ''} · pagamento il 20 dicembre ${Yd}</div></div>
+    <button class="btn${uso ? '' : ' btn-primary'}" onclick="fiscAzione('simApply')"${uso ? ' disabled' : ''}>${uso ? 'Aliquota già in uso' : `Usa ${ccPc(sel)}% per il reddito ${Y}`}</button></div>
+    <div class="cc-met">
+      <div><span class="l">A dicembre ${Yd}</span><span class="v" style="color:var(--blu);">${_eur0(s.dicTot)}</span><span class="s">${eccN} soggettivo ${_eur0(s.ecc)} + integrativo ${_eur0(s.intDic)} + maternità ${_eur0(s.mat)}</span></div>
+      <div><span class="l">Plus sul montante</span><span class="v" style="color:var(--accent);">${_eur0(s.plus)}</span><span class="s">${s.plusAlMin ? `il minimo: ${ccPc(st.cassaPlusMin)}% del soggettivo minimo` : `${ccPc(s.pct)}% del reddito`}</span></div>
+      <div><span class="l">Montante accreditato</span><span class="v" style="color:var(--accent);">${_eur0(s.mont)}</span><span class="s">soggettivo ${_eur0(s.sog)} + plus ${_eur0(s.plus)}</span></div>
+      <div><span class="l">Costo netto</span><span class="v">${_eur0(s.costo)}</span><span class="s">${eccN} ${_eur0(s.ecc)} − ${_eur0(s.risp)} di imposta in meno</span></div>
+    </div>
+    <div class="cc-pc"><div class="cc-tab-r cc-tab-h"><span>Aliquota</span><span>Soggettivo</span><span>Eccedenza a dicembre</span><span>Plus</span><span>Montante</span><span>Costo netto</span><span>Montante in più ogni 1 di costo</span></div>
+    ${rows.map(r => `<button class="cc-tab-r${r.a === sel ? ' on' : ''}" onclick="fiscAzione('simPick',${r.a})"><span><b>${ccPc(r.a)}%</b>${r.badge}</span><span>${_eur0(r.k.sog)}</span><span>${r.k.ecc > 0.5 ? _eur0(r.k.ecc) : '—'}</span><span>${_eur0(r.k.plus)}</span><span>${_eur0(r.k.mont)}</span><span>${r.k.costo > 0.5 ? _eur0(r.k.costo) : '—'}</span><span><b>${r.rap}</b></span></button>`).join('')}</div>
+    <div class="cc-tel">${rows.map(r => `<button class="cc-tel-r${r.a === sel ? ' on' : ''}" onclick="fiscAzione('simPick',${r.a})"><span class="cc-tel-top"><span><b>${ccPc(r.a)}%</b>${r.badge}</span><span>a dicembre ${r.k.ecc > 0.5 ? _eur0(r.k.ecc) : '—'}</span></span><span class="riga-sotto">plus ${_eur0(r.k.plus)} · montante ${_eur0(r.k.mont)} · costo ${r.k.costo > 0.5 ? _eur0(r.k.costo) : '—'} · ${r.k.costo > 0.5 ? r.rap : 'minimo'}</span></button>`).join('')}</div>
+    <p class="fisc-hint">${withMin ? `Finché il soggettivo calcolato resta sotto il minimo di ${_eur0(cs.p.minSog)} si versa il minimo. ` : ''}Dal 22% in su il plus resta al 5%: ogni punto in più costa senza bonus. L'ultima colonna confronta con il 12%: montante in più diviso per il costo netto. Tocca una riga per sceglierla.</p></section>`;
+
+  // 2. sostenibilità finanziaria
+  let sost = `<section class="card"><div class="cc-tit"><h2 class="card-title" style="margin:0;">Sostenibilità finanziaria</h2><span class="riga-sotto">fino al 21 dicembre ${Yd}</span></div>`;
+  if(!Fl) sost += `<div class="riga-sotto">Si calcola nell'anno del versamento, fino al 21 dicembre ${Yd}, con il budget ${Yd}.</div>`;
+  else {
+    const r = resta(s), ok = r >= soglia;
+    sost += `<div class="cc-righe"><span>Saldi dei conti oggi</span><span>${_eur0(Fl.liq)}</span>
+      <span>+ Entrate previste fino al 21/12</span><span style="color:var(--accent);">+ ${_eur0(Fl.entr)}</span>
+      <span>− Scadenze ancora da pagare</span><span style="color:var(--blu);">− ${_eur0(Fl.scad)}</span>
+      <span>− Spese ricorrenti e variabili</span><span style="color:var(--blu);">− ${_eur0(Fl.ric)}</span>
+      <span>− Pagamento Cassa di dicembre al ${ccPc(sel)}%</span><span style="color:var(--blu);">− ${_eur0(s.dicTot)}</span></div>
+      <div class="cr-patr-sep"></div><div class="cr-patr-tot"><span>Resta dopo il 20 dicembre</span><span>${_eur0(r)}</span></div>
+      <label class="cc-soglia">Soglia minima da tenere sui conti<input class="bud-in" inputmode="decimal" value="${_numIn(soglia)}" onchange="ccSet('sogliaCassa',this)"></label>
+      <div style="font-size:13px;font-weight:600;color:${ok ? 'var(--accent)' : 'var(--arancio)'};">${ok ? 'Sopra la soglia di ' + _eur0(r - soglia) : 'Sotto la soglia di ' + _eur0(soglia - r)}</div>
+      <div class="cc-sug"><div><strong>${sug == null ? 'Nessuna aliquota rispetta la soglia' : `Aliquota consigliata: ${sug}%`}</strong><span>${sug == null ? 'Anche al minimo resteresti sotto la soglia.' : `La più alta fino al 22% che lascia almeno ${_eur0(soglia)} sui conti.`}</span></div>${sug != null && sug !== sel ? `<button class="btn" onclick="fiscAzione('simPick',${sug})">Guarda ${sug}%</button>` : ''}</div>
+      <p class="fisc-hint" style="margin:0;">Le uscite comprendono tutte le spese già previste nel budget ${Yd} da qui a dicembre (scadenze non ancora pagate, ricorrenti e variabili), tranne il pagamento Cassa di dicembre, che dipende dall'aliquota.</p>`;
+  }
+  sost += `</section>`;
+
+  // 3. dati per il modulo Cassa
+  const mod = `<section class="card"><h2 class="card-title" style="margin-bottom:4px;">Dati per il modulo Cassa</h2><div class="riga-sotto">Comunicazione PCE ${Yd}, sul ${Y}</div>
+    <div class="riga"><div class="riga-main"><span class="riga-nome">Reddito netto professionale ${Y}</span><span class="riga-sotto">Forfettari: rigo LM34 (sezione III del quadro LM) del modello Redditi ${Yd}, cioè ricavi ${_eur0(cs.ricavi)} × ${ccPc(st.coeff)}%</span></div><span class="cc-num">${_eur0(cs.reddito)}</span></div>
+    <div class="riga"><div class="riga-main"><span class="riga-nome">Volume d'affari ${Y}</span><span class="riga-sotto">Forfettari: compensi lordi fatturati nel ${Y} al netto del ${ccPc(st.intPct)}%, senza i bolli</span></div><span class="cc-num">${_eur0(cs.volume)}</span></div>
+    <div class="riga"><div class="riga-main"><span class="riga-nome">Aliquota del soggettivo</span><span class="riga-sotto">quella scelta nel calcolatore</span></div><span class="cc-num" style="color:var(--blu);">${ccPc(sel)}%</span></div>
+    <div class="cc-righe cc-righe-p"><span>Soggettivo dovuto (${ccPc(sel)}% di ${_eur0(Math.min(cs.reddito, cs.p.lim))})</span><span>${_eur0(s.sog)}</span>
+      <span>Integrativo dovuto (${ccPc(st.intPct)}% di ${_eur0(cs.volume)})</span><span>${_eur0(cs.intCalc)}</span>
+      ${withMin ? `<span>Già versati con i minimi ${Yd}</span><span>− ${_eur0(cs.p.minSog + cs.p.minInt)}</span>` : ''}</div></section>`;
+
+  // 4. Cassa o investimento
+  const incr = s.mont - base.mont, costo = s.costo;
+  const inp = (k, label, val) => `<label>${label}<input class="bud-in" inputmode="decimal" value="${_esc(val)}" onchange="ccSet('${k}',this)"></label>`;
+  const etaOpz = []; for(let e = 60; e <= 72; e++) etaOpz.push(e);
+  let conf = `<section class="card cc-conf"><div class="cc-tit"><h2 class="card-title" style="margin:0;">Cassa o investimento?</h2><span class="riga-sotto">aliquota ${ccPc(sel)}% contro il minimo</span></div>`;
+  if(costo <= 0.5) conf += `<div class="riga-sotto">Al minimo non versi niente in più: scegli un'aliquota più alta per confrontarla.</div>`;
+  else {
+    conf += `<div class="cc-corpo"><div class="imp-testo" style="color:var(--text);">Versi <strong>${_eur0(s.ecc)}</strong> in più, che ti costano <strong>${_eur0(costo)}</strong> dopo l'imposta. La Cassa ti accredita <strong>${_eur0(incr)}</strong> di montante in più.</div>
+      <div class="cc-in"><label>Data di nascita<input class="bud-in" type="date" value="${_esc(st.nascita || '')}" onchange="ccSet('nascita',this)"></label>
+        <label>Età di pensione<select class="bud-in" onchange="ccSet('etaPens',this)">${etaOpz.map(e => `<option value="${e}"${e === +st.etaPens ? ' selected' : ''}>${e}</option>`).join('')}</select></label>
+        ${inp('cassaRiv', 'Rivalutazione Cassa %', _numIn(st.cassaRiv))}${inp('irpefFut', 'IRPEF media futura %', _numIn(st.irpefFut))}
+        ${inp('altRend', 'Rendimento lordo %', _numIn(st.altRend))}${inp('altTer', 'TER %', _numIn(st.altTer))}
+        <label class="cc-2">Tassazione dei guadagni<select class="bud-in" onchange="ccSet('altTassa',this)"><option value="26"${+st.altTassa !== 12.5 ? ' selected' : ''}>26% (ETF, fondi)</option><option value="12,5"${+st.altTassa === 12.5 ? ' selected' : ''}>12,5% (titoli di Stato)</option></select></label></div>`;
+    const eta = st.nascita ? ccEta(st.nascita, new Date(Yd, 11, 20)) : null;
+    if(eta == null) conf += `<div class="avviso">Inserisci la data di nascita: serve per sapere quanti anni mancano alla pensione.</div>`;
+    else {
+      const etaP = +st.etaPens, n = Math.max(0, etaP - eta);
+      const coeff = (+((st.cassaCoeff || {})[etaP]) || 0) / 100, irpef = (+st.irpefFut || 0) / 100, t = (+st.altTassa || 0) / 100, ter = +st.altTer || 0;
+      const cFin = rv => incr * Math.pow(1 + rv / 100, n);
+      const iNet = rd => { const V = costo * Math.pow(1 + (rd - ter) / 100, n); return V - t * Math.max(0, V - costo); };
+      const riv = +st.cassaRiv || 0, rend = +st.altRend || 0;
+      const cF = cFin(riv), cN = cF * coeff * (1 - irpef), iL = costo * Math.pow(1 + (rend - ter) / 100, n), iN = iNet(rend), iR = iN * coeff;
+      const target = cF * (1 - irpef);
+      let par = null;
+      if(iNet(30) >= target) { let lo = -10, hi = 30; for(let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if(iNet(m) >= target) hi = m; else lo = m; } par = hi; }
+      const mx = Math.max(cN, iR, 1), diff = cN - iR;
+      const sc = (nome, rc, ri) => { const c = cFin(rc) * coeff * (1 - irpef), i = iNet(ri) * coeff; return `<div class="cc-scen"><span><span class="riga-nome" style="font-weight:500;">${nome}</span><br><small class="riga-sotto">Cassa ${ccPc(rc)}% · investimento ${ccPc(ri)}%</small></span><span>${_eur0(c)}</span><span>${_eur0(i)}</span><span><b>${Math.abs(c - i) < 1 ? 'pari' : c > i ? 'Cassa' : 'Investimento'}</b></span></div>`; };
+      const anniP = Math.round(n);
+      conf += `<div class="cc-2box"><div class="cc-box" style="border-color:rgba(61,106,150,0.35);"><strong style="color:var(--blu);font-size:13px;">Cassa, a ${etaP} anni</strong>
+          <div class="cc-righe cc-righe-p"><span>Montante rivalutato</span><span>${_eur0(cF)}</span><span>Pensione lorda (× ${ccPc(coeff * 100)}%)</span><span>${_eur0(cF * coeff)}</span><span>Pensione netta (IRPEF ${ccPc(irpef * 100)}%)</span><span><b>${_eur0(cN)}</b></span></div></div>
+        <div class="cc-box"><strong style="font-size:13px;">Investimento, a ${etaP} anni</strong>
+          <div class="cc-righe cc-righe-p"><span>Capitale lordo</span><span>${_eur0(iL)}</span><span>Capitale netto (tasse ${ccPc(t * 100)}%)</span><span>${_eur0(iN)}</span><span>Rendita equivalente</span><span><b>${_eur0(iR)}</b></span></div></div></div>
+        <div class="cc-barre"><div><span>Cassa</span><div class="cc-barra"><i style="width:${cN / mx * 100}%;background:var(--blu);"></i></div><span>${_eur0(cN)} l'anno</span></div>
+          <div><span>Investimento</span><div class="cc-barra"><i style="width:${iR / mx * 100}%;background:var(--text);"></i></div><span>${_eur0(iR)} l'anno</span></div></div>
+        <div class="cc-verd"><strong>${Math.abs(diff) < 1 ? 'Con questi parametri Cassa e investimento si equivalgono.' : diff > 0 ? `Con questi parametri conviene la Cassa: ${_eur0(diff)} in più all'anno.` : `Con questi parametri conviene l'investimento: ${_eur0(-diff)} in più all'anno.`}</strong>
+          <span>${par == null ? "L'investimento non pareggia la Cassa nemmeno al 30% lordo." : `Pareggio: l'investimento deve rendere almeno ${ccPc(Math.round(par * 100) / 100)}% lordo l'anno, con TER e tasse, in ${anniP} anni.`}</span></div>
+        <div><div class="cc-scen cc-scen-h"><span>Scenario</span><span>Cassa netta</span><span>Investimento</span><span>Meglio</span></div>
+          ${sc('Prudente', 1.5, Math.max(0, rend - 2))}${sc('Medio', riv, rend)}${sc('Ottimista', 3, rend + 2)}</div>
+        <p class="fisc-hint" style="margin:0;">Importi all'anno, di oggi non scontati, a ${anniP} anni dal versamento. La rendita equivalente trasforma il capitale con lo stesso coefficiente della Cassa. La pensione dura tutta la vita ed è soggetta a IRPEF; il capitale resta tuo e passa agli eredi.</p>`;
+    }
+    conf += `</div>`;
+  }
+  conf += `</section>`;
+
+  // 5. regole Cassa
+  const n3 = v => v == null ? '' : String(v).replace('.', ',');
+  const regole = _fApribile('regole', 'Regole Cassa', 'Tabella C bis, Tabella B e deduzione (soggettivo e maternità): si cambiano solo se cambia il regolamento.', () => {
+    const plus = st.cassaPlus || {}, cf = st.cassaCoeff || {};
+    const ks = o => Object.keys(o).map(Number).sort((a, b) => a - b);
+    return `<div class="cc-regole"><div><div class="cc-sub">Plus sul montante (% del reddito)</div>
+        <div class="cc-par">${ks(plus).map(k => `<label><span>${k === 22 ? '22% e oltre' : k + '%'}</span><input class="bud-in" inputmode="decimal" value="${n3(plus[k])}" onchange="ccSet('cassaPlus',this,'${k}')"></label>`).join('')}</div>
+        <div class="cc-par cc-par3"><label><span>Plus minimo % del minimo</span><input class="bud-in" inputmode="decimal" value="${n3(st.cassaPlusMin)}" onchange="ccSet('cassaPlusMin',this)"></label>
+          <label><span>Equità intergenerazionale</span><input class="bud-in" inputmode="decimal" value="${n3(st.cassaEquita)}" onchange="ccSet('cassaEquita',this)"></label>
+          <label><span>Deduzione %</span><input class="bud-in" value="${n3(st.aliquota)}" disabled title="È l'aliquota dell'imposta sostitutiva, in Parametri e minimi Cassa"></label></div></div>
+      <div><div class="cc-sub">Coefficienti di trasformazione (Tabella B) %</div>
+        <div class="cc-par cc-par4">${ks(cf).map(k => `<label><span>${k === 80 ? '80 anni e oltre' : k + ' anni'}</span><input class="bud-in" inputmode="decimal" value="${n3(cf[k])}" onchange="ccSet('cassaCoeff',this,'${k}')"></label>`).join('')}</div>
+        <p class="fisc-hint">Rivalutazione del montante tra 1,5% (minimo garantito) e 3% l'anno.</p></div></div>`;
+  });
+
+  return h + `<div class="cc-cols"><div class="cc-col">${sost}${mod}</div>${conf}</div>` + regole;
+}
+
 function budViewImposte(anno) {
   if(!fiscHa()) {
     return `<div class="card"><div class="card-title">Imposte e Cassa</div>
@@ -4107,7 +4387,7 @@ function budViewImposte(anno) {
       out += riga(`× aliquota soggettivo ${fmtNum(c.pct, c.pct % 1 ? 1 : 0)}%`, fmt(c.sogCalc));
       if(c.conMinimi) { out += riga(`− minimo soggettivo ${anno}, versato a maggio${+st.rateMinimi === 2 ? ' e ottobre' : ''}`, fmt(-c.p.minSog)); out += riga(`Eccedenza soggettivo a dicembre ${anno}`, fmt(c.eccSog), 'tot'); }
       else out += riga(`Soggettivo a dicembre ${anno}`, fmt(c.sogDue), 'tot');
-      out += riga(`Integrativo ${fmtNum(st.intPct, 0)}% su ${fmt(c.compensi)}`, fmt(c.intCalc));
+      out += riga(`Integrativo ${fmtNum(st.intPct, 0)}% sul volume d'affari ${fmt(c.volume)}`, fmt(c.intCalc));
       if(c.conMinimi) { out += riga(`− minimo integrativo ${anno}`, fmt(-c.p.minInt)); out += riga(`Eccedenza integrativo a dicembre ${anno}`, fmt(c.eccInt), 'tot'); }
       else out += riga(`Integrativo a dicembre ${anno}`, fmt(c.intDue), 'tot');
       out += riga(`+ maternità ${anno}, a dicembre`, fmt(mat));
@@ -4153,7 +4433,7 @@ function budViewImposte(anno) {
   if(c && c.hasData) h += `<p class="fisc-hint">Compensi ${fmt(c.compensi)} · bolli ${fmt(c.bollo)} · integrativo incassato ${fmt(c.cassaIncassata)} · ricavi ${fmt(c.ricavi)} · reddito ${fmt(c.reddito)}</p>`;
   const campo = (k, label, hint, ph) => `<label class="fisc-campo"><span>${label}</span>${_fIn('y', k, fa, rr ? rr[k] : null, 110, ph)}<small>${hint}</small></label>`;
   h += `<details class="bud-altri"${fiscUi.altri ? ' open' : ''} ontoggle="fiscUi.altri=this.open"><summary class="link">Altri dati della dichiarazione</summary><div class="fisc-campi">
-    ${campo('ricaviExtra', 'Altri compensi', 'Senza cassa né bollo, si sommano.', '0')}
+    ${campo('ricaviExtra', 'Ricavi inseriti a mano', 'Totale fatturato, integrativo e bolli compresi.', '0')}
     ${campo('nBolli', 'Fatture con bollo', 'Vuoto: dalle fatture.', c && c.nBolli != null && !c.bolliOverride ? String(c.nBolli) : '')}
     ${campo('imposta', 'Imposta da dichiarazione', 'Vuoto: usa il calcolo.', c && c.hasData ? _numIn(c.impostaCalc) : 'calcolata')}
     ${campo('acconti', "Acconti versati nell'anno", 'Totale delle due rate.', c && c.acconti != null && !c.accontiOverride ? _numIn(c.acconti) : '')}
@@ -4165,30 +4445,8 @@ function budViewImposte(anno) {
   h += `</div>`;
   h = `<div class="bud-2col"><div>${hCosti}${h}</div><div>${hVers}</div></div>` + hCalc;
 
-  // ── simulatore aliquota soggettivo
-  h += _fApribile('sim', 'Simulatore aliquota soggettivo', 'Quanto costa davvero alzare l\'aliquota, al netto della minore imposta.', () => {
-    const ys = anni.filter(y => { const cc = Fisco.compute(y); return cc && cc.hasData; });
-    if(!ys.length) return `<div style="font-size:13px;color:var(--text-faint);">Servono i ricavi di almeno un anno.</div>`;
-    if(fiscUi.simYear == null || !ys.includes(fiscUi.simYear)) fiscUi.simYear = ys.includes(anno - 1) ? anno - 1 : ys[ys.length - 1];
-    const cs = Fisco.compute(fiscUi.simYear);
-    if(fiscUi.simPct == null) fiscUi.simPct = cs.pct;
-    const rs = Fisco.simCalc(cs, fiscUi.simPct), Yd = fiscUi.simYear + 1;
-    let out = `<div class="bud-riga" style="font-size:13px;">Reddito <select class="bud-in" onchange="fiscSet('simYear','','',this)">${ys.map(y => `<option value="${y}"${y === fiscUi.simYear ? ' selected' : ''}>${y}</option>`).join('')}</select>
-      aliquota ${_fIn('simPct','','',fiscUi.simPct,60)} %
-      <input type="range" min="12" max="50" step="1" value="${Math.min(50, fiscUi.simPct)}" oninput="this.previousElementSibling.value=this.value" onchange="fiscSet('simPct','','',this)" style="flex:1 1 140px;">
-      <button class="btn${fiscUi.simPct === cs.pct ? '' : ' btn-primary'}" style="font-size:12px;padding:5px 10px;" onclick="fiscAzione('simApply')"${fiscUi.simPct === cs.pct ? ' disabled' : ''}>${fiscUi.simPct === cs.pct ? 'Aliquota già in uso' : `Usa ${fmtNum(fiscUi.simPct, fiscUi.simPct % 1 ? 1 : 0)}% per il reddito ${fiscUi.simYear}`}</button></div>`;
-    out += `<div class="metric-grid" style="margin:12px 0;">
-      <div class="metric"><div class="metric-label">A dicembre ${Yd}</div><div class="metric-value">${fmt(rs.totDic)}</div><div class="metric-sub">soggettivo ${fmt(rs.dic)} + integrativo ${fmt(rs.intDic)}</div></div>
-      <div class="metric"><div class="metric-label">Soggettivo totale</div><div class="metric-value">${fmt(rs.sogDue)}</div><div class="metric-sub">${rs.belowMin ? 'resta al minimo di ' + fmt(cs.p.minSog) : 'sul reddito ' + fiscUi.simYear}</div></div>
-      <div class="metric"><div class="metric-label">Minore imposta</div><div class="metric-value">${fmt(-rs.risparmio)}</div><div class="metric-sub">aliquota ${fmtNum(st.aliquota, 0)}%</div></div>
-      <div class="metric"><div class="metric-label">Costo netto</div><div class="metric-value">${fmt(rs.netto)}</div></div></div>`;
-    const rates = [12,15,18,20,22,25,30,cs.pct,fiscUi.simPct].filter((x, i, a) => x >= 12 && x <= 100 && a.indexOf(x) === i).sort((p, q) => p - q);
-    out += `<div class="bud-scroll"><table class="bud-table"><thead><tr><th>Aliquota</th><th>Soggettivo</th><th>A dicembre ${Yd}</th><th>Minore imposta</th><th>Costo netto</th></tr></thead><tbody>`;
-    rates.forEach(x => { const k = Fisco.simCalc(cs, x);
-      out += `<tr style="cursor:pointer;${x === fiscUi.simPct ? 'font-weight:600;' : ''}" onclick="fiscAzione('simPick',${x})"><td>${fmtNum(x, x % 1 ? 1 : 0)}%${x === cs.pct ? ' <small style="color:var(--text-faint);">in uso</small>' : ''}</td><td class="num">${fmt(k.sogDue)}</td><td class="num">${fmt(k.dic)}</td><td class="num">${fmt(-k.risparmio)}</td><td class="num">${fmt(k.netto)}</td></tr>`; });
-    out += `</tbody></table></div><p class="fisc-hint">Il versamento di dicembre ${Yd} è deducibile nel ${Yd}: il risparmio arriva con il saldo di giugno ${Yd + 1} e con acconti ${Yd + 1} più bassi.${Fisco.conMinimi(Yd) ? ` A dicembre si versa la parte che supera il minimo ${Yd} (${fmt(cs.p.minSog)}), già pagato a maggio e ottobre.` : ''}</p>`;
-    return out;
-  });
+  // ── calcolatore aliquota Cassa (sostituisce il simulatore)
+  h += ccHtml(anni, anno);
 
   // ── parametri e minimi
   h += _fApribile('par', 'Parametri e minimi Cassa', 'Coefficiente, aliquote, rate e minimi deliberati dalla Cassa.', () => {
