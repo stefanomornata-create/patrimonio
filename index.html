@@ -941,6 +941,9 @@ body { font-size: 15px; -webkit-font-smoothing: antialiased; }
 .bud-band-num.verde { color: var(--accent); } .bud-band-num.blu { color: var(--blu); } .bud-band-num.neg { color: var(--rosso); }
 .bud-band-marg .bud-band-lab { color: var(--text); font-weight: 600; }
 .bud-band-sep { background: var(--border); }
+.imp-2col { align-items: stretch; }
+.imp-2col > .card { margin-bottom: var(--gap); }
+.imp-tot .bud-band-num { color: var(--text); }
 .bud-griglia { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: var(--gap); align-items: stretch; }
 .bud-griglia > .card { margin-bottom: 0; display: flex; flex-direction: column; min-width: 0; }
 .bud-griglia > .card > .link:last-child { margin-top: auto; align-self: flex-start; padding-top: 10px; }
@@ -4344,18 +4347,21 @@ function budViewImposte(anno) {
 
   // ── quanto costano
   const pagDi = {}; if(A) budScadenze(anno).forEach(x => { pagDi[x.voce.id + '|' + x.mese] = x; });
-  const rigaC = (n, nota, v) => `<div class="cr-patr-riga"><span><span style="color:var(--text);">${n}</span><br><small class="riga-sotto">${nota}</small></span><span>${_eur0(v)}</span></div>`;
-  let hCosti = `<section class="card cr-patr"><h2 class="card-title">Quanto costano nel ${anno}</h2>
-    ${rigaC('Imposta sostitutiva', `saldo ${anno - 1} e acconti ${anno}`, B.tax)}${rigaC('Cassa a tuo carico', 'soggettivo e maternità', B.cdc)}${rigaC('Integrativo', 'incassato dai clienti', B.cli)}${rigaC('Bolli sulle fatture', 'addebitati in fattura', B.bol)}
-    <div class="cr-patr-sep"></div><div class="cr-patr-tot"><span>Totale</span><span style="color:var(--text);">${_eur0(B.tot)}</span></div>
-    ${B.cli + B.bol > 0.5 ? `<div class="imp-testo">Integrativo e bolli li incassi già in fattura: a tuo carico restano <strong>${_eur0(netto)}</strong>, circa ${_eur0(netto / 12)} al mese.</div>` : ''}`;
+  const vC = (lab, v, sotto, cls) => `<div class="bud-band-v${cls ? ' ' + cls : ''}"><span class="bud-band-lab">${lab}</span><span class="bud-band-num${cls ? '' : ' blu'}">${_eur0(v)}</span><span class="riga-sotto">${sotto}</span></div>`;
+  let hCosti = `<section class="card bud-band imp-costi"><div class="cr-tit-riga"><h2 class="card-title">Quanto costano nel ${anno}</h2></div>
+    <div class="bud-band-grid">
+      ${vC('Imposta sostitutiva', B.tax, `saldo ${anno - 1} e acconti ${anno}`)}${vC('Cassa a tuo carico', B.cdc, 'soggettivo e maternità')}${vC('Integrativo', B.cli, 'incassato dai clienti')}${vC('Bolli sulle fatture', B.bol, 'addebitati in fattura')}
+      <div class="bud-band-sep"></div>
+      ${vC('Totale', B.tot, `circa ${_eur0(B.tot / 12)} al mese`, 'bud-band-marg imp-tot')}
+    </div>
+    ${B.cli + B.bol > 0.5 ? `<div class="imp-testo" style="margin-top:14px;">Integrativo e bolli li incassi già in fattura: a tuo carico restano <strong>${_eur0(netto)}</strong>, circa ${_eur0(netto / 12)} al mese.</div>` : ''}`;
   if(A) {
     const st4 = ['tax','cdc','cli','bol'].map(k => {
       const id = FISC_KIND_VOCE[k], c = A.righe[id];
       const stato = !c ? `<button class="link" style="padding:0;font-size:12px;" onclick="budAttivaVoce('${id}')">+ aggiungi</button>` : c.escludi ? 'esclusa' : c.manuale ? 'importi manuali' : 'calcolata';
       return `${FISC_NOME[k]}: ${stato}`;
     }).join(' · ');
-    hCosti += `<div class="riga-sotto" style="line-height:1.6;">Nel budget ${anno}: ${st4}.</div>`;
+    hCosti += `<div class="riga-sotto" style="line-height:1.6;margin-top:12px;">Nel budget ${anno}: ${st4}.</div>`;
   }
   hCosti += `</section>`;
   // ── versamenti
@@ -4458,7 +4464,7 @@ function budViewImposte(anno) {
   </div></details>`;
   if(rr) h += `<div style="margin-top:10px;"><a href="#" onclick="fiscAzione('delAnno');return false;" style="color:var(--danger);font-size:12px;">Elimina i dati inseriti per il ${fa}</a></div>`;
   h += `</div>`;
-  h = `<div class="bud-2col"><div>${hCosti}${h}</div><div>${hVers}</div></div>` + hCalc;
+  h = hCosti + `<div class="bud-2col imp-2col">${h}${hVers}</div>` + hCalc;
 
   // ── calcolatore aliquota Cassa (sostituisce il simulatore)
   h += ccHtml(anni, anno);
